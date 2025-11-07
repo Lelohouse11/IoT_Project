@@ -20,10 +20,8 @@ To keep our workflow clean and consistent:
 3. **Write meaningful commit messages.**  
    - Describe briefly what you changed or added.  
    - Example:  
-     ```
-     feat: add parking recommendation logic
-     fix: resolve map z-index issue
-     ```
+     `feat: add parking recommendation logic` or
+     `fix: resolve map z-index issue`
 
 4. **Keep commits small and clear.**  
    Avoid huge “everything at once” commits.
