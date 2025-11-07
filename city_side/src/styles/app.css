@@ -1,0 +1,294 @@
+/* =========================================================
+   Smart City Admin – Base Styles
+   ========================================================= */
+
+/* -------- Colors & Variables -------- */
+:root {
+  --bg: #0b1220;          /* dark blue-gray background */
+  --panel: #111b2e;       /* card and panel background */
+  --accent: #4fd1c5;      /* teal accent color */
+  --text: #e6eefc;        /* near white text */
+  --muted: #9bb0d1;       /* muted text */
+}
+
+/* -------- Global Reset & Typography -------- */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Ubuntu, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* =========================================================
+   Topbar & Navigation
+   ========================================================= */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(180deg, rgba(17, 27, 46, 0.95), rgba(17, 27, 46, 0.85));
+  backdrop-filter: saturate(1.2) blur(6px);
+  border-bottom: 1px solid rgba(79, 209, 197, 0.25);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.brand-dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  background: var(--accent);
+  display: inline-block;
+  box-shadow: 0 0 20px rgba(79, 209, 197, 0.55);
+}
+
+.spacer { flex: 1; }
+
+/* =========================================================
+   Hamburger Menu
+   ========================================================= */
+
+.burger {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 0.5rem;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.burger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.burger-lines,
+.burger-lines::before,
+.burger-lines::after {
+  content: "";
+  display: block;
+  width: 20px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.burger-lines::before { transform: translateY(-6px); }
+.burger-lines::after { transform: translateY(4px); }
+
+.burger[aria-expanded="true"] .burger-lines { transform: rotate(45deg); }
+.burger[aria-expanded="true"] .burger-lines::before { transform: rotate(90deg); }
+.burger[aria-expanded="true"] .burger-lines::after { opacity: 0; }
+
+/* =========================================================
+   Avatar & Profile Menu
+   ========================================================= */
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 2px solid rgba(79, 209, 197, 0.5);
+  background: #18243e url('https://avatars.githubusercontent.com/u/9919?s=64') center/cover no-repeat;
+  cursor: pointer;
+}
+
+.avatar:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.profile-menu {
+  position: sticky;
+  top: 58px;
+  right: 12px;
+  min-width: 220px;
+  background: var(--panel);
+  border: 1px solid rgba(79, 209, 197, 0.25);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(2, 8, 23, 0.45);
+  padding: 0.5rem;
+  display: none;
+  z-index: 1300;
+}
+
+.profile-menu.open { display: block; }
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  color: var(--text);
+}
+
+.profile-row small { color: var(--muted); }
+
+.profile-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding: 0.5rem;
+}
+
+.profile-actions .btn { padding: 0.4rem 0.7rem; }
+
+/* =========================================================
+   Drawer (Side Menu)
+   ========================================================= */
+
+.drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  pointer-events: none;
+  z-index: 1250;
+}
+
+.drawer-panel {
+  background: var(--panel);
+  padding: 1rem;
+  border-left: 1px solid rgba(79, 209, 197, 0.25);
+  transform: translateX(100%);
+  transition: transform 0.2s ease;
+}
+
+.drawer-scrim {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.drawer.open { pointer-events: auto; }
+.drawer.open .drawer-panel { transform: none; }
+.drawer.open .drawer-scrim { opacity: 1; }
+
+.menu h3 {
+  margin: 0.5rem 0 1rem 0;
+  font-size: 1rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 0.5rem;
+  color: var(--text);
+}
+
+.menu a:hover {
+  background: rgba(79, 209, 197, 0.08);
+}
+
+/* =========================================================
+   Layout & Cards
+   ========================================================= */
+
+.wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .cards {
+    grid-template-columns: 1.4fr 0.9fr;
+  }
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid rgba(79, 209, 197, 0.2);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(2, 8, 23, 0.35);
+}
+
+.card h2 {
+  margin: 0;
+  padding: 1rem 1rem 0.5rem 1rem;
+  font-size: 1.05rem;
+  color: var(--muted);
+}
+
+.card .body { padding: 1rem; }
+
+/* =========================================================
+   Map & Grafana
+   ========================================================= */
+
+#map { height: 420px; }
+
+.grafana-embed {
+  border: 0;
+  width: 100%;
+  height: 420px;
+  background: #0c1424;
+}
+
+/* =========================================================
+   Info Bars & Buttons
+   ========================================================= */
+
+.infobar {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  color: var(--muted);
+  border-top: 1px solid rgba(79, 209, 197, 0.15);
+  background: linear-gradient(0deg, rgba(11, 18, 32, 0.6), rgba(11, 18, 32, 0.2));
+}
+
+.pill {
+  border: 1px solid rgba(79, 209, 197, 0.3);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.82rem;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid rgba(79, 209, 197, 0.3);
+  background: transparent;
+  color: var(--text);
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.6rem;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: rgba(79, 209, 197, 0.08);
+}

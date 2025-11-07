@@ -1,0 +1,149 @@
+/* ===== Colors & Variables ===== */
+:root {
+  --bg: #0b1220;
+  --panel: #111b2e;
+  --accent: #4fd1c5;
+  --text: #e6eefc;
+  --muted: #9bb0d1;
+}
+
+/* ===== Base ===== */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Ubuntu, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+a { color: inherit; }
+
+/* ===== Topbar ===== */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .75rem 1rem;
+  background: linear-gradient(180deg, rgba(17,27,46,.95), rgba(17,27,46,.85));
+  backdrop-filter: saturate(1.2) blur(6px);
+  border-bottom: 1px solid rgba(79,209,197,.25);
+}
+.brand { display: flex; align-items: center; gap: .5rem; font-weight: 700; }
+.brand-dot { width: .9rem; height: .9rem; border-radius: 999px; background: var(--accent); box-shadow: 0 0 20px rgba(79,209,197,.55); }
+.spacer { flex: 1; }
+
+/* ===== Burger ===== */
+.burger { appearance: none; background: transparent; border: 0; width: 40px; height: 40px; border-radius: .5rem; display: grid; place-items: center; cursor: pointer; }
+.burger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.burger-lines, .burger-lines::before, .burger-lines::after {
+  content: ""; display: block; width: 20px; height: 2px; background: var(--text);
+  border-radius: 2px; transition: transform .2s ease, opacity .2s ease;
+}
+.burger-lines::before { transform: translateY(-6px); }
+.burger-lines::after  { transform: translateY(4px); }
+.burger[aria-expanded="true"] .burger-lines { transform: rotate(45deg); }
+.burger[aria-expanded="true"] .burger-lines::before { transform: rotate(90deg); }
+.burger[aria-expanded="true"] .burger-lines::after  { opacity: 0; }
+
+/* ===== Avatar & Profile ===== */
+.avatar {
+  width: 36px; height: 36px; border-radius: 999px;
+  border: 2px solid rgba(79,209,197,.5);
+  background: #18243e url('https://avatars.githubusercontent.com/u/9919?s=64') center/cover no-repeat;
+  cursor: pointer;
+}
+.avatar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.profile-menu {
+  position: absolute; top: 58px; right: 12px; min-width: 240px;
+  background: var(--panel); border: 1px solid rgba(79,209,197,.25);
+  border-radius: 12px; box-shadow: 0 10px 30px rgba(2,8,23,.45); padding: .5rem;
+  display: none; z-index: 60;
+}
+.profile-menu.open { display: block; }
+.profile-row { display: flex; align-items: center; gap: .6rem; padding: .5rem .6rem; }
+.profile-row small { color: var(--muted); }
+.profile-actions { display: flex; gap: .5rem; justify-content: flex-end; padding: .5rem; }
+
+/* ===== Drawer ===== */
+.drawer {
+  position: fixed; inset: 0 0 0 auto; display: grid; grid-template-columns: 280px 1fr;
+  pointer-events: none; z-index: 50;
+}
+.drawer-panel {
+  background: var(--panel); padding: 1rem; border-left: 1px solid rgba(79,209,197,.25);
+  transform: translateX(100%); transition: transform .2s ease;
+}
+.drawer-scrim { background: rgba(0,0,0,.35); backdrop-filter: blur(2px); opacity: 0; transition: opacity .2s ease; }
+.drawer.open { pointer-events: auto; }
+.drawer.open .drawer-panel { transform: none; }
+.drawer.open .drawer-scrim  { opacity: 1; }
+
+.menu h3 { margin: .5rem 0 1rem 0; font-size: 1rem; color: var(--muted); font-weight: 600; }
+.menu a   { display: flex; align-items: center; gap: .5rem; padding: .5rem .6rem; border-radius: .5rem; color: var(--text); }
+.menu a:hover { background: rgba(79,209,197,.08); }
+
+/* ===== Layout ===== */
+.wrap { max-width: 1200px; margin: 0 auto; padding: 1.25rem; }
+.grid { display: grid; gap: 1rem; }
+@media (min-width: 1000px) { .grid { grid-template-columns: 1.6fr .9fr; } }
+.card {
+  background: var(--panel); border: 1px solid rgba(79,209,197,.2); border-radius: 14px; overflow: hidden;
+  box-shadow: 0 6px 24px rgba(2,8,23,.35);
+}
+.card h2 { margin: 0; padding: 1rem 1rem .5rem; color: var(--muted); font-size: 1.05rem; }
+.card .body { padding: 1rem; }
+
+/* ===== Map ===== */
+#map { height: 460px; }
+
+/* ===== Info bars & buttons ===== */
+.infobar {
+  display: flex; gap: .6rem; flex-wrap: wrap; align-items: center;
+  padding: .75rem 1rem; color: var(--muted);
+  border-top: 1px solid rgba(79,209,197,.15);
+  background: linear-gradient(0deg, rgba(11,18,32,.6), rgba(11,18,32,.2));
+}
+.btn {
+  appearance: none; border: 1px solid rgba(79,209,197,.3); background: transparent; color: var(--text);
+  padding: .45rem .75rem; border-radius: .6rem; cursor: pointer;
+}
+.btn:hover { background: rgba(79,209,197,.08); }
+.pill {
+  border: 1px solid rgba(79,209,197,.3); color: var(--accent);
+  border-radius: 999px; padding: .25rem .6rem; font-size: .82rem;
+}
+
+/* ===== Controls & lists ===== */
+.controls { display: flex; gap: .5rem; flex-wrap: wrap; }
+.toggle { display: flex; align-items: center; gap: .4rem; }
+.toggle input { accent-color: var(--accent); }
+
+ul.clean { list-style: none; margin: 0; padding: 0; }
+ul.clean li { padding: .35rem 0; color: var(--muted); }
+
+.reward-points { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
+
+/* --- Layering fixes (topbar > map; drawer/profile above all) --- */
+.topbar {
+  position: sticky; /* wichtig für Stacking-Context */
+  top: 0;
+  z-index: 1200;    /* über Leaflet */
+}
+
+.drawer {
+  z-index: 1300;    /* Menü/Drawer über Topbar */
+}
+
+.profile-menu {
+  z-index: 1400;    /* Profil-Dropdown über Drawer */
+}
+
+/* Leaflet-UI bewusst niedriger als Topbar/Drawer */
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 500;
+}
+

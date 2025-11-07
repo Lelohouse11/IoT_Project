@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="./iot_icon.ico" />
+  <title>Smart Mobility – Driver</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin="anonymous"
+  />
+  <!-- Leaflet Routing Machine CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css"
+  />
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/drivers_side/src/styles/app-driver.css" />
+</head>
+<body>
+  <!-- Topbar -->
+  <header class="topbar" role="banner">
+    <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false">
+      <span class="burger-lines"></span>
+    </button>
+    <div class="brand"><span class="brand-dot"></span><span>Smart Mobility – Driver</span></div>
+    <div class="spacer"></div>
+    <button id="authBtn" class="avatar" title="Profile" aria-haspopup="menu" aria-expanded="false"></button>
+  </header>
+
+  <!-- Drawer / Menu -->
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <nav class="drawer-panel" aria-label="Main menu">
+      <div class="menu">
+        <h3>Menu</h3>
+        <a href="#map-card">Map</a>
+        <a href="#parking-card">Parking</a>
+        <a href="#rewards-card">Rewards</a>
+        <a href="#reports-card">Report</a>
+        <a href="#prefs-card">Preferences</a>
+      </div>
+    </nav>
+    <div class="drawer-scrim" id="scrim" role="presentation"></div>
+  </aside>
+
+  <!-- Profile dropdown -->
+  <div class="profile-menu" id="profileMenu" role="menu" aria-labelledby="authBtn">
+    <div class="profile-row">
+      <div class="avatar" style="width:28px;height:28px;border:1px solid rgba(79,209,197,.35)"></div>
+      <div>
+        <div id="profileName">Driver</div>
+        <small id="profileStatus">Signed out</small>
+      </div>
+    </div>
+    <div class="profile-actions">
+      <button class="btn" id="authToggleBtn">Sign in</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <main class="wrap">
+    <section class="grid">
+      <!-- Map & Routing -->
+      <article class="card" id="map-card">
+        <h2>Live Map & Routing</h2>
+        <div class="body">
+          <div id="map"></div>
+        </div>
+        <div class="infobar">
+          <div class="controls">
+            <button class="btn" id="btnRouteHome">Route: City Center → Beach</button>
+            <button class="btn" id="btnNearbyEV">Show EV Chargers</button>
+            <button class="btn" id="btnClear">Clear</button>
+          </div>
+          <span class="pill">Real-time</span>
+        </div>
+      </article>
+
+      <!-- Rewards & Alerts -->
+      <article class="card" id="rewards-card">
+        <h2>Rewards & Safety</h2>
+        <div class="body">
+          <div class="reward-points" id="points">1,250 pts</div>
+          <ul class="clean" id="streakList">
+            <li>✔ No speeding: 7-day streak</li>
+            <li>✔ No double parking: 7-day streak</li>
+          </ul>
+          <div style="height:.75rem"></div>
+          <div class="controls">
+            <button class="btn" id="btnRedeem">Redeem Rewards</button>
+            <button class="btn" id="btnSafetyTest">Safety Alert (Demo)</button>
+          </div>
+        </div>
+      </article>
+
+      <!-- Smart Parking -->
+      <article class="card" id="parking-card">
+        <h2>Smart Parking</h2>
+        <div class="body">
+          <ul class="clean" id="parkingList">
+            <li>• Nearby lot A – 12 spaces free</li>
+            <li>• Street B (200 m) – 3 spaces free</li>
+            <li>• Garage C (EV) – 4 spaces + chargers</li>
+          </ul>
+          <div class="infobar">
+            <button class="btn" id="btnBestParking">Best Option</button>
+            <span class="pill">Live availability</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Community Reporting -->
+      <article class="card" id="reports-card">
+        <h2>Report Hazard / Incident</h2>
+        <div class="body">
+          <div class="controls">
+            <select id="reportType" class="btn" style="padding:.45rem .6rem">
+              <option value="accident">Accident</option>
+              <option value="construction">Construction</option>
+              <option value="hazard">Road hazard</option>
+              <option value="blocked">Blocked parking</option>
+            </select>
+            <button class="btn" id="btnReport">Send report</button>
+          </div>
+          <div id="reportMsg" style="margin-top:.6rem;color:var(--muted)">Help improve the map by reporting issues.</div>
+        </div>
+      </article>
+
+      <!-- Driving Preferences -->
+      <article class="card" id="prefs-card">
+        <h2>Driving Preferences</h2>
+        <div class="body">
+          <div class="controls">
+            <label class="toggle"><input type="checkbox" id="prefAvoidNarrow"> Avoid narrow streets</label>
+            <label class="toggle"><input type="checkbox" id="prefAvoidRisk"> Avoid high-risk areas</label>
+            <label class="toggle"><input type="checkbox" id="prefAvoidTraffic"> Avoid heavy traffic</label>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin="anonymous"
+  ></script>
+  <!-- Leaflet Routing Machine JS -->
+  <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+
+  <!-- Main App Script -->
+  <script type="module" src="/drivers_side/src/js/app.js" defer></script>
+</body>
+</html>

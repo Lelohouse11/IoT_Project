@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="./iot_icon.ico" />
+  <title>Smart City Admin</title>
+
+  <!-- Leaflet CSS -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin="anonymous"
+  />
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/city_side/src/styles/app.css" />
+</head>
+<body>
+  <!-- Topbar -->
+  <header class="topbar" role="banner">
+    <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false">
+      <span class="burger-lines"></span>
+    </button>
+    <div class="brand" aria-label="Smart City Admin">
+      <span class="brand-dot" aria-hidden="true"></span>
+      <span>Smart City – Admin</span>
+    </div>
+    <div class="spacer"></div>
+    <button
+      id="authBtn"
+      class="avatar"
+      title="Sign in / Sign out"
+      aria-haspopup="menu"
+      aria-expanded="false"
+    ></button>
+  </header>
+
+  <!-- Drawer / Menu -->
+  <aside class="drawer" id="drawer" aria-hidden="true">
+    <nav class="drawer-panel" aria-label="Main menu">
+      <div class="menu">
+        <h3>Menu</h3>
+        <a href="#map-card">Map</a>
+        <a href="#grafana-card">Analytics</a>
+        <a href="#llm-card">AI Assistant</a>
+        <a href="#settings">Settings</a>
+        <a href="#help">Help</a>
+      </div>
+    </nav>
+    <div class="drawer-scrim" id="scrim" role="presentation"></div>
+  </aside>
+
+  <!-- Profile dropdown -->
+  <div class="profile-menu" id="profileMenu" role="menu" aria-labelledby="authBtn">
+    <div class="profile-row">
+      <div
+        class="avatar"
+        style="width:28px;height:28px;border:1px solid rgba(79,209,197,.35)"
+      ></div>
+      <div>
+        <div id="profileName">Guest</div>
+        <small id="profileStatus">Signed out</small>
+      </div>
+    </div>
+    <div class="profile-actions">
+      <button class="btn" id="authToggleBtn">Sign in</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="wrap">
+    <section class="cards">
+      <!-- Map Card -->
+      <article class="card" id="map-card">
+        <h2>Live Map</h2>
+        <div class="body">
+          <div id="map" aria-label="Interactive city map"></div>
+        </div>
+        <div class="infobar">
+          <button class="btn" id="locBtn">Center on Patras</button>
+          <span class="pill">Demo</span>
+        </div>
+      </article>
+
+      <!-- Grafana Card -->
+      <article class="card" id="grafana-card">
+        <h2>Analytics (Grafana)</h2>
+        <div class="body">
+          <iframe
+            class="grafana-embed"
+            id="grafanaFrame"
+            title="Grafana"
+            src="https://play.grafana.org/d/000000012/grafana-play-home?orgId=1&kiosk"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+          ></iframe>
+        </div>
+        <div class="infobar">
+          <span class="pill">Heatmaps / Graphs</span>
+          <button class="btn" id="refreshGrafana">Refresh</button>
+        </div>
+      </article>
+
+      <!-- LLM Card -->
+      <article class="card" id="llm-card">
+        <h2>AI Assistant (LLM)</h2>
+        <div class="body">
+          <div
+            id="llmOutput"
+            style="min-height:160px;border:1px dashed rgba(79,209,197,.35);border-radius:10px;padding:1rem;color:var(--muted)"
+          >
+            Placeholder for future LLM output.
+          </div>
+        </div>
+        <div class="infobar">
+          <span class="pill">LLM Integration</span>
+          <button class="btn" id="simulateLLM">Simulate</button>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin="anonymous"
+  ></script>
+
+  <!-- Main App Script (imports all modules) -->
+  <script type="module" src="/city_side/src/js/app.js" defer></script>
+</body>
+</html>

@@ -4,7 +4,7 @@ import random
 broker = '150.140.186.118'
 port = 1883
 client_id = 'rand_id' +str(random.random())
-topic = "Environmental/barani-meteohelix-iot-pro:1"  # Specify the topic you'd like to publish to
+topic = "Group09_10"  # Specify the topic you'd like to publish to
 # username = 'your_username'  # Optional: Use if your broker requires a username
 # password = 'your_password'  # Optional: Use if your broker requires a password
 message="Hello World"

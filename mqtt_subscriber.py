@@ -4,7 +4,7 @@ import random
 broker = '150.140.186.118'
 port = 1883
 client_id = 'rand_id' +str(random.random())
-topic = "Environmental/+"  # Specify the topic you'd like to subscribe to
+topic = "Group09_10"  # Specify the topic you'd like to subscribe to
 # username = 'your_username'  # Optional: Use if your broker requires a username
 # password = 'your_password'  # Optional: Use if your broker requires a password
 
