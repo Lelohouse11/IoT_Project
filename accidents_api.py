@@ -1,0 +1,87 @@
+"""
+FastAPI service exposing recent active accidents from InfluxDB.
+
+Used by the city-side map for live updates. The API returns a flat list of the
+latest record per accident id that is still active within a given time window.
+
+Notes
+- CORS is enabled for local development (serving the UI via Live Server).
+- Severity is stored as a tag in Influx and is preserved after pivot.
+"""
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from typing import List, Dict, Any
+from influxdb_client import InfluxDBClient
+
+# Reuse InfluxDB settings from sensor_faker.py
+from sensor_faker import influxdb_url, bucket, org, token
+
+app = FastAPI(title="Accidents API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+client = InfluxDBClient(url=influxdb_url, token=token, org=org)
+query_api = client.query_api()
+
+
+def _flux_recent_active(window: str = "15m") -> str:
+    """Flux to retrieve the latest active record per accident id in a window.
+
+    Steps
+    - filter fields we need
+    - pivot field names to columns for easier JSON mapping
+    - group by id and keep the newest record per id
+    - filter to active only
+    """
+    return f'''
+from(bucket: "{bucket}")
+  |> range(start: -{window})
+  |> filter(fn: (r) => r._measurement == "accidents")
+  |> filter(fn: (r) => r._field == "id" or r._field == "desc" or r._field == "lat" or r._field == "lng" or r._field == "status")
+  |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  |> group(columns: ["id"])
+  |> sort(columns: ["_time"], desc: true)
+  |> unique(column: "id")
+  |> filter(fn: (r) => r.status == "active")
+  |> keep(columns: ["_time", "id", "lat", "lng", "desc", "severity"])  // severity is a tag
+'''
+
+
+@app.get("/api/accidents/recent")
+def recent_accidents(window: str = "15m") -> List[Dict[str, Any]]:
+    """Return latest active accidents within the given time window.
+
+    Response schema: [{ id, lat, lng, severity, desc, ts }]
+    """
+    flux = _flux_recent_active(window)
+    tables = query_api.query(org=org, query=flux)
+
+    items: List[Dict[str, Any]] = []
+    for table in tables:
+        for record in table.records:
+            v = record.values
+            try:
+                items.append({
+                    "id": str(v.get("id")),
+                    "lat": float(v.get("lat")),
+                    "lng": float(v.get("lng")),
+                    "severity": str(v.get("severity")) if v.get("severity") is not None else "minor",
+                    "desc": str(v.get("desc")) if v.get("desc") is not None else "",
+                    "ts": str(v.get("_time"))
+                })
+            except (TypeError, ValueError):
+                # Skip malformed rows (e.g., missing lat/lng)
+                continue
+    return items
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

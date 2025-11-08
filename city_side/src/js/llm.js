@@ -1,3 +1,5 @@
+// Tiny demo module representing an AI assistant placeholder.
+// Shows different text depending on auth status.
 import { isSignedIn } from './auth.js';
 
 export function initLLM() {

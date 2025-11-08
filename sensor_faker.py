@@ -1,3 +1,11 @@
+"""
+Simple sensor faker that writes temperature values to InfluxDB.
+
+These InfluxDB settings are imported by other modules (accident_faker.py,
+accidents_api.py) to ensure all tools point to the same database.
+
+Note: For production, prefer environment variables over hardcoded secrets.
+"""
 import time
 import random
 from influxdb_client import InfluxDBClient, Point, WritePrecision

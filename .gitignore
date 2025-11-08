@@ -1,7 +1,52 @@
-# Created by venv; see https://docs.python.org/3/library/venv.html
+### Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage*
+coverage.xml
+htmlcov/
+.cache/
+*.egg-info/
+.eggs/
+
+### Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+pyvenv.cfg
 bin/
 include/
 lib/
-pyvenv.cfg
 lib64/
 share/
+Scripts/
+
+### Node / Web
+node_modules/
+dist/
+build/
+.tmp/
+*.map
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### IDE / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+### OS files
+.DS_Store
+Thumbs.db
+
+### Env / Secrets (configure locally)
+.env
+.env.*
+*.local

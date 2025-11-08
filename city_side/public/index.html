@@ -6,16 +6,26 @@
   <link rel="icon" href="./iot_icon.ico" />
   <title>Smart City Admin</title>
 
-  <!-- Leaflet CSS -->
+  <!-- Leaflet CSS (core map styles) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin="anonymous"
   />
+  <!-- MarkerCluster CSS (clusters for many accident markers) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+  />
 
-  <!-- App CSS -->
+  <!-- App CSS (layout, legend, accident icons, pills) -->
   <link rel="stylesheet" href="/city_side/src/styles/app.css" />
+  
 </head>
 <body>
   <!-- Topbar -->
@@ -80,7 +90,9 @@
         </div>
         <div class="infobar">
           <button class="btn" id="locBtn">Center on Patras</button>
-          <span class="pill">Demo</span>
+          <span class="pill" id="apiStatus" title="Backend connectivity">API: checking…</span>
+          <span class="pill" id="nextRefresh" title="Next scheduled refresh">Next: --s</span>
+          <button class="btn" id="btnRefreshNow" title="Refresh accidents now">Refresh now</button>
         </div>
       </article>
 
@@ -122,14 +134,22 @@
     </section>
   </main>
 
-  <!-- Leaflet JS -->
+  <!-- Leaflet JS (map engine) -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin="anonymous"
   ></script>
+  <!-- MarkerCluster JS (client-side spatial clustering for markers) -->
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <!-- Main App Script (imports all modules) -->
+  <!-- Configure backend API base for Live Server (adjust if backend runs elsewhere).
+       The map code (map.js) reads window.APP_API_BASE to poll recent accidents. -->
+  <script>
+    window.APP_API_BASE = window.APP_API_BASE || 'http://localhost:8000';
+  </script>
+
+  <!-- Main App Script (initializes drawer/auth/map/grafana/llm modules) -->
   <script type="module" src="/city_side/src/js/app.js" defer></script>
 </body>
 </html>
