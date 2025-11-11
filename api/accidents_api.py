@@ -15,7 +15,12 @@ from typing import List, Dict, Any
 from influxdb_client import InfluxDBClient
 
 # Reuse InfluxDB settings from sensor_faker.py
-from sensor_faker import influxdb_url, bucket, org, token
+#from sensor_faker import influxdb_url, bucket, org, token
+
+influxdb_url = "http://150.140.186.118:8086"
+bucket = "LeandersDB"
+org = "students"
+token = "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BAWqSzAnI2eckYOsbYQqICeA=="
 
 app = FastAPI(title="Accidents API")
 

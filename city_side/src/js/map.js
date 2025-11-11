@@ -57,7 +57,7 @@ export function initMap() {
       iconAnchor: [10, 10]
     });
     return L.marker([a.lat, a.lng], { icon }).bindPopup(
-      `<b>Unfall (${a.severity})</b><br>${a.desc || ''}<br><small>${new Date(a.ts).toLocaleString()}</small>`
+      `<b>Accident (${a.severity})</b><br>${a.desc || ''}<br><small>${new Date(a.ts).toLocaleString()}</small>`
     );
   }
   // Index and helpers are declared later; seed initial points via upsert
@@ -81,50 +81,82 @@ export function initMap() {
       const occ = f.properties.occupied / f.properties.capacity;
       const pct = Math.round(occ * 100);
       const free = f.properties.capacity - f.properties.occupied;
-      layer.bindPopup(`<b>${f.properties.name}</b><br>Belegt: ${pct}% (${f.properties.occupied}/${f.properties.capacity})<br>Frei: ${free}`);
+      layer.bindPopup(`<b>${f.properties.name}</b><br>Occupied: ${pct}% (${f.properties.occupied}/${f.properties.capacity})<br>Free: ${free}`);
       layer.bindTooltip(`${f.properties.name}: ${pct}%`, { sticky: true });
     }
   });
 
   // --- Layer control ---
-  const baseMaps = {};
-  const overlays = {
-    'Unfälle (Cluster)': accidentCluster,
-    'Stau / Verkehr': trafficLayer,
-    'Parkplätze': parkingLayer
-  };
-  L.control.layers(baseMaps, overlays, { collapsed: false }).addTo(map);
+  L.control.layers({ 'Accidents': accidentCluster, 'Traffic': trafficLayer, 'Parking': parkingLayer }, {}, { collapsed: false }).addTo(map);
 
-  // Add all overlays by default
+  // Using base layer radios for mutual exclusivity; no overlay toggling needed
+
+  // Start with a single default overlay (accidents)
   accidentCluster.addTo(map);
-  trafficLayer.addTo(map);
-  parkingLayer.addTo(map);
 
   // --- Legend ---
   const legend = L.control({ position: 'bottomright' });
   legend.onAdd = function() {
     const div = L.DomUtil.create('div', 'legend');
     div.innerHTML = `
-      <div class="title">Legende</div>
-      <div><b>Unfälle</b></div>
-      <div class="row"><span class="box" style="background:#e74c3c"></span><span>schwer</span></div>
-      <div class="row"><span class="box" style="background:#f1c40f"></span><span>mittel</span></div>
-      <div class="row"><span class="box" style="background:#2ecc71"></span><span>leicht</span></div>
+      <div class="title">Legend</div>
+      <div><b>Accidents</b></div>
+      <div class="row"><span class="box" style="background:#e74c3c"></span><span>Severe</span></div>
+      <div class="row"><span class="box" style="background:#f1c40f"></span><span>Medium</span></div>
+      <div class="row"><span class="box" style="background:#2ecc71"></span><span>Minor</span></div>
       <div style="height:6px"></div>
-      <div><b>Verkehr</b></div>
-      <div class="row"><span class="box" style="background:#2ecc71"></span><span>flüssig</span></div>
-      <div class="row"><span class="box" style="background:#f1c40f"></span><span>zäh</span></div>
-      <div class="row"><span class="box" style="background:#e67e22"></span><span>stockend</span></div>
-      <div class="row"><span class="box" style="background:#e74c3c"></span><span>Stau</span></div>
+      <div><b>Traffic</b></div>
+      <div class="row"><span class="box" style="background:#2ecc71"></span><span>Free flow</span></div>
+      <div class="row"><span class="box" style="background:#f1c40f"></span><span>Slow</span></div>
+      <div class="row"><span class="box" style="background:#e67e22"></span><span>Heavy</span></div>
+      <div class="row"><span class="box" style="background:#e74c3c"></span><span>Jam</span></div>
       <div style="height:6px"></div>
-      <div><b>Parken</b></div>
-      <div class="row"><span class="box" style="background:#2ecc71"></span><span>≤ 50% belegt</span></div>
-      <div class="row"><span class="box" style="background:#f39c12"></span><span>≤ 80% belegt</span></div>
-      <div class="row"><span class="box" style="background:#e74c3c"></span><span>> 80% belegt</span></div>
+      <div><b>Parking occupancy</b></div>
+      <div class="row"><span class="box" style="background:#2ecc71"></span><span>≤ 50% occupied</span></div>
+      <div class="row"><span class="box" style="background:#f39c12"></span><span>≤ 80% occupied</span></div>
+      <div class="row"><span class="box" style="background:#e74c3c"></span><span>> 80% occupied</span></div>
     `;
     return div;
   };
   legend.addTo(map);
+
+  // Dynamic legend content in English based on selected layer
+  const legendNode = document.querySelector('.legend');
+  function legendHTML(mode) {
+    if (mode === 'traffic') {
+      return `
+        <div class="title">Legend</div>
+        <div><b>Traffic</b></div>
+        <div class="row"><span class="box" style="background:#2ecc71"></span><span>Free flow</span></div>
+        <div class="row"><span class="box" style="background:#f1c40f"></span><span>Slow</span></div>
+        <div class="row"><span class="box" style="background:#e67e22"></span><span>Heavy</span></div>
+        <div class="row"><span class="box" style="background:#e74c3c"></span><span>Jam</span></div>
+      `;
+    }
+    if (mode === 'parking') {
+      return `
+        <div class="title">Legend</div>
+        <div><b>Parking occupancy</b></div>
+        <div class="row"><span class="box" style="background:#2ecc71"></span><span><= 50% occupied</span></div>
+        <div class="row"><span class="box" style="background:#f39c12"></span><span><= 80% occupied</span></div>
+        <div class="row"><span class="box" style="background:#e74c3c"></span><span>> 80% occupied</span></div>
+      `;
+    }
+    return `
+      <div class="title">Legend</div>
+      <div><b>Accidents</b></div>
+      <div class="row"><span class="box" style="background:#e74c3c"></span><span>Severe</span></div>
+      <div class="row"><span class="box" style="background:#f1c40f"></span><span>Medium</span></div>
+      <div class="row"><span class="box" style="background:#2ecc71"></span><span>Minor</span></div>
+    `;
+  }
+  function setLegend(mode) { if (legendNode) legendNode.innerHTML = legendHTML(mode); }
+  setLegend('accidents');
+  map.on('baselayerchange', function(e){
+    if (e.name === 'Accidents') setLegend('accidents');
+    else if (e.name === 'Traffic') setLegend('traffic');
+    else if (e.name === 'Parking') setLegend('parking');
+  });
 
   // --- Fit bounds to all overlays ---
   const all = L.featureGroup([accidentCluster, trafficLayer, parkingLayer]);
@@ -160,7 +192,7 @@ export function initMap() {
       entry.marker
         .setLatLng([a.lat, a.lng])
         .setIcon(L.divIcon({ className: '', html: `<div class="accident ${severityClass(a.severity)}"></div>`, iconSize: [20,20], iconAnchor:[10,10] }))
-        .setPopupContent(`<b>Unfall (${a.severity})</b><br>${a.desc || ''}<br><small>${a.ts ? new Date(a.ts).toLocaleString() : ''}</small>`);
+        .setPopupContent(`<b>Accident (${a.severity})</b><br>${a.desc || ''}<br><small>${a.ts ? new Date(a.ts).toLocaleString() : ''}</small>`);
       entry.lastSeen = now;
     } else {
       const m = makeAccidentMarker(a);

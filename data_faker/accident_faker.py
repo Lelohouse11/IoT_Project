@@ -20,8 +20,12 @@ import argparse
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 
 # Reuse the same InfluxDB configuration from sensor_faker.py
-from sensor_faker import influxdb_url, bucket, org, token
+#from sensor_faker import influxdb_url, bucket, org, token
 
+influxdb_url = "http://150.140.186.118:8086"
+bucket = "LeandersDB"
+org = "students"
+token = "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BAWqSzAnI2eckYOsbYQqICeA=="
 # Measurement name for accidents (single measurement keeps queries simple)
 measurement = "accidents"
 
@@ -109,6 +113,7 @@ def generate_accident_data(
                 .field("desc", desc)
                 .field("lat", float(lat))
                 .field("lng", float(lng))
+                .field("count", 1)
                 .field("event", "create")
                 .field("status", "active")
                 .time(now_ns, WritePrecision.NS)
@@ -137,6 +142,7 @@ def generate_accident_data(
                 .field("desc", rec["desc"])
                 .field("lat", float(rec["lat"]))
                 .field("lng", float(rec["lng"]))
+                .field("count", 1)
                 .field("event", "update")
                 .field("status", "active")
                 .time(now_ns, WritePrecision.NS)
@@ -159,6 +165,7 @@ def generate_accident_data(
                 .field("desc", rec["desc"])
                 .field("lat", float(rec["lat"]))
                 .field("lng", float(rec["lng"]))
+                .field("count", 1)
                 .field("event", "clear")
                 .field("status", "cleared")
                 .time(now_ns, WritePrecision.NS)
