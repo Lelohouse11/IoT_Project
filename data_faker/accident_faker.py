@@ -1,35 +1,32 @@
-"""
-Generate synthetic accident events and write them to InfluxDB.
+"""Generate synthetic accident events and push them to Orion Context Broker.
 
-This faker reuses the exact same InfluxDB connection settings as sensor_faker.py
-so that both tools write into the same bucket/org. It simulates a simple event
-life-cycle per accident ID:
-
+Each accident follows an event life-cycle:
   - create: new accident appears (status=active)
   - update: position and/or severity refined (status=active)
   - clear:  accident resolved (status=cleared)
 
-Why this structure?
-  - Grafana can easily count "create" events per time window for KPIs
-  - The map can track latest state per ID and hide cleared items
+This aligns with the simple post/patch scripts provided in the lab materials,
+but automatically drives the Orion Context Broker with richer accident data.
 """
 
-import time
-import random
 import argparse
+import random
+import time
 from dataclasses import dataclass
-from typing import Dict, Optional
-from influxdb_client import InfluxDBClient, Point, WritePrecision
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
-# Reuse the same InfluxDB configuration from sensor_faker.py
-#from sensor_faker import influxdb_url, bucket, org, token
+import requests
 
-influxdb_url = "http://150.140.186.118:8086"
-bucket = "LeandersDB"
-org = "students"
-token = "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BAWqSzAnI2eckYOsbYQqICeA=="
-# Measurement name for accidents (single measurement keeps queries simple)
-measurement = "accidents"
+FIWARE_TYPE = "TrafficAccident"
+ORION_BASE_URL = "http://150.140.186.118:1026"
+ORION_ENTITIES_URL = f"{ORION_BASE_URL}/v2/entities"
+FIWARE_SERVICE_PATH = "/week4_up1125093"
+ORION_HEADERS = {
+    "Content-Type": "application/json",
+    "FIWARE-ServicePath": FIWARE_SERVICE_PATH,
+}
+REQUEST_TIMEOUT = 5
 
 
 @dataclass
@@ -62,10 +59,7 @@ class Accident:
 
 
 def random_severity() -> str:
-    """Return a severity with a simple weighted distribution.
-
-    We slightly favor "minor" to avoid flooding the map with majors.
-    """
+    """Return a severity with a simple weighted distribution."""
     r = random.random()
     # Weighted distribution: minor (65%), medium (20%), major (15%)
     if r < 0.15:
@@ -75,19 +69,64 @@ def random_severity() -> str:
     return "minor"
 
 
+def _build_fiware_entity(aid: str, accident: Accident, event: str, status: str, now_iso: str) -> Dict[str, Dict[str, Any]]:
+    """Return a FIWARE TrafficAccident entity with NGSI v2 attribute shape."""
+    geojson = {
+        "type": "Point",
+        "coordinates": [round(accident.lng, 6), round(accident.lat, 6)],
+    }
+    sub_category = "collision" if "collision" in accident.desc.lower() else "incident"
+    return {
+        "id": f"urn:ngsi-ld:{FIWARE_TYPE}:{aid}",
+        "type": FIWARE_TYPE,
+        "category": {"type": "Text", "value": ["traffic", "accident"]},
+        "subCategory": {"type": "Text", "value": [sub_category]},
+        "description": {"type": "Text", "value": accident.desc},
+        "severity": {"type": "Text", "value": accident.severity},
+        "status": {"type": "Text", "value": status},
+        "eventType": {"type": "Text", "value": event},
+        "dateObserved": {"type": "DateTime", "value": now_iso},
+        "location": {"type": "geo:json", "value": geojson},
+    }
+
+
+def _send_to_orion(session: requests.Session, entity: Dict[str, Dict[str, Any]], action: str) -> bool:
+    """Send the create or update payload to Orion, mirroring the lab templates."""
+    try:
+        if action == "create":
+            response = session.post(
+                ORION_ENTITIES_URL,
+                json=entity,
+                headers=ORION_HEADERS,
+                timeout=REQUEST_TIMEOUT,
+            )
+            expected = 201
+        else:
+            attrs = {k: v for k, v in entity.items() if k not in ("id", "type")}
+            response = session.patch(
+                f"{ORION_ENTITIES_URL}/{entity['id']}/attrs",
+                json=attrs,
+                headers=ORION_HEADERS,
+                timeout=REQUEST_TIMEOUT,
+            )
+            expected = 204
+    except requests.RequestException as exc:
+        print(f"[error]  {action} {entity['id']} failed: {exc}")
+        return False
+
+    if response.status_code != expected:
+        try:
+            detail = response.json()
+        except ValueError:
+            detail = response.text
+        print(f"[error] send_to_orion {action} {entity['id']} failed: {response.status_code} {detail}")
+        return False
+
+    return True
+
+
 def generate_accident_data(config: Optional[GeneratorConfig] = None):
-    """Continuously emit fake accident events to InfluxDB.
-
-    Coordinates are generated around a configurable center point (default: Patras).
-    Three actions occur per tick with configurable probabilities: create, update, clear.
-
-    Schema
-    - Measurement: accidents
-    - Tags:   type=accident, severity ∈ {minor, medium, major}
-    - Fields: id (str), desc (str), lat (float), lng (float), event (str), status (str)
-    - Time:   WritePrecision.NS
-    """
-
+    """Continuously emit fake accident events to the Orion Context Broker."""
     if config is None:
         config = GeneratorConfig()
 
@@ -104,22 +143,6 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
         lng = config.center_lng + random.uniform(-config.max_offset_deg, config.max_offset_deg)
         return lat, lng
 
-    def write_event(aid: str, accident: Accident, event: str, status: str, now_ns: int):
-        point = (
-            Point(measurement)
-            .tag("type", "accident")
-            .tag("severity", accident.severity)
-            .field("id", aid)
-            .field("desc", accident.desc)
-            .field("lat", float(accident.lat))
-            .field("lng", float(accident.lng))
-            .field("count", 1)
-            .field("event", event)
-            .field("status", status)
-            .time(now_ns, WritePrecision.NS)
-        )
-        write_api.write(bucket=bucket, org=org, record=point)
-
     # Track active accidents in-memory by ID to simulate updates/clear actions
     active: Dict[str, Accident] = {}
     next_id = 1
@@ -132,15 +155,11 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
         "Debris on road",
     ]
 
-    with InfluxDBClient(url=influxdb_url, token=token, org=org) as client:
-        write_api = client.write_api()
-
+    with requests.Session() as session:
         while True:
             action = next_action(active)
-            now_ns = time.time_ns()
 
             if action == "create":
-                # Create a new accident
                 lat, lng = rnd_coord()
                 severity = random_severity()
                 desc = random.choice(descriptions)
@@ -148,33 +167,49 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
                 next_id += 1
                 accident = Accident(lat=lat, lng=lng, severity=severity, desc=desc)
                 active[aid] = accident
-
-                write_event(aid, accident, "create", "active", now_ns)
-                print(f"[create] {aid} {severity} at ({lat:.5f}, {lng:.5f})")
+                entity = _build_fiware_entity(
+                    aid=aid,
+                    accident=accident,
+                    event="create",
+                    status="active",
+                    now_iso=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                )
+                if _send_to_orion(session, entity, "create"):
+                    print(f"[create] {entity['id']} {severity} at ({lat:.5f}, {lng:.5f})")
 
             elif action == "update":
-                # Update an existing accident (slight movement or severity change)
                 aid, accident = random.choice(list(active.items()))
                 accident.jitter_location()
                 accident.maybe_update_severity()
-
-                write_event(aid, accident, "update", "active", now_ns)
-                print(f"[update] {aid} {accident.severity} at ({accident.lat:.5f}, {accident.lng:.5f})")
+                entity = _build_fiware_entity(
+                    aid=aid,
+                    accident=accident,
+                    event="update",
+                    status="active",
+                    now_iso=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                )
+                if _send_to_orion(session, entity, "update"):
+                    print(f"[update] {entity['id']} {accident.severity} at ({accident.lat:.5f}, {accident.lng:.5f})")
 
             else:
-                # Clear an accident
                 aid, accident = random.choice(list(active.items()))
                 active.pop(aid)
-
-                write_event(aid, accident, "clear", "cleared", now_ns)
-                print(f"[clear]  {aid} cleared")
+                entity = _build_fiware_entity(
+                    aid=aid,
+                    accident=accident,
+                    event="clear",
+                    status="cleared",
+                    now_iso=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                )
+                if _send_to_orion(session, entity, "update"):
+                    print(f"[clear]  {entity['id']} cleared")
 
             time.sleep(config.interval_sec)
 
 
 def main():
     """CLI wrapper for the accident faker with helpful defaults."""
-    parser = argparse.ArgumentParser(description="Accident data faker (InfluxDB)")
+    parser = argparse.ArgumentParser(description="Accident data faker (Orion Context Broker)")
     parser.add_argument("--center-lat", type=float, default=GeneratorConfig.center_lat, help="Center latitude")
     parser.add_argument("--center-lng", type=float, default=GeneratorConfig.center_lng, help="Center longitude")
     parser.add_argument("--offset", type=float, default=GeneratorConfig.max_offset_deg, help="Max random offset in degrees")

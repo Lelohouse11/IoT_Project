@@ -20,7 +20,7 @@ def create_app():
         if not prompt:
             return jsonify({"error": "Missing prompt"}), 400
 
-        upstream = os.getenv('LLM_UPSTREAM_URL', os.getenv('API_URL', 'http://localhost:7080/chat'))
+        upstream = os.getenv('LLM_UPSTREAM_URL', os.getenv('API_URL', 'http://labserver.sense-campus.gr:7080/chat'))
         api_key = os.getenv('LLM_API_KEY', os.getenv('API_KEY', 'studentpassword'))
 
         headers = {'Content-Type': 'application/json'}
