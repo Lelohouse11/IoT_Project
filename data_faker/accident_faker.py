@@ -17,6 +17,8 @@ Why this structure?
 import time
 import random
 import argparse
+from dataclasses import dataclass
+from typing import Dict, Optional
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 
 # Reuse the same InfluxDB configuration from sensor_faker.py
@@ -28,6 +30,35 @@ org = "students"
 token = "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BAWqSzAnI2eckYOsbYQqICeA=="
 # Measurement name for accidents (single measurement keeps queries simple)
 measurement = "accidents"
+
+
+@dataclass
+class GeneratorConfig:
+    center_lat: float = 38.2464
+    center_lng: float = 21.7346
+    max_offset_deg: float = 0.02
+    interval_sec: float = 3.0
+    prob_new: float = 0.6
+    prob_update: float = 0.25
+    prob_clear: float = 0.15
+
+
+@dataclass
+class Accident:
+    lat: float
+    lng: float
+    severity: str
+    desc: str
+
+    def jitter_location(self, max_delta: float = 0.001) -> None:
+        """Apply slight jitter to simulate refined coordinates."""
+        self.lat += random.uniform(-max_delta, max_delta)
+        self.lng += random.uniform(-max_delta, max_delta)
+
+    def maybe_update_severity(self, probability: float = 0.2) -> None:
+        """Occasionally update severity to mimic new reports."""
+        if random.random() < probability:
+            self.severity = random_severity()
 
 
 def random_severity() -> str:
@@ -44,15 +75,7 @@ def random_severity() -> str:
     return "minor"
 
 
-def generate_accident_data(
-    center_lat: float = 38.2464,
-    center_lng: float = 21.7346,
-    max_offset_deg: float = 0.02,
-    interval_sec: float = 3.0,
-    prob_new: float = 0.6,
-    prob_update: float = 0.25,
-    prob_clear: float = 0.15,
-):
+def generate_accident_data(config: Optional[GeneratorConfig] = None):
     """Continuously emit fake accident events to InfluxDB.
 
     Coordinates are generated around a configurable center point (default: Patras).
@@ -65,12 +88,40 @@ def generate_accident_data(
     - Time:   WritePrecision.NS
     """
 
-    # Create InfluxDB client
-    client = InfluxDBClient(url=influxdb_url, token=token, org=org)
-    write_api = client.write_api()
+    if config is None:
+        config = GeneratorConfig()
+
+    actions = ("create", "update", "clear")
+    weights = (config.prob_new, config.prob_update, config.prob_clear)
+
+    def next_action(active: Dict[str, Accident]) -> str:
+        if not active:
+            return "create"
+        return random.choices(actions, weights=weights, k=1)[0]
+
+    def rnd_coord():
+        lat = config.center_lat + random.uniform(-config.max_offset_deg, config.max_offset_deg)
+        lng = config.center_lng + random.uniform(-config.max_offset_deg, config.max_offset_deg)
+        return lat, lng
+
+    def write_event(aid: str, accident: Accident, event: str, status: str, now_ns: int):
+        point = (
+            Point(measurement)
+            .tag("type", "accident")
+            .tag("severity", accident.severity)
+            .field("id", aid)
+            .field("desc", accident.desc)
+            .field("lat", float(accident.lat))
+            .field("lng", float(accident.lng))
+            .field("count", 1)
+            .field("event", event)
+            .field("status", status)
+            .time(now_ns, WritePrecision.NS)
+        )
+        write_api.write(bucket=bucket, org=org, record=point)
 
     # Track active accidents in-memory by ID to simulate updates/clear actions
-    active = {}
+    active: Dict[str, Accident] = {}
     next_id = 1
     descriptions = [
         "Rear-end collision",
@@ -81,114 +132,59 @@ def generate_accident_data(
         "Debris on road",
     ]
 
-    def rnd_coord():
-        lat = center_lat + random.uniform(-max_offset_deg, max_offset_deg)
-        lng = center_lng + random.uniform(-max_offset_deg, max_offset_deg)
-        return lat, lng
+    with InfluxDBClient(url=influxdb_url, token=token, org=org) as client:
+        write_api = client.write_api()
 
-    while True:
-        # Normalize probabilities in case of rounding differences
-        _sum = prob_new + prob_update + prob_clear
-        p_new = prob_new / _sum
-        p_update = prob_update / _sum
-        # p_clear = 1 - (p_new + p_update)
+        while True:
+            action = next_action(active)
+            now_ns = time.time_ns()
 
-        choice = random.random()
-        now_ns = time.time_ns()
+            if action == "create":
+                # Create a new accident
+                lat, lng = rnd_coord()
+                severity = random_severity()
+                desc = random.choice(descriptions)
+                aid = f"A{next_id:05d}"
+                next_id += 1
+                accident = Accident(lat=lat, lng=lng, severity=severity, desc=desc)
+                active[aid] = accident
 
-        if not active or choice < p_new:
-            # Create a new accident
-            lat, lng = rnd_coord()
-            severity = random_severity()
-            desc = random.choice(descriptions)
-            aid = f"A{next_id:05d}"
-            next_id += 1
-            active[aid] = {"lat": lat, "lng": lng, "severity": severity, "desc": desc}
+                write_event(aid, accident, "create", "active", now_ns)
+                print(f"[create] {aid} {severity} at ({lat:.5f}, {lng:.5f})")
 
-            point = (
-                Point(measurement)
-                .tag("type", "accident")
-                .tag("severity", severity)
-                .field("id", aid)
-                .field("desc", desc)
-                .field("lat", float(lat))
-                .field("lng", float(lng))
-                .field("count", 1)
-                .field("event", "create")
-                .field("status", "active")
-                .time(now_ns, WritePrecision.NS)
-            )
-            write_api.write(bucket=bucket, org=org, record=point)
-            print(f"[create] {aid} {severity} at ({lat:.5f}, {lng:.5f})")
+            elif action == "update":
+                # Update an existing accident (slight movement or severity change)
+                aid, accident = random.choice(list(active.items()))
+                accident.jitter_location()
+                accident.maybe_update_severity()
 
-        elif choice < (p_new + p_update) and active:
-            # Update an existing accident (slight movement or severity change)
-            aid = random.choice(list(active.keys()))
-            rec = active[aid]
+                write_event(aid, accident, "update", "active", now_ns)
+                print(f"[update] {aid} {accident.severity} at ({accident.lat:.5f}, {accident.lng:.5f})")
 
-            # Slight jitter to simulate refined location updates
-            rec["lat"] += random.uniform(-0.001, 0.001)
-            rec["lng"] += random.uniform(-0.001, 0.001)
+            else:
+                # Clear an accident
+                aid, accident = random.choice(list(active.items()))
+                active.pop(aid)
 
-            # Occasionally update severity
-            if random.random() < 0.2:
-                rec["severity"] = random_severity()
+                write_event(aid, accident, "clear", "cleared", now_ns)
+                print(f"[clear]  {aid} cleared")
 
-            point = (
-                Point(measurement)
-                .tag("type", "accident")
-                .tag("severity", rec["severity"])
-                .field("id", aid)
-                .field("desc", rec["desc"])
-                .field("lat", float(rec["lat"]))
-                .field("lng", float(rec["lng"]))
-                .field("count", 1)
-                .field("event", "update")
-                .field("status", "active")
-                .time(now_ns, WritePrecision.NS)
-            )
-            write_api.write(bucket=bucket, org=org, record=point)
-            print(
-                f"[update] {aid} {rec['severity']} at ({rec['lat']:.5f}, {rec['lng']:.5f})"
-            )
-
-        else:
-            # Clear an accident
-            aid = random.choice(list(active.keys()))
-            rec = active.pop(aid)
-
-            point = (
-                Point(measurement)
-                .tag("type", "accident")
-                .tag("severity", rec["severity"])
-                .field("id", aid)
-                .field("desc", rec["desc"])
-                .field("lat", float(rec["lat"]))
-                .field("lng", float(rec["lng"]))
-                .field("count", 1)
-                .field("event", "clear")
-                .field("status", "cleared")
-                .time(now_ns, WritePrecision.NS)
-            )
-            write_api.write(bucket=bucket, org=org, record=point)
-            print(f"[clear]  {aid} cleared")
-
-        time.sleep(interval_sec)
+            time.sleep(config.interval_sec)
 
 
 def main():
     """CLI wrapper for the accident faker with helpful defaults."""
     parser = argparse.ArgumentParser(description="Accident data faker (InfluxDB)")
-    parser.add_argument("--center-lat", type=float, default=38.2464, help="Center latitude")
-    parser.add_argument("--center-lng", type=float, default=21.7346, help="Center longitude")
-    parser.add_argument("--offset", type=float, default=0.02, help="Max random offset in degrees")
-    parser.add_argument("--interval", type=float, default=3.0, help="Interval between events (seconds)")
-    parser.add_argument("--new", type=float, default=0.6, help="Probability of a new accident per tick")
-    parser.add_argument("--update", type=float, default=0.25, help="Probability of an update per tick")
-    parser.add_argument("--clear", type=float, default=0.15, help="Probability of a clear per tick")
+    parser.add_argument("--center-lat", type=float, default=GeneratorConfig.center_lat, help="Center latitude")
+    parser.add_argument("--center-lng", type=float, default=GeneratorConfig.center_lng, help="Center longitude")
+    parser.add_argument("--offset", type=float, default=GeneratorConfig.max_offset_deg, help="Max random offset in degrees")
+    parser.add_argument("--interval", type=float, default=GeneratorConfig.interval_sec, help="Interval between events (seconds)")
+    parser.add_argument("--new", type=float, default=GeneratorConfig.prob_new, help="Probability of a new accident per tick")
+    parser.add_argument("--update", type=float, default=GeneratorConfig.prob_update, help="Probability of an update per tick")
+    parser.add_argument("--clear", type=float, default=GeneratorConfig.prob_clear, help="Probability of a clear per tick")
     args = parser.parse_args()
 
-    generate_accident_data(
+    config = GeneratorConfig(
         center_lat=args.center_lat,
         center_lng=args.center_lng,
         max_offset_deg=args.offset,
@@ -197,6 +193,8 @@ def main():
         prob_update=args.update,
         prob_clear=args.clear,
     )
+
+    generate_accident_data(config)
 
 
 if __name__ == "__main__":
