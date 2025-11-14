@@ -16,18 +16,20 @@ def create_app():
             return jsonify({"error": "Invalid JSON body"}), 400
 
         prompt = (data.get('prompt') or '').strip()
-        model = data.get('model') or os.getenv('LLM_MODEL', 'llama3.2:3b')
+        model = os.getenv("MODEL", "deepseek-r1:8b")
         if not prompt:
             return jsonify({"error": "Missing prompt"}), 400
 
-        upstream = os.getenv('LLM_UPSTREAM_URL', os.getenv('API_URL', 'http://localhost:7080/chat'))
-        api_key = os.getenv('LLM_API_KEY', os.getenv('API_KEY', 'studentpassword'))
+        upstream = os.getenv("API_URL", "http://labserver.sense-campus.gr:7080/chat")
+        api_key = os.getenv("API_KEY", "studentpassword")
 
-        headers = {'Content-Type': 'application/json'}
-        if api_key:
-            headers['X-API-Key'] = api_key
+        headers = {
+            "Content-Type": "application/json",
+            "X-API-Key": api_key,
+            }
+       
 
-        payload = {'prompt': prompt, 'model': model}
+        payload = {"prompt": prompt, "model": model}
 
         try:
             resp = requests.post(upstream, headers=headers, json=payload, timeout=60)

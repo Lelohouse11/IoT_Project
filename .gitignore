@@ -50,3 +50,5 @@ Thumbs.db
 .env
 .env.*
 *.local
+
+Lab_ex/
