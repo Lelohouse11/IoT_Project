@@ -9,9 +9,17 @@ Notes
 - Severity is stored as a tag in Influx and is preserved after pivot.
 """
 
+import sys
+from pathlib import Path
+from typing import Any, Dict, List
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+from debug import print_context  # noqa: F401
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Dict, Any
 from influxdb_client import InfluxDBClient
 
 # Reuse InfluxDB settings from sensor_faker.py
@@ -49,13 +57,13 @@ def _flux_recent_active(window: str = "15m") -> str:
 from(bucket: "{bucket}")
   |> range(start: -{window})
   |> filter(fn: (r) => r._measurement == "accidents")
-  |> filter(fn: (r) => r._field == "id" or r._field == "desc" or r._field == "lat" or r._field == "lng" or r._field == "status")
+  |> filter(fn: (r) => r._field == "id" or r._field == "entity_id" or r._field == "desc" or r._field == "lat" or r._field == "lng" or r._field == "status" or r._field == "event")
   |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
   |> group(columns: ["id"])
   |> sort(columns: ["_time"], desc: true)
   |> unique(column: "id")
   |> filter(fn: (r) => r.status == "active")
-  |> keep(columns: ["_time", "id", "lat", "lng", "desc", "severity"])  // severity is a tag
+  |> keep(columns: ["_time", "id", "entity_id", "lat", "lng", "desc", "severity", "event", "status"])  // severity/tag included
 '''
 
 
@@ -73,13 +81,30 @@ def recent_accidents(window: str = "15m") -> List[Dict[str, Any]]:
         for record in table.records:
             v = record.values
             try:
+                entity_id = v.get("entity_id")
+                accident_id = v.get("id") or entity_id
+                if accident_id is None:
+                    continue
+                accident_id = str(accident_id)
+                if entity_id:
+                    entity_id = str(entity_id)
+                if accident_id.startswith("urn:"):
+                    simple_id = accident_id.split(":")[-1]
+                else:
+                    simple_id = accident_id
+                status = str(v.get("status")) if v.get("status") is not None else ""
+                event_type = str(v.get("event")) if v.get("event") is not None else ""
+                if status and status.lower() != "active":
+                    continue
+                if event_type and event_type.lower() == "clear":
+                    continue
                 items.append({
-                    "id": str(v.get("id")),
+                    "id": simple_id,
                     "lat": float(v.get("lat")),
                     "lng": float(v.get("lng")),
                     "severity": str(v.get("severity")) if v.get("severity") is not None else "minor",
                     "desc": str(v.get("desc")) if v.get("desc") is not None else "",
-                    "ts": str(v.get("_time"))
+                    "ts": str(v.get("_time")),
                 })
             except (TypeError, ValueError):
                 # Skip malformed rows (e.g., missing lat/lng)

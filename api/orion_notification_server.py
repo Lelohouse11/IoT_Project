@@ -10,9 +10,16 @@ notifications), and writes them into the InfluxDB bucket reused from
 import argparse
 import json
 import random
+import sys
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+from debug import print_context  # noqa: F401
 
 import paho.mqtt.client as mqtt
 from influxdb_client import InfluxDBClient, Point, WritePrecision
@@ -22,6 +29,8 @@ from influxdb_client.client.write_api import SYNCHRONOUS
 MQTT_BROKER = "150.140.186.118"
 MQTT_PORT = 1883
 MQTT_TOPIC = "orion_updates"
+FILTER_ATTRIBUTE = "owner"
+FILTER_VALUE = "week4_up1125093"
 
 # InfluxDB configuration reused from mqtt_to_influx_connector.py
 INFLUX_URL = "http://150.140.186.118:8086"
@@ -105,6 +114,18 @@ def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     return point
 
 
+def _is_allowed_entity(entity: Dict[str, Any]) -> bool:
+    """Return True if the entity belongs to our faker (owner attribute)."""
+    owner = _attr_value(entity, FILTER_ATTRIBUTE)
+    if owner is None:
+        print(f"[skip] {entity.get('id')} missing '{FILTER_ATTRIBUTE}' attribute")
+        return False
+    if owner != FILTER_VALUE:
+        print(f"[skip] {entity.get('id')} owner '{owner}' != '{FILTER_VALUE}'")
+        return False
+    return True
+
+
 def _process_notification(message: str) -> None:
     """Handle a single MQTT payload (JSON with `data` array)."""
     try:
@@ -123,6 +144,8 @@ def _process_notification(message: str) -> None:
     for entity in entities:
         if not isinstance(entity, dict):
             print("[warn] process_notification Skipping non-dict entity")
+            continue
+        if not _is_allowed_entity(entity):
             continue
         point = _entity_to_point(entity)
         if point is None:
