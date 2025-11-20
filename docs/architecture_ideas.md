@@ -270,6 +270,7 @@ Frameworks:
 
 ### Diagramm
 
+```mermaid
 graph LR
   %% Direction
   %% left-to-right for readability
@@ -278,63 +279,63 @@ graph LR
   %% =======================
   %% Edge Layer
   %% =======================
-  subgraph EDGE[Edge Layer – Street Side]
-    CAM[\"Cameras & Raspberry Pi\n- Object detection (YOLO)\n- Gap detection\"]
+  subgraph EDGE[Edge Layer - Street Side]
+    CAM["Cameras & Raspberry Pi\n- Object detection (YOLO)\n- Gap detection"]
   end
 
   %% =======================
   %% Messaging & Upload
   %% =======================
   subgraph MSG[Messaging & Upload]
-    MQTT[MQTT Broker\n(provided by University)]
-    UPLOAD[Evidence Upload API\n(HTTP file upload)]
+    MQTT["MQTT Broker\n(provided by University)"]
+    UPLOAD["Evidence Upload API\n(HTTP file upload)"]
   end
 
   %% =======================
   %% Backend / Core Services
   %% =======================
   subgraph BACKEND[Backend Services]
-    BE[Backend Services\n- Event Processor\n- API Gateway\n- Routing Service]
-    FIWARE[FIWARE Context Broker\n(Orion-LD)\nCentral Live Data Hub]
+    BE["Backend Services\n- Event Processor\n- API Gateway\n- Routing Service"]
+    FIWARE["FIWARE Context Broker\n(Orion-LD)\nCentral Live Data Hub"]
   end
 
   %% =======================
   %% Databases
   %% =======================
   subgraph DATA[Data Storage]
-    INFLUX[InfluxDB\nTime-series data]
-    MYSQL[MySQL\nRelational data\n(users, rewards, reports, mappings)]
+    INFLUX["InfluxDB\nTime-series data"]
+    MYSQL["MySQL\nRelational data\n(users, rewards, reports, mappings)"]
   end
 
   %% =======================
   %% City-Side Visualization
   %% =======================
   subgraph CITY[City-Side Visualization]
-    CITYAPP[City Dashboard Web App\n(Map: Leaflet / MapLibre / OpenLayers)]
-    GRAF[Grafana Dashboards\n(analytics & KPIs)]
+    CITYAPP["City Dashboard Web App\n(Map: Leaflet / MapLibre / OpenLayers)"]
+    GRAF["Grafana Dashboards\n(analytics & KPIs)"]
   end
 
   %% =======================
   %% Driver-Side
   %% =======================
   subgraph DRIVER[Driver-Side Application]
-    PWA[Driver Application (PWA)\n- Live map & routing\n- Smart parking\n- Reporting]
+    PWA["Driver Application (PWA)\n- Live map & routing\n- Smart parking\n- Reporting"]
   end
 
   %% =======================
   %% External / University Services
   %% =======================
   subgraph UNI[University Services]
-    AI[University AI Services\n- Vision LLM\n- Text LLM]
+    AI["University AI Services\n- Vision LLM\n- Text LLM"]
   end
 
   subgraph EXT[External APIs]
-    TRAFFICAPI[Traffic APIs\nTomTom / HERE / Google]
-    ROUTINGAPI[Routing APIs (optional)\nOpenRouteService / OSRM / GraphHopper / Valhalla]
+    TRAFFICAPI["Traffic APIs\nTomTom / HERE / Google"]
+    ROUTINGAPI["Routing APIs (optional)\nOpenRouteService / OSRM / GraphHopper / Valhalla"]
   end
 
   %% =======================
-  %% Connections – Edge to Backend
+  %% Connections - Edge to Backend
   %% =======================
   CAM -- "MQTT (events)" --> MQTT
   CAM -- "HTTP/REST (images/snippets)" --> UPLOAD
@@ -352,8 +353,8 @@ graph LR
   %% FIWARE to Databases
   %% (via Cygnus / QuantumLeap - implicit)
   %% =======================
-  FIWARE -- "NGSI → time-series\n(Cygnus / QuantumLeap)" --> INFLUX
-  FIWARE -- "NGSI → relational\n(Cygnus etc.)" --> MYSQL
+  FIWARE -- "NGSI -> time-series\n(Cygnus / QuantumLeap)" --> INFLUX
+  FIWARE -- "NGSI -> relational\n(Cygnus etc.)" --> MYSQL
 
   %% =======================
   %% Backend to University AI
@@ -382,4 +383,6 @@ graph LR
 
   BE -- "HTTP/REST (optional)\nroute calculation" --> ROUTINGAPI
   PWA -- "HTTPS\n(route & instructions\nfrom backend)" --> BE
+```
+
 
