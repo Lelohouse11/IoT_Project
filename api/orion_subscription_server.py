@@ -86,7 +86,7 @@ def _create_subscription(
             "entities": [{"idPattern": ".*", "type": entity_type}],
         },
         "notification": {
-            "http": {"url": callback_url},
+            "http": {"url": DEFAULT_ORION_URL},
             "attrs": ["severity", "status", "location", "dateObserved"],
             "metadata": ["dateCreated", "dateModified"],
         },
@@ -98,6 +98,8 @@ def _create_subscription(
             json=payload,
             timeout=REQUEST_TIMEOUT,
         )
+        
+        print(f"[debug] Subscription creation response: {resp.status_code} {resp.text}")
         if resp.status_code != 201:
             print(f"[error] Subscription creation failed: {resp.status_code} {resp.text}")
             return None

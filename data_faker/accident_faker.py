@@ -157,6 +157,7 @@ def _send_to_orion(session: requests.Session, entity: Dict[str, Dict[str, Any]],
                         headers=ORION_HEADERS,
                         timeout=REQUEST_TIMEOUT,
                     )
+                    print(f"[debug] send_to_orion create response: {response.status_code} {response.text} {response.headers}")
             expected = 201
         else:
             attrs = {k: v for k, v in entity.items() if k not in ("id", "type")}
