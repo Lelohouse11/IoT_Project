@@ -21,3 +21,27 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 2. Start the data fakers (`/data_faker`): run `accident_faker.py`.
 3. Launch APIs (`/api`): `accidents_api.py`,`llm_server.py`,`orion_notification_server.py` (not `orion_subscription_server.py`).
 4. Serve the frontend (Live Server or any static host).
+
+## Collaboration Rules
+To keep our workflow clean and consistent:
+
+1. **Do not push directly to `main`.**  
+   - Always create your own branch for changes.  
+   - Use the format:  
+     `feature/<short-description>` or `fix/<short-description>`  
+     Example: `feature/rewards-system`
+
+2. **When your work is ready, create a Merge Request (Pull Request)**  
+   - At least one teammate should review before merging into `dev` or more important `main`.
+
+3. **Write meaningful commit messages.**  
+   - Describe briefly what you changed or added.  
+   - Example:  
+     `feat: add parking recommendation logic` or
+     `fix: resolve map z-index issue`
+
+4. **Keep commits small and clear.**  
+   Avoid huge “everything at once” commits.
+
+5. **Use English** for all commit messages, variable names, and comments.
+
