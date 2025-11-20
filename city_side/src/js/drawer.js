@@ -1,3 +1,4 @@
+// Lightweight drawer (side menu) controller with ARIA updates for accessibility.
 export function initDrawer() {
   const drawer = document.getElementById('drawer');
   const burger = document.getElementById('burger');

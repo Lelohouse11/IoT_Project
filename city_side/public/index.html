@@ -6,16 +6,26 @@
   <link rel="icon" href="./iot_icon.ico" />
   <title>Smart City Admin</title>
 
-  <!-- Leaflet CSS -->
+  <!-- Leaflet CSS (core map styles) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
     crossorigin="anonymous"
   />
+  <!-- MarkerCluster CSS (clusters for many accident markers) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"
+  />
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"
+  />
 
-  <!-- App CSS -->
+  <!-- App CSS (layout, legend, accident icons, pills) -->
   <link rel="stylesheet" href="/city_side/src/styles/app.css" />
+  
 </head>
 <body>
   <!-- Topbar -->
@@ -80,7 +90,9 @@
         </div>
         <div class="infobar">
           <button class="btn" id="locBtn">Center on Patras</button>
-          <span class="pill">Demo</span>
+          <span class="pill" id="apiStatus" title="Backend connectivity">API: checking…</span>
+          <span class="pill" id="nextRefresh" title="Next scheduled refresh">Next: --s</span>
+          <button class="btn" id="btnRefreshNow" title="Refresh accidents now">Refresh now</button>
         </div>
       </article>
 
@@ -92,9 +104,10 @@
             class="grafana-embed"
             id="grafanaFrame"
             title="Grafana"
-            src="https://play.grafana.org/d/000000012/grafana-play-home?orgId=1&kiosk"
-            loading="lazy"
-            referrerpolicy="no-referrer"
+            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?from=1763566156463&to=1763567956463&timezone=browser&orgId=2&panelId=1&__feature.dashboardSceneSolo"
+            width="100%"
+            height="420"
+            frameborder="0"
           ></iframe>
         </div>
         <div class="infobar">
@@ -107,29 +120,49 @@
       <article class="card" id="llm-card">
         <h2>AI Assistant (LLM)</h2>
         <div class="body">
+          <div style="display:flex; gap:.5rem; margin-bottom:.5rem; align-items:center;">
+            <input
+              id="llmPrompt"
+              type="text"
+              placeholder="Ask the city assistant (e.g., summarize parking occupancy)"
+              style="flex:1; padding:.5rem; border:1px solid rgba(79,209,197,.35); border-radius:8px;"
+              aria-label="LLM prompt"
+            />
+            <button class="btn" id="llmSend" aria-label="Send prompt">Send</button>
+          </div>
           <div
             id="llmOutput"
-            style="min-height:160px;border:1px dashed rgba(79,209,197,.35);border-radius:10px;padding:1rem;color:var(--muted)"
-          >
-            Placeholder for future LLM output.
-          </div>
+            style="min-height:160px;border:1px dashed rgba(79,209,197,.35);border-radius:10px;padding:1rem;color:var(--muted);white-space:pre-wrap"
+            aria-live="polite"
+          ></div>
         </div>
         <div class="infobar">
-          <span class="pill">LLM Integration</span>
-          <button class="btn" id="simulateLLM">Simulate</button>
+          <span class="pill">LLM Ready</span>
         </div>
       </article>
     </section>
   </main>
 
-  <!-- Leaflet JS -->
+  <!-- Leaflet JS (map engine) -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin="anonymous"
   ></script>
+  <!-- MarkerCluster JS (client-side spatial clustering for markers) -->
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 
-  <!-- Main App Script (imports all modules) -->
+  <!-- Configure backend API base for Live Server (adjust if backend runs elsewhere).
+       The map code (map.js) reads window.APP_API_BASE to poll recent accidents. -->
+  <script>
+    window.APP_API_BASE = window.APP_API_BASE || 'http://localhost:8000';
+    // LLM backend proxy defaults (override as needed)
+    // If you run the standalone LLM server (api/llm_server.py), default to 9090
+    window.LLM_BACKEND_BASE = window.LLM_BACKEND_BASE || 'http://localhost:9090';
+    window.LLM_MODEL        = window.LLM_MODEL        || 'deepseek-r1:8b';
+  </script>
+
+  <!-- Main App Script (initializes drawer/auth/map/grafana/llm modules) -->
   <script type="module" src="/city_side/src/js/app.js" defer></script>
 </body>
 </html>

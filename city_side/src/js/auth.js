@@ -1,3 +1,4 @@
+// Very small in-memory auth mock used to toggle profile UI and demo flows.
 let signedIn = false;
 
 export function initAuth() {
@@ -28,4 +29,5 @@ export function initAuth() {
   renderProfile();
 }
 
+// Read-only accessor for other modules (e.g., llm.js)
 export function isSignedIn() { return signedIn; }
