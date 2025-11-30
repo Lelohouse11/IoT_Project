@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="./iot_icon.ico" />
+  <title>Login - Smart City Admin</title>
+  <link rel="stylesheet" href="/city_side/src/styles/app.css" />
+</head>
+<body class="auth-wrap">
+  <form class="auth-card" id="loginForm">
+    <h1>Welcome back</h1>
+    <p>Sign in to access the Smart City dashboard.</p>
+    <div class="form-stack">
+      <label>
+        Email
+        <input type="email" name="email" id="email" value="admin@example.com" required />
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" id="password" value="password123" required />
+      </label>
+      <div class="auth-actions">
+        <button type="submit" class="btn btn-primary">Login</button>
+      </div>
+    </div>
+  </form>
+
+  <script>
+    const SIGNED_IN_KEY = 'city_side_signed_in';
+    document.getElementById('loginForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      localStorage.setItem(SIGNED_IN_KEY, 'true');
+      window.location.href = '/city_side/public/index.html';
+    });
+  </script>
+</body>
+</html>

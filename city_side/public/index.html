@@ -25,18 +25,19 @@
 
   <!-- App CSS (layout, legend, accident icons, pills) -->
   <link rel="stylesheet" href="/city_side/src/styles/app.css" />
-  
 </head>
 <body>
   <!-- Topbar -->
   <header class="topbar" role="banner">
-    <button class="burger" id="burger" aria-label="Open menu" aria-expanded="false">
-      <span class="burger-lines"></span>
-    </button>
     <div class="brand" aria-label="Smart City Admin">
       <span class="brand-dot" aria-hidden="true"></span>
-      <span>Smart City – Admin</span>
+      <span>Smart City - Admin</span>
     </div>
+    <nav class="topnav" aria-label="Utility links">
+      <a href="/city_side/public/index.html" aria-current="page">Dashboard</a>
+      <a href="/city_side/public/settings.html">Settings</a>
+      <a href="/city_side/public/help.html">Help</a>
+    </nav>
     <div class="spacer"></div>
     <button
       id="authBtn"
@@ -46,21 +47,6 @@
       aria-expanded="false"
     ></button>
   </header>
-
-  <!-- Drawer / Menu -->
-  <aside class="drawer" id="drawer" aria-hidden="true">
-    <nav class="drawer-panel" aria-label="Main menu">
-      <div class="menu">
-        <h3>Menu</h3>
-        <a href="#map-card">Map</a>
-        <a href="#grafana-card">Analytics</a>
-        <a href="#llm-card">AI Assistant</a>
-        <a href="#settings">Settings</a>
-        <a href="#help">Help</a>
-      </div>
-    </nav>
-    <div class="drawer-scrim" id="scrim" role="presentation"></div>
-  </aside>
 
   <!-- Profile dropdown -->
   <div class="profile-menu" id="profileMenu" role="menu" aria-labelledby="authBtn">
@@ -90,7 +76,7 @@
         </div>
         <div class="infobar">
           <button class="btn" id="locBtn">Center on Patras</button>
-          <span class="pill" id="apiStatus" title="Backend connectivity">API: checking…</span>
+          <span class="pill" id="apiStatus" title="Backend connectivity">API: checking...</span>
           <span class="pill" id="nextRefresh" title="Next scheduled refresh">Next: --s</span>
           <button class="btn" id="btnRefreshNow" title="Refresh accidents now">Refresh now</button>
         </div>
@@ -162,7 +148,7 @@
     window.LLM_MODEL        = window.LLM_MODEL        || 'deepseek-r1:8b';
   </script>
 
-  <!-- Main App Script (initializes drawer/auth/map/grafana/llm modules) -->
+  <!-- Main App Script (initializes auth/map/grafana/llm modules) -->
   <script type="module" src="/city_side/src/js/app.js" defer></script>
 </body>
 </html>
