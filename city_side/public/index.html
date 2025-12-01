@@ -69,12 +69,12 @@
   <main class="wrap">
     <section class="cards">
       <!-- Map Card -->
-      <article class="card" id="map-card">
+      <article class="card" id="map-card" style="grid-column: 1 / -1;">
         <h2>Live Map</h2>
         <div class="body">
           <div id="map" aria-label="Interactive city map"></div>
         </div>
-        <div class="infobar">
+        <div class="infobar" style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
           <button class="btn" id="locBtn">Center on Patras</button>
           <span class="pill" id="apiStatus" title="Backend connectivity">API: checking...</span>
           <span class="pill" id="nextRefresh" title="Next scheduled refresh">Next: --s</span>
@@ -83,22 +83,26 @@
       </article>
 
       <!-- Grafana Card -->
-      <article class="card" id="grafana-card">
+      <article class="card" id="grafana-card" style="grid-column: 1 / -1;">
         <h2>Analytics (Grafana)</h2>
-        <div class="body">
+        <div class="body" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:1rem;">
           <iframe
             class="grafana-embed"
             id="grafanaFrame"
             title="Grafana"
-            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?from=1763566156463&to=1763567956463&timezone=browser&orgId=2&panelId=1&__feature.dashboardSceneSolo"
+            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?timezone=browser&var-location=&var-lat=&var-lng=&refresh=auto&showCategory=Override%201&orgId=2&panelId=1&__feature.dashboardSceneSolo"
             width="100%"
             height="420"
             frameborder="0"
           ></iframe>
-        </div>
-        <div class="infobar">
-          <span class="pill">Heatmaps / Graphs</span>
-          <button class="btn" id="refreshGrafana">Refresh</button>
+          <iframe
+            class="grafana-embed"
+            title="Parking Grafana"
+            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?timezone=browser&var-location=&var-lat=&var-lng=&refresh=auto&showCategory=Override%201&orgId=2&panelId=2&__feature.dashboardSceneSolo"
+            width="100%"
+            height="420"
+            frameborder="0"
+          ></iframe>
         </div>
       </article>
 

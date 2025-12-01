@@ -37,40 +37,55 @@ INFLUX_URL = "http://150.140.186.118:8086"
 INFLUX_BUCKET = "LeandersDB"
 INFLUX_ORG = "students"
 INFLUX_TOKEN = "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BAWqSzAnI2eckYOsbYQqICeA=="
-MEASUREMENT = "accidents"
+MEASUREMENT_ACCIDENTS = "accidents"
+MEASUREMENT_PARKING = "parking_zones"
 
 client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
 write_api = client.write_api(write_options=SYNCHRONOUS)
 
 
 def _attr_value(entity: Dict[str, Any], key: str, default: Optional[Any] = None) -> Optional[Any]:
-    """Return the NGSI attribute `value` if present."""
+    """Return the NGSI attribute `value` if present, else the raw primitive."""
     attr = entity.get(key)
     if isinstance(attr, dict):
         return attr.get("value", default)
-    return default
+    return attr if attr is not None else default
 
 
 def _extract_coords(entity: Dict[str, Any]) -> Tuple[Optional[float], Optional[float]]:
-    """Parse geo:json attribute coordinates -> (lat, lng)."""
+    """Parse geo:json attribute coordinates -> (lat, lng).
+
+    Supports Point coordinates [lng, lat] and LineString coordinates [[lng, lat], ...]
+    where the first point is used as a representative location.
+    """
     location = entity.get("location")
     if isinstance(location, dict):
-        value = location.get("value")
+        value = location.get("value") if "value" in location else location
         if isinstance(value, dict):
             coords = value.get("coordinates")
-            if isinstance(coords, (list, tuple)) and len(coords) == 2:
-                try:
-                    lng = float(coords[0])
-                    lat = float(coords[1])
-                    return lat, lng
-                except (TypeError, ValueError):
-                    return None, None
+            if isinstance(coords, (list, tuple)):
+                # Point
+                if len(coords) == 2 and all(isinstance(c, (int, float)) for c in coords):
+                    try:
+                        lng = float(coords[0])
+                        lat = float(coords[1])
+                        return lat, lng
+                    except (TypeError, ValueError):
+                        return None, None
+                # LineString -> use first point
+                if coords and isinstance(coords[0], (list, tuple)) and len(coords[0]) >= 2:
+                    try:
+                        lng = float(coords[0][0])
+                        lat = float(coords[0][1])
+                        return lat, lng
+                    except (TypeError, ValueError):
+                        return None, None
     return None, None
 
 
 def _event_time_ns(entity: Dict[str, Any]) -> int:
-    """Convert dateObserved into nanoseconds; fallback to current time."""
-    observed = _attr_value(entity, "dateObserved")
+    """Convert dateObserved/observationDateTime into nanoseconds; fallback to now."""
+    observed = _attr_value(entity, "dateObserved") or _attr_value(entity, "observationDateTime")
     if isinstance(observed, str) and observed:
         try:
             cleaned = observed.replace("Z", "+00:00")
@@ -81,8 +96,8 @@ def _event_time_ns(entity: Dict[str, Any]) -> int:
     return time.time_ns()
 
 
-def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
-    """Map Orion entity attributes to an InfluxDB point."""
+def _accident_to_point(entity: Dict[str, Any]) -> Optional[Point]:
+    """Map TrafficAccident entity attributes to an InfluxDB point."""
     entity_id = entity.get("id")
     if not entity_id:
         return None
@@ -94,12 +109,12 @@ def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     lat, lng = _extract_coords(entity)
 
     if lat is None or lng is None:
-        print(f"[skip] entity_to_point {entity_id} missing coordinates")
+        print(f"[skip] accident {entity_id} missing coordinates")
         return None
 
     accident_id = entity_id.split(":")[-1]
     point = (
-        Point(MEASUREMENT)
+        Point(MEASUREMENT_ACCIDENTS)
         .tag("type", entity.get("type", "TrafficAccident"))
         .tag("severity", severity)
         .field("id", accident_id)
@@ -112,6 +127,61 @@ def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
         .time(_event_time_ns(entity), WritePrecision.NS)
     )
     return point
+
+
+def _parking_to_point(entity: Dict[str, Any]) -> Optional[Point]:
+    """Map OnStreetParking entity attributes to an InfluxDB point."""
+    entity_id = entity.get("id")
+    if not entity_id:
+        return None
+
+    total = _attr_value(entity, "totalSpotNumber") or 0
+    occupied = _attr_value(entity, "occupiedSpotNumber") or 0
+    available = _attr_value(entity, "availableSpotNumber")
+    try:
+        total = int(total)
+        occupied = int(occupied)
+    except (TypeError, ValueError):
+        print(f"[skip] parking {entity_id} invalid counts")
+        return None
+    if available is None:
+        available = max(0, total - occupied)
+    else:
+        try:
+            available = int(available)
+        except (TypeError, ValueError):
+            available = max(0, total - occupied)
+
+    status = _attr_value(entity, "status", "open")
+    street = _attr_value(entity, "streetName", "")
+    lat, lng = _extract_coords(entity)
+
+    if lat is None or lng is None:
+        print(f"[skip] parking {entity_id} missing coordinates")
+        return None
+
+    point = (
+        Point(MEASUREMENT_PARKING)
+        .tag("type", entity.get("type", "OnStreetParking"))
+        .tag("street", street)
+        .field("entity_id", entity_id)
+        .field("total_spots", total)
+        .field("occupied_spots", occupied)
+        .field("available_spots", available)
+        .field("status", status)
+        .field("lat", float(lat))
+        .field("lng", float(lng))
+        .time(_event_time_ns(entity), WritePrecision.NS)
+    )
+    return point
+
+
+def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
+    """Dispatch entity to the correct InfluxDB measurement."""
+    etype = entity.get("type")
+    if etype == "OnStreetParking":
+        return _parking_to_point(entity)
+    return _accident_to_point(entity)
 
 
 def _is_allowed_entity(entity: Dict[str, Any]) -> bool:
