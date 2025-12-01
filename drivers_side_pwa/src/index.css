@@ -38,19 +38,6 @@ a { color: inherit; text-decoration: none; }
 .brand-dot { width: .9rem; height: .9rem; border-radius: 999px; background: var(--accent); box-shadow: 0 0 20px rgba(79,209,197,.55); }
 .spacer { flex: 1; }
 
-/* ===== Burger ===== */
-.burger { appearance: none; background: transparent; border: 0; width: 40px; height: 40px; border-radius: .5rem; display: grid; place-items: center; cursor: pointer; }
-.burger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.burger-lines, .burger-lines::before, .burger-lines::after {
-  content: ""; display: block; width: 20px; height: 2px; background: var(--text);
-  border-radius: 2px; transition: transform .2s ease, opacity .2s ease;
-}
-.burger-lines::before { transform: translateY(-6px); }
-.burger-lines::after  { transform: translateY(4px); }
-.burger[aria-expanded="true"] .burger-lines { transform: rotate(45deg); }
-.burger[aria-expanded="true"] .burger-lines::before { transform: rotate(90deg); }
-.burger[aria-expanded="true"] .burger-lines::after  { opacity: 0; }
-
 /* ===== Avatar & Profile ===== */
 .avatar {
   width: 36px; height: 36px; border-radius: 999px;
@@ -70,24 +57,6 @@ a { color: inherit; text-decoration: none; }
 .profile-row { display: flex; align-items: center; gap: .6rem; padding: .5rem .6rem; }
 .profile-row small { color: var(--muted); }
 .profile-actions { display: flex; gap: .5rem; justify-content: flex-end; padding: .5rem; }
-
-/* ===== Drawer ===== */
-.drawer {
-  position: fixed; inset: 0 0 0 auto; display: grid; grid-template-columns: 280px 1fr;
-  pointer-events: none; z-index: 1300;
-}
-.drawer-panel {
-  background: var(--panel); padding: 1rem; border-left: 1px solid rgba(79,209,197,.25);
-  transform: translateX(100%); transition: transform .2s ease;
-}
-.drawer-scrim { background: rgba(0,0,0,.35); backdrop-filter: blur(2px); opacity: 0; transition: opacity .2s ease; }
-.drawer.open { pointer-events: auto; }
-.drawer.open .drawer-panel { transform: none; }
-.drawer.open .drawer-scrim  { opacity: 1; }
-
-.menu h3 { margin: .5rem 0 1rem 0; font-size: 1rem; color: var(--muted); font-weight: 600; }
-.menu-btn { width: 100%; text-align: left; display: flex; align-items: center; gap: .5rem; padding: .5rem .6rem; border-radius: .5rem; color: var(--text); background: transparent; border: 0; cursor: pointer; }
-.menu-btn:hover { background: rgba(79,209,197,.08); }
 
 /* ===== Layout ===== */
 .wrap { max-width: 1200px; margin: 0 auto; padding: 1rem 1.25rem 1.25rem; }
@@ -139,8 +108,6 @@ select.btn {
 
 /* ===== Controls & lists ===== */
 .controls { display: flex; gap: .5rem; flex-wrap: wrap; }
-.toggle { display: flex; align-items: center; gap: .4rem; }
-.toggle input { accent-color: var(--accent); }
 
 ul.clean { list-style: none; margin: 0; padding: 0; }
 ul.clean li { padding: .35rem 0; color: var(--muted); }
@@ -196,7 +163,6 @@ ul.clean li { padding: .35rem 0; color: var(--muted); }
   .map-fab { bottom: calc(var(--bottom-nav-h) + 4.2rem); }
   .card h2 { font-size: 1rem; }
   #map { height: calc(100vh - var(--topbar-h) - var(--bottom-nav-h)); min-height: 360px; }
-  .infobar { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
   .controls { width: 100%; flex-direction: column; }
   .controls .btn, .controls select { width: 100%; justify-content: center; }
   .bottom-nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }

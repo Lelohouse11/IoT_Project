@@ -6,9 +6,12 @@ import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import './App.css'
 
+//for demo purposes to have some fixed coordinates to route 
 const cityCenter = [38.2464, 21.7346]
 const beach = [38.2588, 21.7347]
+
 function App() {
+  //state variables
   const [profileOpen, setProfileOpen] = useState(false)
   const [signedIn, setSignedIn] = useState(false)
   const [activeTab, setActiveTab] = useState('map')
@@ -20,6 +23,7 @@ function App() {
   const mapRef = useRef(null)
   const routeRef = useRef(null)
 
+  //effects to setup map and handle profile menu
   useEffect(() => {
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: markerIcon2x,
@@ -49,6 +53,7 @@ function App() {
     }
   }, [profileOpen])
 
+  //initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
 
@@ -67,12 +72,14 @@ function App() {
     }
   }, [])
 
+  //handle map resize on tab change
   useEffect(() => {
     if (activeTab === 'map' && mapRef.current) {
       setTimeout(() => mapRef.current?.invalidateSize(), 120)
     }
   }, [activeTab])
 
+  //function to make route using GraphHopper API (graphhopper key in .env file)
   const makeRoute = async (start, end) => {
     const map = mapRef.current
     const key = import.meta.env.VITE_GRAPHHOPPER_KEY
@@ -108,11 +115,12 @@ function App() {
       console.error(err)
     }
   }
-
+  //handler for redeeming points (just deducts points here for now)
   const handleRedeem = () => {
     setPoints((p) => Math.max(0, p - 250))
   }
 
+  //handler for sending report (just shows a message here for now)
   const handleReport = () => {
     setReportMsg(`Report sent: ${reportType.replace(/^\w/, (c) => c.toUpperCase())}. Thank you!`)
   }
@@ -120,6 +128,7 @@ function App() {
   const toggleProfile = () => setProfileOpen((v) => !v)
   const goTo = (tab) => setActiveTab(tab)
 
+  //JSX return("website layout")
   return (
     <>
       <header className="topbar" role="banner">
