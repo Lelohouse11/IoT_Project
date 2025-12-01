@@ -8,13 +8,6 @@ import './App.css'
 
 const cityCenter = [38.2464, 21.7346]
 const beach = [38.2588, 21.7347]
-const evPoints = [
-  [38.2488, 21.7301],
-  [38.2441, 21.7398],
-  [38.2532, 21.7443],
-  [38.2505, 21.728],
-]
-
 function App() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [signedIn, setSignedIn] = useState(false)
@@ -22,13 +15,10 @@ function App() {
   const [points, setPoints] = useState(1250)
   const [reportType, setReportType] = useState('accident')
   const [reportMsg, setReportMsg] = useState('Help improve the map by reporting issues.')
-  const [parkingMsg, setParkingMsg] = useState('')
-  const [routeMsg, setRouteMsg] = useState('')
 
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
   const routeRef = useRef(null)
-  const evLayerRef = useRef(null)
 
   useEffect(() => {
     L.Icon.Default.mergeOptions({
@@ -68,20 +58,11 @@ function App() {
     }).addTo(map)
     setTimeout(() => map.invalidateSize(), 0)
 
-    const evLayer = L.featureGroup()
-    evPoints.forEach(([lat, lng]) =>
-      L.circleMarker([lat, lng], { radius: 7, weight: 2, color: '#4fd1c5' })
-        .bindTooltip('EV Charger')
-        .addTo(evLayer)
-    )
-
     mapRef.current = map
-    evLayerRef.current = evLayer
 
     return () => {
       map.remove()
       mapRef.current = null
-      evLayerRef.current = null
       routeRef.current = null
     }
   }, [])
@@ -96,13 +77,9 @@ function App() {
     const map = mapRef.current
     const key = import.meta.env.VITE_GRAPHHOPPER_KEY
     if (!map) return
-    if (!key) {
-      setRouteMsg('Routing API-Key fehlt (VITE_GRAPHHOPPER_KEY).')
-      return
-    }
+    if (!key) return
 
     try {
-      setRouteMsg('Route wird geladen ...')
       if (routeRef.current) {
         map.removeLayer(routeRef.current)
         routeRef.current = null
@@ -127,45 +104,13 @@ function App() {
       const poly = L.polyline(latlngs, { color: '#4fd1c5', weight: 5, opacity: 0.9 }).addTo(map)
       routeRef.current = poly
       map.fitBounds(poly.getBounds(), { padding: [30, 30] })
-      setRouteMsg('Route geladen.')
     } catch (err) {
       console.error(err)
-      setRouteMsg('Routing fehlgeschlagen. Pruefe API-Key oder Internet.')
     }
-  }
-
-  const toggleEV = () => {
-    const map = mapRef.current
-    const evLayer = evLayerRef.current
-    if (!map || !evLayer) return
-    if (map.hasLayer(evLayer)) {
-      map.removeLayer(evLayer)
-    } else {
-      evLayer.addTo(map)
-      const bounds = evLayer.getBounds()
-      if (bounds && bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [30, 30] })
-      }
-    }
-  }
-
-  const clearMap = () => {
-    const map = mapRef.current
-    const evLayer = evLayerRef.current
-    if (routeRef.current && map) {
-      map.removeLayer(routeRef.current)
-      routeRef.current = null
-    }
-    if (map && evLayer && map.hasLayer(evLayer)) map.removeLayer(evLayer)
-    setRouteMsg('')
   }
 
   const handleRedeem = () => {
     setPoints((p) => Math.max(0, p - 250))
-  }
-
-  const handleBestParking = () => {
-    setParkingMsg('Closest low-traffic option: Garage C (EV) with chargers available.')
   }
 
   const handleReport = () => {
@@ -209,24 +154,6 @@ function App() {
               <button className="map-fab" type="button" onClick={() => makeRoute(cityCenter, beach)} aria-label="Show route to parking">
                 P
               </button>
-            </div>
-          </article>
-        </section>
-
-        <section className={`view ${activeTab === 'parking' ? 'active' : ''}`} aria-hidden={activeTab !== 'parking'} id="parking-card">
-          <article className="card">
-            <h2>Smart Parking</h2>
-            <div className="body">
-              <ul className="clean">
-                <li>Nearby lot A - 12 spaces free</li>
-                <li>Street B (200 m) - 3 spaces free</li>
-                <li>Garage C (EV) - 4 spaces + chargers</li>
-              </ul>
-              <div className="infobar">
-                <button className="btn" onClick={handleBestParking}>Best Option</button>
-                <span className="pill">Live availability</span>
-              </div>
-              {parkingMsg && <div style={{ marginTop: '.6rem', color: 'var(--muted)' }}>{parkingMsg}</div>}
             </div>
           </article>
         </section>
