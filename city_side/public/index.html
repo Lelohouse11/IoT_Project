@@ -103,11 +103,19 @@
             height="420"
             frameborder="0"
           ></iframe>
+          <iframe
+            class="grafana-embed"
+            title="Traffic Distribution"
+            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?from=1764609220305&to=1764609520306&timezone=browser&var-location=&var-lat=&var-lng=&refresh=auto&orgId=2&panelId=3&__feature.dashboardSceneSolo"
+            width="100%"
+            height="420"
+            frameborder="0"
+          ></iframe>
         </div>
       </article>
 
       <!-- LLM Card -->
-      <article class="card" id="llm-card">
+      <article class="card" id="llm-card" style="grid-column: 1 / -1;">
         <h2>AI Assistant (LLM)</h2>
         <div class="body">
           <div style="display:flex; gap:.5rem; margin-bottom:.5rem; align-items:center;">
@@ -115,7 +123,7 @@
               id="llmPrompt"
               type="text"
               placeholder="Ask the city assistant (e.g., summarize parking occupancy)"
-              style="flex:1; padding:.5rem; border:1px solid rgba(79,209,197,.35); border-radius:8px;"
+              class="llm-input"
               aria-label="LLM prompt"
             />
             <button class="btn" id="llmSend" aria-label="Send prompt">Send</button>

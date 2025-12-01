@@ -16,7 +16,6 @@ export function initMap() {
   const accidents = [];
 
   const roads = { type: 'FeatureCollection', features: [] };
-
   const zones = { type: 'FeatureCollection', features: [] };
 
   // --- Helpers ---
@@ -46,8 +45,27 @@ export function initMap() {
   }
   // --- Traffic: styled GeoJSON lines ---
   const trafficLayer = L.geoJSON(roads, {
-    style: f => ({ color: speedToColor(f.properties.speed), weight: 6, opacity: 0.85 }),
-    onEachFeature: (f, layer) => layer.bindPopup(`<b>${f.properties.ref || 'Segment'}</b><br>Speed: ${f.properties.speed} km/h`)
+    pointToLayer: (f, latlng) => L.circleMarker(latlng, {
+      radius: 8,
+      fillColor: speedToColor(f.properties.speed || 0),
+      color: '#555',
+      weight: 1,
+      fillOpacity: 0.85
+    }),
+    style: f => ({
+      color: speedToColor(f.properties.speed || 0),
+      weight: 6,
+      opacity: 0.55,
+      lineCap: 'round'
+    }),
+    onEachFeature: (f, layer) => {
+      const ref = f.properties.ref || 'Segment';
+      const speed = f.properties.speed ?? '?';
+      const density = f.properties.density ?? '?';
+      const occupancy = f.properties.occupancy ?? '?';
+      const congestion = f.properties.congestion || '';
+      layer.bindPopup(`<b>${ref}</b><br>Speed: ${speed} km/h<br>Density: ${density}<br>Occupancy: ${Math.round((occupancy||0)*100)}%<br>${congestion}`);
+    }
   });
 
   // --- Parking: polygons styled by occupancy ---
@@ -242,17 +260,43 @@ export function initMap() {
       if (!res.ok) { setApiStatus('error', `HTTP ${res.status}`); return; }
       const items = await res.json();
       if (Array.isArray(items)) {
-        // Incremental replace to allow TTL-based pruning
-        const seen = new Set();
-        for (const a of items) { seen.add(a.id); upsertAccident(a); }
-        // Note: pruning is handled separately by pruneOldAccidents()
-      const ts = new Date().toLocaleTimeString();
-      setApiStatus('ok', `Last update ${ts}`);
+        for (const a of items) { upsertAccident(a); }
+        const ts = new Date().toLocaleTimeString();
+        setApiStatus('ok', `Last update ${ts}`);
+      }
+    } catch (_) {
+      setApiStatus('error');
     }
-  } catch (_) {
-    setApiStatus('error');
   }
-}
+  async function fetchRecentTraffic() {
+    try {
+      const res = await fetch(`${API_BASE}/api/traffic/recent?window=${encodeURIComponent(API_WINDOW)}`);
+      if (!res.ok) return;
+      const items = await res.json();
+      if (Array.isArray(items)) {
+        const fc = {
+          type: 'FeatureCollection',
+          features: items.map(t => {
+            const geometry = t.geometry && t.geometry.type ? t.geometry : { type: 'Point', coordinates: [t.lng, t.lat] };
+            return {
+              type: 'Feature',
+              properties: {
+                ref: t.ref_segment || t.id,
+                speed: t.avg_speed,
+                density: t.density,
+                occupancy: t.occupancy,
+                congestion: t.congestion || (t.congested ? 'congested' : 'freeFlow')
+              },
+              geometry
+            };
+          })
+        };
+        replaceTraffic(fc);
+      }
+    } catch (_) {
+      /* ignore traffic fetch errors to avoid breaking accident status */
+    }
+  }
   async function fetchRecentParking() {
     try {
       const res = await fetch(`${API_BASE}/api/parking/recent?window=${encodeURIComponent(API_WINDOW)}`);
@@ -298,6 +342,7 @@ export function initMap() {
     nextRefreshAt = Date.now() + REFRESH_MS;
     fetchTimer = setInterval(() => {
       fetchRecentAccidents();
+      fetchRecentTraffic();
       nextRefreshAt = Date.now() + REFRESH_MS;
     }, REFRESH_MS);
     if (countdownTimer) clearInterval(countdownTimer);
@@ -308,6 +353,7 @@ export function initMap() {
   if (btnRefreshNow) {
     btnRefreshNow.addEventListener('click', () => {
       fetchRecentAccidents();
+      fetchRecentTraffic();
       fetchRecentParking();
       startAutoRefresh(); // reset cadence and countdown
     });
@@ -316,6 +362,7 @@ export function initMap() {
   setInterval(pruneOldAccidents, PRUNE_MS);
   // Kick off
   fetchRecentAccidents();
+  fetchRecentTraffic();
   fetchRecentParking();
   startAutoRefresh();
 }

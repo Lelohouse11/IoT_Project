@@ -26,20 +26,18 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from debug import print_context  # noqa: F401
+from data_faker.orion_helpers import OrionClient
 
 FIWARE_TYPE = "TrafficAccident"
 ORION_BASE_URL = "http://150.140.186.118:1026"
-ORION_ENTITIES_URL = f"{ORION_BASE_URL}/v2/entities"
 FIWARE_SERVICE_PATH = "/week4_up1125093"
 FIWARE_OWNER = "week4_up1125093"
-ORION_HEADERS = {
-    "Content-Type": "application/json",
-    "FIWARE-ServicePath": FIWARE_SERVICE_PATH,
-}
-ORION_HEADERS_NO_BODY = {
-    "FIWARE-ServicePath": FIWARE_SERVICE_PATH,
-}
 REQUEST_TIMEOUT = 5
+ORION = OrionClient(
+    base_url=ORION_BASE_URL,
+    service_path=FIWARE_SERVICE_PATH,
+    request_timeout=REQUEST_TIMEOUT,
+)
 ROADS_PATH = PROJECT_ROOT / "data_faker" / "patras_roads.geojson"
 
 
@@ -168,84 +166,6 @@ def _build_fiware_entity(aid: str, accident: Accident, event: str, status: str, 
     }
 
 
-def _response_detail(response: requests.Response) -> str:
-    try:
-        data = response.json()
-        error = data.get("error", "")
-        description = data.get("description", "")
-        detail = " ".join(part for part in (error, description) if part)
-        return detail or response.text
-    except ValueError:
-        return response.text
-
-
-def _is_entity_exists_err(response: requests.Response) -> bool:
-    """Return True if Orion reports the entity already exists."""
-    detail = _response_detail(response).lower()
-    return "already exists" in detail
-
-
-def _delete_entity(session: requests.Session, entity_id: str) -> bool:
-    """Delete an existing entity to allow recreation."""
-    try:
-        resp = session.delete(
-            f"{ORION_ENTITIES_URL}/{entity_id}",
-            headers=ORION_HEADERS_NO_BODY,
-            timeout=REQUEST_TIMEOUT,
-        )
-    except requests.RequestException as exc:
-        print(f"[error] delete {entity_id} failed: {exc}")
-        return False
-
-    if resp.status_code in (204, 404):
-        print(f"[delete] {entity_id} removed before recreation")
-        return True
-
-    print(f"[error] delete {entity_id} failed: {resp.status_code} {_response_detail(resp)}")
-    return False
-
-
-def _send_to_orion(session: requests.Session, entity: Dict[str, Dict[str, Any]], action: str) -> bool:
-    """Send the create or update payload to Orion, mirroring the lab templates."""
-    try:
-        if action == "create":
-            response = session.post(
-                ORION_ENTITIES_URL,
-                json=entity,
-                headers=ORION_HEADERS,
-                timeout=REQUEST_TIMEOUT,
-            )
-            if response.status_code == 422 and _is_entity_exists_err(response):
-                if _delete_entity(session, entity["id"]):
-                    response = session.post(
-                        ORION_ENTITIES_URL,
-                        json=entity,
-                        headers=ORION_HEADERS,
-                        timeout=REQUEST_TIMEOUT,
-                    )
-                    print(f"[debug] send_to_orion create response: {response.status_code} {response.text} {response.headers}")
-            expected = 201
-        else:
-            attrs = {k: v for k, v in entity.items() if k not in ("id", "type")}
-            response = session.patch(
-                f"{ORION_ENTITIES_URL}/{entity['id']}/attrs",
-                json=attrs,
-                headers=ORION_HEADERS,
-                timeout=REQUEST_TIMEOUT,
-            )
-            expected = 204
-    except requests.RequestException as exc:
-        print(f"[error]  {action} {entity['id']} failed: {exc}")
-        return False
-
-    if response.status_code != expected:
-        detail = _response_detail(response)
-        print(f"[error] send_to_orion {action} {entity['id']} failed: {response.status_code} {detail}")
-        return False
-
-    return True
-
-
 
 def generate_accident_data(config: Optional[GeneratorConfig] = None):
     """Continuously emit fake accident events to the Orion Context Broker."""
@@ -299,7 +219,7 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
                     status="active",
                     now_iso=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 )
-                if _send_to_orion(session, entity, "create"):
+                if ORION.send_entity(session, entity, "create"):
                     active[aid] = accident
                     next_id += 1
                     print(f"[create] {entity['id']} {severity} at ({lat:.5f}, {lng:.5f})")
@@ -315,7 +235,7 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
                     status="active",
                     now_iso=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 )
-                if _send_to_orion(session, entity, "update"):
+                if ORION.send_entity(session, entity, "update"):
                     print(f"[update] {entity['id']} {accident.severity} at ({accident.lat:.5f}, {accident.lng:.5f})")
 
             else:
@@ -328,7 +248,7 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
                     status="cleared",
                     now_iso=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 )
-                if _send_to_orion(session, entity, "update"):
+                if ORION.send_entity(session, entity, "update"):
                     print(f"[clear]  {entity['id']} cleared")
 
             time.sleep(config.interval_sec)

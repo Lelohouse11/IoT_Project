@@ -16,21 +16,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from debug import print_context  # noqa: F401
+from data_faker.orion_helpers import OrionClient
 
 FIWARE_TYPE = "OnStreetParking"
 ORION_BASE_URL = "http://150.140.186.118:1026"
-ORION_ENTITIES_URL = f"{ORION_BASE_URL}/v2/entities"
 FIWARE_SERVICE_PATH = "/week4_up1125093"
 FIWARE_OWNER = "week4_up1125093"
-ORION_HEADERS = {
-    "Content-Type": "application/json",
-    "FIWARE-ServicePath": FIWARE_SERVICE_PATH,
-}
-ORION_HEADERS_NO_BODY = {
-    "FIWARE-ServicePath": FIWARE_SERVICE_PATH,
-}
 REQUEST_TIMEOUT = 5
 ENTITIES_FILE = Path(__file__).resolve().parent / "parking_entities.json"
+ORION = OrionClient(
+    base_url=ORION_BASE_URL,
+    service_path=FIWARE_SERVICE_PATH,
+    request_timeout=REQUEST_TIMEOUT,
+)
 
 
 @dataclass
@@ -47,85 +45,6 @@ class ParkingState:
     entity_id: str
     total_spots: int
     occupied: int
-
-
-def _response_detail(response: requests.Response) -> str:
-    """Extract Orion error description for logging."""
-    try:
-        data = response.json()
-        error = data.get("error", "")
-        description = data.get("description", "")
-        detail = " ".join(part for part in (error, description) if part)
-        return detail or response.text
-    except ValueError:
-        return response.text
-
-
-def _is_entity_exists_err(response: requests.Response) -> bool:
-    """Return True if Orion reports the entity already exists."""
-    detail = _response_detail(response).lower()
-    return "already exists" in detail
-
-
-def _delete_entity(session: requests.Session, entity_id: str) -> bool:
-    """Delete an existing entity to allow recreation."""
-    try:
-        resp = session.delete(
-            f"{ORION_ENTITIES_URL}/{entity_id}",
-            headers=ORION_HEADERS_NO_BODY,
-            timeout=REQUEST_TIMEOUT,
-        )
-    except requests.RequestException as exc:
-        print(f"[error] delete {entity_id} failed: {exc}")
-        return False
-
-    if resp.status_code in (204, 404):
-        print(f"[delete] {entity_id} removed before recreation")
-        return True
-
-    print(f"[error] delete {entity_id} failed: {resp.status_code} {_response_detail(resp)}")
-    return False
-
-
-def _send_to_orion(session: requests.Session, entity: Dict[str, Dict[str, Any]], action: str) -> bool:
-    """Send the create or update payload to Orion, mirroring the lab templates."""
-    try:
-        if action == "create":
-            response = session.post(
-                ORION_ENTITIES_URL,
-                json=entity,
-                headers=ORION_HEADERS,
-                timeout=REQUEST_TIMEOUT,
-            )
-            if response.status_code == 422 and _is_entity_exists_err(response):
-                if _delete_entity(session, entity["id"]):
-                    response = session.post(
-                        ORION_ENTITIES_URL,
-                        json=entity,
-                        headers=ORION_HEADERS,
-                        timeout=REQUEST_TIMEOUT,
-                    )
-                    print(f"[debug] send_to_orion create response: {response.status_code} {response.text} {response.headers}")
-            expected = 201
-        else:
-            attrs = {k: v for k, v in entity.items() if k not in ("id", "type")}
-            response = session.patch(
-                f"{ORION_ENTITIES_URL}/{entity['id']}/attrs",
-                json=attrs,
-                headers=ORION_HEADERS,
-                timeout=REQUEST_TIMEOUT,
-            )
-            expected = 204
-    except requests.RequestException as exc:
-        print(f"[error]  {action} {entity['id']} failed: {exc}")
-        return False
-
-    if response.status_code != expected:
-        detail = _response_detail(response)
-        print(f"[error] send_to_orion {action} {entity['id']} failed: {response.status_code} {detail}")
-        return False
-
-    return True
 
 
 def target_occupancy_range_for_hour(hour: int) -> Tuple[float, float]:
@@ -181,9 +100,9 @@ def _fetch_parking_state(session: requests.Session) -> List[ParkingState]:
     for eid in entity_ids:
         try:
             resp = session.get(
-                f"{ORION_ENTITIES_URL}/{eid}",
-                headers=ORION_HEADERS_NO_BODY,
-                timeout=REQUEST_TIMEOUT,
+                f"{ORION.entities_url}/{eid}",
+                headers=ORION.headers_no_body,
+                timeout=ORION.request_timeout,
             )
             resp.raise_for_status()
         except requests.RequestException as exc:
@@ -269,7 +188,7 @@ def simulate_parking(config: Optional[ParkingSimConfig] = None) -> None:
                     "availableSpotNumber": {"type": "Number", "value": available},
                     "observationDateTime": {"type": "DateTime", "value": now_iso},
                 }
-                if _send_to_orion(session, entity, "update"):
+                if ORION.send_entity(session, entity, "update"):
                     updated += 1
                     occ_sum += st.occupied / st.total_spots if st.total_spots else 0
 

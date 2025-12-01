@@ -134,6 +134,21 @@ from(bucket: "{bucket}")
 '''
 
 
+def _flux_recent_traffic(window: str = "15m") -> str:
+    """Flux to retrieve the latest traffic observations per segment within a window."""
+    return f'''
+from(bucket: "{bucket}")
+  |> range(start: -{window})
+  |> filter(fn: (r) => r._measurement == "traffic_flow")
+  |> filter(fn: (r) => r._field == "entity_id" or r._field == "ref_segment" or r._field == "intensity" or r._field == "avg_speed" or r._field == "density" or r._field == "occupancy" or r._field == "congested" or r._field == "lat" or r._field == "lng")
+  |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  |> group(columns: ["entity_id"])
+  |> sort(columns: ["_time"], desc: true)
+  |> unique(column: "entity_id")
+  |> keep(columns: ["_time", "entity_id", "ref_segment", "intensity", "avg_speed", "density", "occupancy", "congested", "lat", "lng", "congestion"])
+'''
+
+
 @app.get("/api/accidents/recent")
 def recent_accidents(window: str = "15m") -> List[Dict[str, Any]]:
     """Return latest active accidents within the given time window.
@@ -220,6 +235,63 @@ def recent_parking(window: str = "15m") -> List[Dict[str, Any]]:
                     "available_spots": available,
                     "status": str(v.get("status")) if v.get("status") is not None else "",
                     "street": str(v.get("street")) if v.get("street") is not None else "",
+                    "ts": str(v.get("_time")),
+                    "geometry": geometry,
+                })
+            except (TypeError, ValueError):
+                continue
+    return items
+
+
+@app.get("/api/traffic/recent")
+def recent_traffic(window: str = "15m") -> List[Dict[str, Any]]:
+    """Return latest traffic observations within the given time window.
+
+    Response schema: [{ id, entity_id, ref_segment, lat, lng, intensity, avg_speed, density, occupancy, congested, congestion, ts }]
+    """
+    flux = _flux_recent_traffic(window)
+    tables = query_api.query(org=org, query=flux)
+
+    items: List[Dict[str, Any]] = []
+    for table in tables:
+        for record in table.records:
+            v = record.values
+            try:
+                entity_id = v.get("entity_id")
+                if not entity_id:
+                    continue
+                entity_id = str(entity_id)
+                lat = float(v.get("lat"))
+                lng = float(v.get("lng"))
+                intensity = float(v.get("intensity"))
+                avg_speed = float(v.get("avg_speed"))
+                density = float(v.get("density"))
+                occupancy = float(v.get("occupancy"))
+                congested_raw = v.get("congested")
+                congested = False
+                if isinstance(congested_raw, str):
+                    congested = congested_raw.lower() in ("true", "1", "yes")
+                elif congested_raw is not None:
+                    congested = bool(congested_raw)
+                congestion_level = str(v.get("congestion")) if v.get("congestion") is not None else ""
+                geometry = None
+                snapped = _nearest_road_segment(lat, lng)
+                if snapped:
+                    geometry = {"type": "LineString", "coordinates": snapped}
+                else:
+                    geometry = {"type": "Point", "coordinates": [lng, lat]}
+                items.append({
+                    "id": entity_id.split(":")[-1],
+                    "entity_id": entity_id,
+                    "ref_segment": v.get("ref_segment"),
+                    "lat": lat,
+                    "lng": lng,
+                    "intensity": intensity,
+                    "avg_speed": avg_speed,
+                    "density": density,
+                    "occupancy": occupancy,
+                    "congested": congested,
+                    "congestion": congestion_level,
                     "ts": str(v.get("_time")),
                     "geometry": geometry,
                 })

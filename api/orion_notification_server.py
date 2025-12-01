@@ -39,6 +39,7 @@ INFLUX_ORG = "students"
 INFLUX_TOKEN = "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BAWqSzAnI2eckYOsbYQqICeA=="
 MEASUREMENT_ACCIDENTS = "accidents"
 MEASUREMENT_PARKING = "parking_zones"
+MEASUREMENT_TRAFFIC = "traffic_flow"
 
 client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
 write_api = client.write_api(write_options=SYNCHRONOUS)
@@ -176,11 +177,59 @@ def _parking_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     return point
 
 
+def _traffic_to_point(entity: Dict[str, Any]) -> Optional[Point]:
+    """Map TrafficFlowObserved entity attributes to an InfluxDB point."""
+    entity_id = entity.get("id")
+    if not entity_id:
+        return None
+
+    ref_segment = _attr_value(entity, "refRoadSegment", "")
+    intensity = _attr_value(entity, "intensity") or 0
+    avg_speed = _attr_value(entity, "averageVehicleSpeed") or _attr_value(entity, "averageSpeed") or 0
+    density = _attr_value(entity, "density") or 0
+    occupancy = _attr_value(entity, "occupancy") or 0
+    congestion_level = _attr_value(entity, "congestionLevel", "")
+    congested = bool(_attr_value(entity, "congested", False))
+    lat, lng = _extract_coords(entity)
+
+    try:
+        intensity = float(intensity)
+        avg_speed = float(avg_speed)
+        density = float(density)
+        occupancy = float(occupancy)
+    except (TypeError, ValueError):
+        print(f"[skip] traffic {entity_id} invalid numeric values")
+        return None
+
+    if lat is None or lng is None:
+        print(f"[skip] traffic {entity_id} missing coordinates")
+        return None
+
+    point = (
+        Point(MEASUREMENT_TRAFFIC)
+        .tag("type", entity.get("type", "TrafficFlowObserved"))
+        .tag("congestion", congestion_level)
+        .field("entity_id", entity_id)
+        .field("ref_segment", ref_segment)
+        .field("intensity", intensity)
+        .field("avg_speed", avg_speed)
+        .field("density", density)
+        .field("occupancy", occupancy)
+        .field("congested", congested)
+        .field("lat", float(lat))
+        .field("lng", float(lng))
+        .time(_event_time_ns(entity), WritePrecision.NS)
+    )
+    return point
+
+
 def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     """Dispatch entity to the correct InfluxDB measurement."""
     etype = entity.get("type")
     if etype == "OnStreetParking":
         return _parking_to_point(entity)
+    if etype == "TrafficFlowObserved":
+        return _traffic_to_point(entity)
     return _accident_to_point(entity)
 
 
