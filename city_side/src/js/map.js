@@ -13,7 +13,6 @@ export function initMap() {
   }).addTo(map);
 
   // --- Dummy data (Patras area) ---
-  const accidents = [];
 
   const roads = { type: 'FeatureCollection', features: [] };
   const zones = { type: 'FeatureCollection', features: [] };
