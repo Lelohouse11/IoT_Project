@@ -1,0 +1,15 @@
+{
+  "name": "Smart Mobility Driver",
+  "short_name": "Driver",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#4fd1c5",
+  "icons": [
+    {
+      "src": "/iot_icon.ico",
+      "sizes": "64x64 48x48 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ]
+}

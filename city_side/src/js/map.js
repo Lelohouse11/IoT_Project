@@ -13,27 +13,9 @@ export function initMap() {
   }).addTo(map);
 
   // --- Dummy data (Patras area) ---
-  const accidents = [
-    { id: 1, severity: 'minor',  ts: '2025-01-01T08:15:00Z', lat: 38.2469, lng: 21.7320, desc: 'Minor collision' },
-    { id: 2, severity: 'major',  ts: '2025-01-01T08:25:00Z', lat: 38.2435, lng: 21.7395, desc: 'Multi-vehicle accident' },
-    { id: 3, severity: 'medium', ts: '2025-01-01T08:40:00Z', lat: 38.2512, lng: 21.7412, desc: 'Blocked lane' },
-  ];
 
-  const roads = {
-    type: 'FeatureCollection',
-    features: [
-      { type: 'Feature', properties: { id:'R-001', ref:'Avenue 1', speed: 65 }, geometry: { type:'LineString', coordinates: [[21.726,38.244],[21.735,38.246],[21.745,38.248]] } },
-      { type: 'Feature', properties: { id:'R-002', ref:'Avenue 2', speed: 22 }, geometry: { type:'LineString', coordinates: [[21.742,38.242],[21.747,38.244],[21.754,38.246]] } }
-    ]
-  };
-
-  const zones = {
-    type: 'FeatureCollection',
-    features: [
-      { type:'Feature', properties:{ id:'P-001', name:'Parking Center', capacity:180, occupied:120 }, geometry:{ type:'Polygon', coordinates:[[[21.731,38.2448],[21.734,38.2448],[21.734,38.2468],[21.731,38.2468],[21.731,38.2448]]] } },
-      { type:'Feature', properties:{ id:'P-002', name:'Harbor Lot',    capacity: 90,  occupied: 30  }, geometry:{ type:'Polygon', coordinates:[[[21.741,38.2475],[21.744,38.2475],[21.744,38.2492],[21.741,38.2492],[21.741,38.2475]]] } }
-    ]
-  };
+  const roads = { type: 'FeatureCollection', features: [] };
+  const zones = { type: 'FeatureCollection', features: [] };
 
   // --- Helpers ---
   const speedToColor = v => (v>=70?'#2ecc71':v>=45?'#f1c40f':v>=25?'#e67e22':'#e74c3c');
@@ -60,25 +42,49 @@ export function initMap() {
       `<b>Accident (${a.severity})</b><br>${a.desc || ''}<br><small>${new Date(a.ts).toLocaleString()}</small>`
     );
   }
-  // Index and helpers are declared later; seed initial points via upsert
-  // to ensure TTL bookkeeping works for them as well.
-  // We'll temporarily store and apply after function definitions.
-  const seedAccidents = [...accidents];
-
   // --- Traffic: styled GeoJSON lines ---
   const trafficLayer = L.geoJSON(roads, {
-    style: f => ({ color: speedToColor(f.properties.speed), weight: 6, opacity: 0.85 }),
-    onEachFeature: (f, layer) => layer.bindPopup(`<b>${f.properties.ref || 'Segment'}</b><br>Speed: ${f.properties.speed} km/h`)
+    pointToLayer: (f, latlng) => L.circleMarker(latlng, {
+      radius: 8,
+      fillColor: speedToColor(f.properties.speed || 0),
+      color: '#555',
+      weight: 1,
+      fillOpacity: 0.85
+    }),
+    style: f => ({
+      color: speedToColor(f.properties.speed || 0),
+      weight: 6,
+      opacity: 0.55,
+      lineCap: 'round'
+    }),
+    onEachFeature: (f, layer) => {
+      const ref = f.properties.ref || 'Segment';
+      const speed = f.properties.speed ?? '?';
+      const density = f.properties.density ?? '?';
+      const occupancy = f.properties.occupancy ?? '?';
+      const congestion = f.properties.congestion || '';
+      layer.bindPopup(`<b>${ref}</b><br>Speed: ${speed} km/h<br>Density: ${density}<br>Occupancy: ${Math.round((occupancy||0)*100)}%<br>${congestion}`);
+    }
   });
 
   // --- Parking: polygons styled by occupancy ---
   const parkingLayer = L.geoJSON(zones, {
+    pointToLayer: (f, latlng) => {
+      const occ = f.properties.occupied / (f.properties.capacity || 1);
+      return L.circleMarker(latlng, {
+        radius: 10,
+        fillColor: occColor(occ),
+        color: '#555',
+        weight: 2,
+        fillOpacity: 0.85
+      });
+    },
     style: f => {
-      const occ = f.properties.occupied / f.properties.capacity;
-      return { fillColor: occColor(occ), color: '#555', weight: 1, fillOpacity: 0.6 };
+      const occ = f.properties.occupied / (f.properties.capacity || 1);
+      return { color: occColor(occ), weight: 6, opacity: 0.9 };
     },
     onEachFeature: (f, layer) => {
-      const occ = f.properties.occupied / f.properties.capacity;
+      const occ = f.properties.occupied / (f.properties.capacity || 1);
       const pct = Math.round(occ * 100);
       const free = f.properties.capacity - f.properties.occupied;
       layer.bindPopup(`<b>${f.properties.name}</b><br>Occupied: ${pct}% (${f.properties.occupied}/${f.properties.capacity})<br>Free: ${free}`);
@@ -112,8 +118,8 @@ export function initMap() {
       <div class="row"><span class="box" style="background:#e74c3c"></span><span>Jam</span></div>
       <div style="height:6px"></div>
       <div><b>Parking occupancy</b></div>
-      <div class="row"><span class="box" style="background:#2ecc71"></span><span>≤ 50% occupied</span></div>
-      <div class="row"><span class="box" style="background:#f39c12"></span><span>≤ 80% occupied</span></div>
+      <div class="row"><span class="box" style="background:#2ecc71"></span><span>&lt;= 50% occupied</span></div>
+      <div class="row"><span class="box" style="background:#f39c12"></span><span>&lt;= 80% occupied</span></div>
       <div class="row"><span class="box" style="background:#e74c3c"></span><span>> 80% occupied</span></div>
     `;
     return div;
@@ -253,15 +259,71 @@ export function initMap() {
       if (!res.ok) { setApiStatus('error', `HTTP ${res.status}`); return; }
       const items = await res.json();
       if (Array.isArray(items)) {
-        // Incremental replace to allow TTL-based pruning
-        const seen = new Set();
-        for (const a of items) { seen.add(a.id); upsertAccident(a); }
-        // Note: pruning is handled separately by pruneOldAccidents()
+        for (const a of items) { upsertAccident(a); }
         const ts = new Date().toLocaleTimeString();
         setApiStatus('ok', `Last update ${ts}`);
       }
     } catch (_) {
       setApiStatus('error');
+    }
+  }
+  async function fetchRecentTraffic() {
+    try {
+      const res = await fetch(`${API_BASE}/api/traffic/recent?window=${encodeURIComponent(API_WINDOW)}`);
+      if (!res.ok) return;
+      const items = await res.json();
+      if (Array.isArray(items)) {
+        const fc = {
+          type: 'FeatureCollection',
+          features: items.map(t => {
+            const geometry = t.geometry && t.geometry.type ? t.geometry : { type: 'Point', coordinates: [t.lng, t.lat] };
+            return {
+              type: 'Feature',
+              properties: {
+                ref: t.ref_segment || t.id,
+                speed: t.avg_speed,
+                density: t.density,
+                occupancy: t.occupancy,
+                congestion: t.congestion || (t.congested ? 'congested' : 'freeFlow')
+              },
+              geometry
+            };
+          })
+        };
+        replaceTraffic(fc);
+      }
+    } catch (_) {
+      /* ignore traffic fetch errors to avoid breaking accident status */
+    }
+  }
+  async function fetchRecentParking() {
+    try {
+      const res = await fetch(`${API_BASE}/api/parking/recent?window=${encodeURIComponent(API_WINDOW)}`);
+      if (!res.ok) return;
+      const items = await res.json();
+      if (Array.isArray(items)) {
+        const fc = {
+          type: 'FeatureCollection',
+          features: items.map(p => ({
+            type: 'Feature',
+            properties: {
+              id: p.id,
+              name: p.street || p.id,
+              capacity: p.total_spots,
+              occupied: p.occupied_spots,
+              available: p.available_spots,
+              status: p.status || ''
+            },
+            geometry: {
+              type: p.geometry?.type || 'Point',
+              coordinates: p.geometry?.coordinates || [p.lng, p.lat]
+            }
+          }))
+        };
+        replaceParking(fc);
+      }
+    } catch (_) {
+      /* ignore parking fetch errors to avoid breaking accident status */
     }
   }
   // Countdown & scheduling
@@ -279,6 +341,7 @@ export function initMap() {
     nextRefreshAt = Date.now() + REFRESH_MS;
     fetchTimer = setInterval(() => {
       fetchRecentAccidents();
+      fetchRecentTraffic();
       nextRefreshAt = Date.now() + REFRESH_MS;
     }, REFRESH_MS);
     if (countdownTimer) clearInterval(countdownTimer);
@@ -289,14 +352,16 @@ export function initMap() {
   if (btnRefreshNow) {
     btnRefreshNow.addEventListener('click', () => {
       fetchRecentAccidents();
+      fetchRecentTraffic();
+      fetchRecentParking();
       startAutoRefresh(); // reset cadence and countdown
     });
   }
   // Prune old accidents periodically
   setInterval(pruneOldAccidents, PRUNE_MS);
-  // Seed initial markers via upsert
-  seedAccidents.forEach(upsertAccident);
   // Kick off
   fetchRecentAccidents();
+  fetchRecentTraffic();
+  fetchRecentParking();
   startAutoRefresh();
 }

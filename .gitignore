@@ -29,12 +29,17 @@ Scripts/
 ### Node / Web
 node_modules/
 dist/
+dist-ssr/
 build/
 .tmp/
 *.map
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs
+*.log
 
 ### IDE / Editors
 .vscode/
@@ -47,8 +52,7 @@ yarn-error.log*
 Thumbs.db
 
 ### Env / Secrets (configure locally)
-.env
-.env.*
-*.local
-
 Lab_ex/
+
+### Notes
+jegyzetek.txt
