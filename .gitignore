@@ -52,10 +52,6 @@ logs
 Thumbs.db
 
 ### Env / Secrets (configure locally)
-.env
-.env.*
-*.local
-
 Lab_ex/
 
 ### Notes
