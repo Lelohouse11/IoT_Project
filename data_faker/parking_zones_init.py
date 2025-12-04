@@ -22,7 +22,6 @@ import requests
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-from debug import print_context  # noqa: F401
 
 # Orion / FIWARE settings (reuse values from accident_faker.py)
 FIWARE_TYPE = "OnStreetParking"
