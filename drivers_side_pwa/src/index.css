@@ -108,13 +108,15 @@ select.btn {
 
 /* ===== Controls & lists ===== */
 .controls { display: flex; gap: .5rem; flex-wrap: wrap; }
+.toggle { display: flex; align-items: center; gap: .4rem; }
+.toggle input { accent-color: var(--accent); }
 
 ul.clean { list-style: none; margin: 0; padding: 0; }
 ul.clean li { padding: .35rem 0; color: var(--muted); }
 
 .reward-points { font-size: 1.8rem; font-weight: 700; color: var(--accent); }
 
-/* Leaflet-UI bewusst niedriger als Topbar/Drawer */
+/* ===== UI over Map ===== */
 .leaflet-top,
 .leaflet-bottom {
   z-index: 500;
@@ -163,6 +165,7 @@ ul.clean li { padding: .35rem 0; color: var(--muted); }
   .map-fab { bottom: calc(var(--bottom-nav-h) + 4.2rem); }
   .card h2 { font-size: 1rem; }
   #map { height: calc(100vh - var(--topbar-h) - var(--bottom-nav-h)); min-height: 360px; }
+  .infobar { flex-direction: column; align-items: flex-start; gap: 0.4rem; }
   .controls { width: 100%; flex-direction: column; }
   .controls .btn, .controls select { width: 100%; justify-content: center; }
   .bottom-nav { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); }
