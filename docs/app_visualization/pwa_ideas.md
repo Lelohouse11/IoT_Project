@@ -85,3 +85,5 @@ https://dev.to/braide/building-progressive-web-applications-using-sveltekit-58gj
 ## Setting up React:
 https://create-react-app.dev/docs/making-a-progressive-web-app/  
 https://dev.to/yukaty/pwa-quick-guide-make-your-react-app-installable-2kai
+
+https://github.com/GoogleChrome/workbox
