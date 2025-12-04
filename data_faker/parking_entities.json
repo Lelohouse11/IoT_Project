@@ -1,0 +1,82 @@
+[
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-001",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-001"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-002",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-002"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-003",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-003"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-004",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-004"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-005",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-005"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-006",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-006"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-007",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-007"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-008",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-008"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-009",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-009"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-010",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-010"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-011",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-011"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-012",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-012"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-013",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-013"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-014",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-014"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-015",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-015"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-016",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-016"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-017",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-017"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-018",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-018"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-019",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-019"
+  },
+  {
+    "id": "urn:ngsi-ld:OnStreetParking:P-020",
+    "url": "http://150.140.186.118:1026/v2/entities/urn:ngsi-ld:OnStreetParking:P-020"
+  }
+]

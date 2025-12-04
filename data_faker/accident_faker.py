@@ -10,13 +10,15 @@ but automatically drives the Orion Context Broker with richer accident data.
 """
 
 import argparse
+import json
+import math
 import random
 import sys
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import requests
 
@@ -24,20 +26,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from debug import print_context  # noqa: F401
+from data_faker.orion_helpers import OrionClient
 
 FIWARE_TYPE = "TrafficAccident"
 ORION_BASE_URL = "http://150.140.186.118:1026"
-ORION_ENTITIES_URL = f"{ORION_BASE_URL}/v2/entities"
 FIWARE_SERVICE_PATH = "/week4_up1125093"
 FIWARE_OWNER = "week4_up1125093"
-ORION_HEADERS = {
-    "Content-Type": "application/json",
-    "FIWARE-ServicePath": FIWARE_SERVICE_PATH,
-}
-ORION_HEADERS_NO_BODY = {
-    "FIWARE-ServicePath": FIWARE_SERVICE_PATH,
-}
 REQUEST_TIMEOUT = 5
+ORION = OrionClient(
+    base_url=ORION_BASE_URL,
+    service_path=FIWARE_SERVICE_PATH,
+    request_timeout=REQUEST_TIMEOUT,
+)
+ROADS_PATH = PROJECT_ROOT / "data_faker" / "patras_roads.geojson"
 
 
 @dataclass
@@ -80,6 +81,69 @@ def random_severity() -> str:
     return "minor"
 
 
+def _haversine_distance_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Approximate distance in meters between two lat/lng pairs."""
+    r = 6371000.0
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = phi2 - phi1
+    dlambda = math.radians(lng2 - lng1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+def _load_road_segments(path: Path = ROADS_PATH) -> Tuple[List[Tuple[Tuple[float, float], Tuple[float, float]]], List[float]]:
+    """Load road line segments from a GeoJSON file written by the Overpass fetch step."""
+    if not path.exists():
+        print(f"[warn] road data file missing at {path}, falling back to bounding-box sampling")
+        return [], []
+
+    try:
+        data = json.loads(path.read_text())
+    except Exception as exc:  # pragma: no cover - defensive parsing
+        print(f"[warn] failed to parse road data ({exc}), falling back to bounding-box sampling")
+        return [], []
+
+    segments: List[Tuple[Tuple[float, float], Tuple[float, float]]] = []
+    weights: List[float] = []
+    for feature in data.get("features", []):
+        geometry = feature.get("geometry") or {}
+        if geometry.get("type") != "LineString":
+            continue
+        coords: Sequence[Sequence[float]] = geometry.get("coordinates") or []
+        for i in range(len(coords) - 1):
+            lng1, lat1 = coords[i]
+            lng2, lat2 = coords[i + 1]
+            dist = _haversine_distance_m(lat1, lng1, lat2, lng2)
+            if dist <= 0:
+                continue
+            segments.append(((lat1, lng1), (lat2, lng2)))
+            weights.append(dist)
+
+    if not segments:
+        print(f"[warn] no usable road segments found in {path}, falling back to bounding-box sampling")
+    else:
+        print(f"[info] loaded {len(segments)} road segments from {path}")
+    return segments, weights
+
+
+def _sample_point_on_road(
+    segments: Sequence[Tuple[Tuple[float, float], Tuple[float, float]]],
+    weights: Sequence[float],
+) -> Optional[Tuple[float, float]]:
+    """Pick a random point along the provided road segments."""
+    if not segments:
+        return None
+
+    try:
+        start, end = random.choices(segments, weights=weights, k=1)[0]
+    except IndexError:
+        return None
+    t = random.random()
+    lat = start[0] + (end[0] - start[0]) * t
+    lng = start[1] + (end[1] - start[1]) * t
+    return lat, lng
+
+
 def _build_fiware_entity(aid: str, accident: Accident, event: str, status: str, now_iso: str) -> Dict[str, Dict[str, Any]]:
     """Return a FIWARE TrafficAccident entity with NGSI v2 attribute shape."""
     geojson = {
@@ -102,89 +166,13 @@ def _build_fiware_entity(aid: str, accident: Accident, event: str, status: str, 
     }
 
 
-def _response_detail(response: requests.Response) -> str:
-    try:
-        data = response.json()
-        error = data.get("error", "")
-        description = data.get("description", "")
-        detail = " ".join(part for part in (error, description) if part)
-        return detail or response.text
-    except ValueError:
-        return response.text
-
-
-def _is_entity_exists_err(response: requests.Response) -> bool:
-    """Return True if Orion reports the entity already exists."""
-    detail = _response_detail(response).lower()
-    return "already exists" in detail
-
-
-def _delete_entity(session: requests.Session, entity_id: str) -> bool:
-    """Delete an existing entity to allow recreation."""
-    try:
-        resp = session.delete(
-            f"{ORION_ENTITIES_URL}/{entity_id}",
-            headers=ORION_HEADERS_NO_BODY,
-            timeout=REQUEST_TIMEOUT,
-        )
-    except requests.RequestException as exc:
-        print(f"[error] delete {entity_id} failed: {exc}")
-        return False
-
-    if resp.status_code in (204, 404):
-        print(f"[delete] {entity_id} removed before recreation")
-        return True
-
-    print(f"[error] delete {entity_id} failed: {resp.status_code} {_response_detail(resp)}")
-    return False
-
-
-def _send_to_orion(session: requests.Session, entity: Dict[str, Dict[str, Any]], action: str) -> bool:
-    """Send the create or update payload to Orion, mirroring the lab templates."""
-    try:
-        if action == "create":
-            response = session.post(
-                ORION_ENTITIES_URL,
-                json=entity,
-                headers=ORION_HEADERS,
-                timeout=REQUEST_TIMEOUT,
-            )
-            if response.status_code == 422 and _is_entity_exists_err(response):
-                if _delete_entity(session, entity["id"]):
-                    response = session.post(
-                        ORION_ENTITIES_URL,
-                        json=entity,
-                        headers=ORION_HEADERS,
-                        timeout=REQUEST_TIMEOUT,
-                    )
-                    print(f"[debug] send_to_orion create response: {response.status_code} {response.text} {response.headers}")
-            expected = 201
-        else:
-            attrs = {k: v for k, v in entity.items() if k not in ("id", "type")}
-            response = session.patch(
-                f"{ORION_ENTITIES_URL}/{entity['id']}/attrs",
-                json=attrs,
-                headers=ORION_HEADERS,
-                timeout=REQUEST_TIMEOUT,
-            )
-            expected = 204
-    except requests.RequestException as exc:
-        print(f"[error]  {action} {entity['id']} failed: {exc}")
-        return False
-
-    if response.status_code != expected:
-        detail = _response_detail(response)
-        print(f"[error] send_to_orion {action} {entity['id']} failed: {response.status_code} {detail}")
-        return False
-
-    return True
-
-
 
 def generate_accident_data(config: Optional[GeneratorConfig] = None):
     """Continuously emit fake accident events to the Orion Context Broker."""
     if config is None:
         config = GeneratorConfig()
+
+    road_segments, segment_weights = _load_road_segments()
 
     actions = ("create", "update", "clear")
     weights = (config.prob_new, config.prob_update, config.prob_clear)
@@ -195,6 +183,9 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
         return random.choices(actions, weights=weights, k=1)[0]
 
     def rnd_coord():
+        on_road = _sample_point_on_road(road_segments, segment_weights)
+        if on_road:
+            return on_road
         lat = config.center_lat + random.uniform(-config.max_offset_deg, config.max_offset_deg)
         lng = config.center_lng + random.uniform(-config.max_offset_deg, config.max_offset_deg)
         return lat, lng
@@ -228,14 +219,14 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
                     status="active",
                     now_iso=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 )
-                if _send_to_orion(session, entity, "create"):
+                if ORION.send_entity(session, entity, "create"):
                     active[aid] = accident
                     next_id += 1
                     print(f"[create] {entity['id']} {severity} at ({lat:.5f}, {lng:.5f})")
 
             elif action == "update":
                 aid, accident = random.choice(list(active.items()))
-                accident.jitter_location()
+                accident.lat, accident.lng = rnd_coord()
                 accident.maybe_update_severity()
                 entity = _build_fiware_entity(
                     aid=aid,
@@ -244,7 +235,7 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
                     status="active",
                     now_iso=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 )
-                if _send_to_orion(session, entity, "update"):
+                if ORION.send_entity(session, entity, "update"):
                     print(f"[update] {entity['id']} {accident.severity} at ({accident.lat:.5f}, {accident.lng:.5f})")
 
             else:
@@ -257,7 +248,7 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
                     status="cleared",
                     now_iso=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
                 )
-                if _send_to_orion(session, entity, "update"):
+                if ORION.send_entity(session, entity, "update"):
                     print(f"[clear]  {entity['id']} cleared")
 
             time.sleep(config.interval_sec)

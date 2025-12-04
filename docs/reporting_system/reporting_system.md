@@ -16,18 +16,6 @@ Instead of typing a long message, the user just selects the right category (some
 - Data communication
     - Protocol: HTTP POST
     - Data model: JSON
-    ```json 
-    {
-        "user_id": "id_xxx", //(it depends from the system)
-        "category": "road_hazard",
-        "subcategory": "object_on_road",
-        "location": {
-            "lat": "xx.xxxx",
-            "lon": "xx.xxxx",
-            "accuracy": "xx.x",
-        } 
-    }
-    ```
 - Geolocation API for precise coordinates
     - Security Requirement: Modern browsers restrict GPS access to Secure Contexts -> therefore the client must be served via HTTPS
     - For the development: 
@@ -36,7 +24,8 @@ Instead of typing a long message, the user just selects the right category (some
         - Browser override: modifying the Chrome flags
             - requires manual configuration on each devices
 - Timestamp
-    - Server-side 
+    - Server-side
+        - preferred   
         - The SQL database automatically save the date (created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)
         - Network connection should be stable
     - Client-side
@@ -44,23 +33,9 @@ Instead of typing a long message, the user just selects the right category (some
 - New Endpoint
     - Method: POST
     - Function: handles incoming user reports, updates the database
-- Storage: SQLlite (reporting.db)
-    - ```mermaid
-    erDiagram
-        REPORTS{
-            int id PK "Auto Increment"
-            string user_id "ID"
-            string category "Main category"
-            string category "Subcategory"
-            float latitude "GPS latitude"
-            float longitude "GPS longitude"
-            float accuracy "location accuracy [m]"
-            string status "PENDING/VALIDATED/REJECTED"
-            created_at timestamp [default: 'now()']
-        }
-    ```
+- Storage: SQL
 ## Validation strategy (Hybrid validation)
-The system uses teo methods to check if a user report is real: automatic sensor checks and feedback from other users.
+The system uses two methods to check if a user report is real: automatic sensor checks and feedback from other users.
 ### Sensor based validation
 The system compares the user's report with data from the sensor network (InfluxDB)
 - Search window: accept data that fits within limits

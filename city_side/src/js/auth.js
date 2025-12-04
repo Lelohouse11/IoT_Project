@@ -1,5 +1,6 @@
-// Very small in-memory auth mock used to toggle profile UI and demo flows.
-let signedIn = false;
+// Very small in-memory auth mock used to toggle profile UI and handle logout redirect.
+const SIGNED_IN_KEY = 'city_side_signed_in';
+let signedIn = localStorage.getItem(SIGNED_IN_KEY) === 'true';
 
 export function initAuth() {
   const authBtn       = document.getElementById('authBtn');
@@ -8,10 +9,16 @@ export function initAuth() {
   const profileName   = document.getElementById('profileName');
   const profileStatus = document.getElementById('profileStatus');
 
+  // If a protected page is accessed without a session, send to login.
+  if (!signedIn) {
+    window.location.href = '/city_side/public/login.html';
+    return;
+  }
+
   function renderProfile() {
-    profileName.textContent   = signedIn ? 'City Admin' : 'Guest';
-    profileStatus.textContent = signedIn ? 'Signed in' : 'Signed out';
-    authToggleBtn.textContent = signedIn ? 'Sign out' : 'Sign in';
+    profileName.textContent   = 'City Admin';
+    profileStatus.textContent = 'Signed in';
+    authToggleBtn.textContent = 'Sign out';
   }
 
   function toggleProfileMenu(open) {
@@ -24,7 +31,12 @@ export function initAuth() {
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') profileMenu.classList.remove('open'); });
 
-  authToggleBtn.addEventListener('click', () => { signedIn = !signedIn; renderProfile(); toggleProfileMenu(false); });
+  authToggleBtn.addEventListener('click', () => {
+    signedIn = false;
+    localStorage.setItem(SIGNED_IN_KEY, 'false');
+    toggleProfileMenu(false);
+    window.location.href = '/city_side/public/login.html';
+  });
 
   renderProfile();
 }
