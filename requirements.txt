@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+flask
+flask-cors
+requests
+paho-mqtt
+influxdb-client

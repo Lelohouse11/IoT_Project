@@ -1,0 +1,83 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "accident-faker",
+      "type": "shell",
+      "command": "python data_faker/accident_faker.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "parking-faker",
+      "type": "shell",
+      "command": "python data_faker/parking_faker.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "traffic-faker",
+      "type": "shell",
+      "command": "python data_faker/traffic_faker.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "orion-bridge",
+      "type": "shell",
+      "command": "python api/orion_notification_server.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "map-api",
+      "type": "shell",
+      "command": "python -m uvicorn api.map_data_api:app --host 0.0.0.0 --port 8000 --reload",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "llm-proxy",
+      "type": "shell",
+      "command": "python api/llm_server.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "city-dashboard",
+      "type": "shell",
+      "command": "python -m http.server 5000 --directory city_side",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "driver-pwa",
+      "type": "shell",
+      "command": "npm run dev -- --host 0.0.0.0 --port 5173",
+      "options": { "cwd": "${workspaceFolder}/drivers_side_pwa" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
+      "label": "start-iot-stack",
+      "dependsOn": [
+        "accident-faker",
+        "parking-faker",
+        "traffic-faker",
+        "orion-bridge",
+        "map-api",
+        "llm-proxy",
+        "city-dashboard",
+        "driver-pwa"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}

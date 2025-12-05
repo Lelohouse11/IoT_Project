@@ -24,7 +24,7 @@
   />
 
   <!-- App CSS (layout, legend, accident icons, pills) -->
-  <link rel="stylesheet" href="/city_side/src/styles/app.css" />
+  <link rel="stylesheet" href="/src/styles/app.css" />
   
 </head>
 <body>
@@ -35,9 +35,9 @@
       <span>Smart City - Admin</span>
     </div>
     <nav class="topnav" aria-label="Utility links">
-      <a href="/city_side/public/index.html" aria-current="page">Dashboard</a>
-      <a href="/city_side/public/settings.html">Settings</a>
-      <a href="/city_side/public/help.html">Help</a>
+      <a href="/public/index.html" aria-current="page">Dashboard</a>
+      <a href="/public/settings.html">Settings</a>
+      <a href="/public/help.html">Help</a>
     </nav>
     <div class="spacer"></div>
     <button
@@ -91,7 +91,7 @@
             class="grafana-embed"
             id="grafanaFrame"
             title="Grafana"
-            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?timezone=browser&var-location=&var-lat=&var-lng=&refresh=auto&showCategory=Override%201&orgId=2&panelId=1&__feature.dashboardSceneSolo"
+            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?timezone=browser&var-location=&var-lat=&var-lng=&refresh=30s&showCategory=Override%201&orgId=2&panelId=1&__feature.dashboardSceneSolo"
             width="100%"
             height="420"
             frameborder="0"
@@ -99,7 +99,7 @@
           <iframe
             class="grafana-embed"
             title="Parking Grafana"
-            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?timezone=browser&var-location=&var-lat=&var-lng=&refresh=auto&showCategory=Override%201&orgId=2&panelId=2&__feature.dashboardSceneSolo"
+            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?timezone=browser&var-location=&var-lat=&var-lng=&refresh=30s&showCategory=Override%201&orgId=2&panelId=2&__feature.dashboardSceneSolo"
             width="100%"
             height="420"
             frameborder="0"
@@ -107,7 +107,7 @@
           <iframe
             class="grafana-embed"
             title="Traffic Distribution"
-            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?timezone=browser&var-location=&var-lat=&var-lng=&refresh=auto&orgId=2&panelId=3&__feature.dashboardSceneSolo"
+            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?timezone=browser&var-location=&var-lat=&var-lng=&refresh=30s&orgId=2&panelId=3&__feature.dashboardSceneSolo"
             width="450"
             height="200"
             frameborder="0"
@@ -162,6 +162,6 @@
   </script>
 
   <!-- Main App Script (initializes auth/map/grafana/llm modules) -->
-  <script type="module" src="/city_side/src/js/app.js" defer></script>
+  <script type="module" src="/src/js/app.js" defer></script>
 </body>
 </html>

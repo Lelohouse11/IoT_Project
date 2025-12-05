@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="./iot_icon.ico" />
   <title>Login - Smart City Admin</title>
-  <link rel="stylesheet" href="/city_side/src/styles/app.css" />
+  <link rel="stylesheet" href="/src/styles/app.css" />
 </head>
 <body class="auth-wrap">
   <form class="auth-card" id="loginForm">
@@ -31,7 +31,7 @@
     document.getElementById('loginForm').addEventListener('submit', (e) => {
       e.preventDefault();
       localStorage.setItem(SIGNED_IN_KEY, 'true');
-      window.location.href = '/city_side/public/index.html';
+      window.location.href = '/public/index.html';
     });
   </script>
 </body>

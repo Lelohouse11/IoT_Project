@@ -11,7 +11,7 @@ export function initAuth() {
 
   // If a protected page is accessed without a session, send to login.
   if (!signedIn) {
-    window.location.href = '/city_side/public/login.html';
+    window.location.href = '/public/login.html';
     return;
   }
 
@@ -35,7 +35,7 @@ export function initAuth() {
     signedIn = false;
     localStorage.setItem(SIGNED_IN_KEY, 'false');
     toggleProfileMenu(false);
-    window.location.href = '/city_side/public/login.html';
+    window.location.href = '/public/login.html';
   });
 
   renderProfile();

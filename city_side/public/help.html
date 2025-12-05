@@ -5,18 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="./iot_icon.ico" />
   <title>Help - Smart City Admin</title>
-  <link rel="stylesheet" href="/city_side/src/styles/app.css" />
+  <link rel="stylesheet" href="/src/styles/app.css" />
 </head>
 <body>
   <header class="topbar" role="banner">
     <div class="brand" aria-label="Smart City Admin">
       <span class="brand-dot" aria-hidden="true"></span>
-      <a href="/city_side/public/index.html" aria-label="Back to dashboard" style="color: inherit; text-decoration: none;">Smart City - Admin</a>
+      <a href="/public/index.html" aria-label="Back to dashboard" style="color: inherit; text-decoration: none;">Smart City - Admin</a>
     </div>
     <nav class="topnav" aria-label="Utility links">
-      <a href="/city_side/public/index.html">Dashboard</a>
-      <a href="/city_side/public/settings.html">Settings</a>
-      <a href="/city_side/public/help.html" aria-current="page">Help</a>
+      <a href="/public/index.html">Dashboard</a>
+      <a href="/public/settings.html">Settings</a>
+      <a href="/public/help.html" aria-current="page">Help</a>
     </nav>
     <div class="spacer"></div>
     <button
@@ -71,7 +71,7 @@
     </section>
   </main>
   <script type="module">
-    import { initAuth } from '/city_side/src/js/auth.js';
+    import { initAuth } from '/src/js/auth.js';
     initAuth();
   </script>
 </body>
