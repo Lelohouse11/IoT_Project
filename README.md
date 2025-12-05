@@ -25,6 +25,10 @@ python -m pip install -r requirements.txt
 3. Launch APIs (`/api`): `map_data_api.py`, `llm_server.py`, `orion_notification_server.py` (not `orion_subscription_server.py`).
 4. Serve the frontends: host `city_side/public` (e.g., `python -m http.server 5000`) and run `npm install` once then `npm run dev` in `drivers_side_pwa`.
 
+### VS Code Start (recommended)
+- In Run and Debug pick **Start IoT Stack** to launch all services/frontends via `.vscode/tasks.json` / `.vscode/launch.json`.
+- Individual tasks are available from the Terminal panel dropdown if you want to start components separately.
+
 ## Collaboration Rules
 To keep our workflow clean and consistent:
 
