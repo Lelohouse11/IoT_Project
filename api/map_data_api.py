@@ -43,6 +43,11 @@ client = InfluxDBClient(url=influxdb_url, token=token, org=org)
 query_api = client.query_api()
 _road_segments: list = []
 
+MEASUREMENT_ACCIDENTS = "accidents"
+MEASUREMENT_PARKING = "parking_zones"
+MEASUREMENT_TRAFFIC = "traffic_flow"
+MEASUREMENT_VIOLATIONS = "traffic_violations"
+
 
 def _haversine_distance_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Approximate great-circle distance between two points (meters)."""
@@ -107,7 +112,7 @@ def _flux_recent_active(window: str = "15m") -> str:
     return f'''
 from(bucket: "{bucket}")
   |> range(start: -{window})
-  |> filter(fn: (r) => r._measurement == "accidents")
+  |> filter(fn: (r) => r._measurement == "{MEASUREMENT_ACCIDENTS}")
   |> filter(fn: (r) => r._field == "id" or r._field == "entity_id" or r._field == "desc" or r._field == "lat" or r._field == "lng" or r._field == "status" or r._field == "event")
   |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
   |> group(columns: ["id"])
@@ -123,7 +128,7 @@ def _flux_recent_parking(window: str = "15m") -> str:
     return f'''
 from(bucket: "{bucket}")
   |> range(start: -{window})
-  |> filter(fn: (r) => r._measurement == "parking_zones")
+  |> filter(fn: (r) => r._measurement == "{MEASUREMENT_PARKING}")
   |> filter(fn: (r) => r._field == "entity_id" or r._field == "total_spots" or r._field == "occupied_spots" or r._field == "available_spots" or r._field == "status" or r._field == "lat" or r._field == "lng" or r._field == "street")
   |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
   |> group(columns: ["entity_id"])
@@ -138,13 +143,28 @@ def _flux_recent_traffic(window: str = "15m") -> str:
     return f'''
 from(bucket: "{bucket}")
   |> range(start: -{window})
-  |> filter(fn: (r) => r._measurement == "traffic_flow")
+  |> filter(fn: (r) => r._measurement == "{MEASUREMENT_TRAFFIC}")
   |> filter(fn: (r) => r._field == "entity_id" or r._field == "ref_segment" or r._field == "intensity" or r._field == "avg_speed" or r._field == "density" or r._field == "occupancy" or r._field == "congested" or r._field == "lat" or r._field == "lng")
   |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
   |> group(columns: ["entity_id"])
   |> sort(columns: ["_time"], desc: true)
   |> unique(column: "entity_id")
   |> keep(columns: ["_time", "entity_id", "ref_segment", "intensity", "avg_speed", "density", "occupancy", "congested", "lat", "lng", "congestion"])
+'''
+
+
+def _flux_recent_violations(window: str = "5m") -> str:
+    """Flux to retrieve the latest traffic violation detections within a window."""
+    return f'''
+from(bucket: "{bucket}")
+  |> range(start: -{window})
+  |> filter(fn: (r) => r._measurement == "{MEASUREMENT_VIOLATIONS}")
+  |> filter(fn: (r) => r._field == "entity_id" or r._field == "description" or r._field == "payment_status" or r._field == "equipment_id" or r._field == "equipment_type" or r._field == "lat" or r._field == "lng")
+  |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  |> group(columns: ["entity_id"])
+  |> sort(columns: ["_time"], desc: true)
+  |> unique(column: "entity_id")
+  |> keep(columns: ["_time", "entity_id", "description", "payment_status", "equipment_id", "equipment_type", "lat", "lng", "violation"])
 '''
 
 
@@ -293,6 +313,44 @@ def recent_traffic(window: str = "15m") -> List[Dict[str, Any]]:
                     "congestion": congestion_level,
                     "ts": str(v.get("_time")),
                     "geometry": geometry,
+                })
+            except (TypeError, ValueError):
+                continue
+    return items
+
+
+@app.get("/api/violations/recent")
+def recent_violations(window: str = "5m") -> List[Dict[str, Any]]:
+    """Return latest traffic violations within the given time window.
+
+    Response schema: [{ id, entity_id, lat, lng, violation, description, payment_status, equipment_id, ts }]
+    """
+    flux = _flux_recent_violations(window)
+    tables = query_api.query(org=org, query=flux)
+
+    items: List[Dict[str, Any]] = []
+    for table in tables:
+        for record in table.records:
+            v = record.values
+            try:
+                entity_id = v.get("entity_id")
+                if not entity_id:
+                    continue
+                entity_id = str(entity_id)
+                lat = float(v.get("lat"))
+                lng = float(v.get("lng"))
+                violation_code = str(v.get("violation")) if v.get("violation") is not None else ""
+                items.append({
+                    "id": entity_id.split(":")[-1],
+                    "entity_id": entity_id,
+                    "lat": lat,
+                    "lng": lng,
+                    "violation": violation_code,
+                    "description": str(v.get("description")) if v.get("description") is not None else "",
+                    "payment_status": str(v.get("payment_status")) if v.get("payment_status") is not None else "",
+                    "equipment_id": str(v.get("equipment_id")) if v.get("equipment_id") is not None else "",
+                    "equipment_type": str(v.get("equipment_type")) if v.get("equipment_type") is not None else "",
+                    "ts": str(v.get("_time")),
                 })
             except (TypeError, ValueError):
                 continue

@@ -40,6 +40,7 @@ INFLUX_TOKEN = "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BA
 MEASUREMENT_ACCIDENTS = "accidents"
 MEASUREMENT_PARKING = "parking_zones"
 MEASUREMENT_TRAFFIC = "traffic_flow"
+MEASUREMENT_VIOLATIONS = "traffic_violations"
 
 client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
 write_api = client.write_api(write_options=SYNCHRONOUS)
@@ -223,6 +224,39 @@ def _traffic_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     return point
 
 
+def _violation_to_point(entity: Dict[str, Any]) -> Optional[Point]:
+    """Map TrafficViolation entity attributes to an InfluxDB point."""
+    entity_id = entity.get("id")
+    if not entity_id:
+        return None
+
+    violation_code = _attr_value(entity, "titleCode", "")
+    description = _attr_value(entity, "description", "")
+    payment_status = _attr_value(entity, "paymentStatus", "")
+    equipment_id = _attr_value(entity, "equipmentId", "")
+    equipment_type = _attr_value(entity, "equipmentType", "")
+    lat, lng = _extract_coords(entity)
+
+    if lat is None or lng is None:
+        print(f"[skip] violation {entity_id} missing coordinates")
+        return None
+
+    point = (
+        Point(MEASUREMENT_VIOLATIONS)
+        .tag("type", entity.get("type", "TrafficViolation"))
+        .tag("violation", violation_code)
+        .field("entity_id", entity_id)
+        .field("description", description)
+        .field("payment_status", payment_status)
+        .field("equipment_id", equipment_id)
+        .field("equipment_type", equipment_type)
+        .field("lat", float(lat))
+        .field("lng", float(lng))
+        .time(_event_time_ns(entity), WritePrecision.NS)
+    )
+    return point
+
+
 def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     """Dispatch entity to the correct InfluxDB measurement."""
     etype = entity.get("type")
@@ -230,6 +264,8 @@ def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
         return _parking_to_point(entity)
     if etype == "TrafficFlowObserved":
         return _traffic_to_point(entity)
+    if etype == "TrafficViolation":
+        return _violation_to_point(entity)
     return _accident_to_point(entity)
 
 

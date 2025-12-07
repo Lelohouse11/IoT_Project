@@ -4,7 +4,9 @@ export function initMap() {
   // --- Config ---
   const REFRESH_MS = 15000;           // auto-refresh interval for accident fetch
   const API_WINDOW = '10m';           // how far back to look for active accidents
+  const VIOLATION_WINDOW = '5m';      // lookback for traffic violations
   const ACCIDENT_TTL_MS = 5 * 60 * 1000; // keep accidents on map this long after last seen
+  const VIOLATION_TTL_MS = 5 * 60 * 1000;
   const PRUNE_MS = 30000;             // prune cadence
   // Base map (OSM)
   const map = L.map('map', { zoomControl: true, scrollWheelZoom: true }).setView([38.2464, 21.7346], 13);
@@ -21,9 +23,27 @@ export function initMap() {
   const speedToColor = v => (v>=70?'#2ecc71':v>=45?'#f1c40f':v>=25?'#e67e22':'#e74c3c');
   const occColor = frac => (frac<=0.5?'#2ecc71':frac<=0.8?'#f39c12':'#e74c3c');
   const severityClass = s => (s==='major'?'major':s==='medium'?'medium':'minor');
+  const violationColor = type => ({
+    'double-parking': '#e67e22',
+    'red-light': '#e74c3c',
+    'no-stopping': '#f1c40f',
+    'near-intersection': '#3498db'
+  }[type] || '#1abc9c');
+  const violationLegendItems = [
+    { key: 'double-parking', label: 'Double parking' },
+    { key: 'red-light', label: 'Red light' },
+    { key: 'no-stopping', label: 'No stopping' },
+    { key: 'near-intersection', label: 'Near intersection' }
+  ];
 
   // --- Accidents: MarkerCluster layer ---
   const accidentCluster = L.markerClusterGroup({
+    disableClusteringAtZoom: 16,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    chunkedLoading: true
+  });
+  const violationCluster = L.markerClusterGroup({
     disableClusteringAtZoom: 16,
     spiderfyOnMaxZoom: true,
     showCoverageOnHover: false,
@@ -40,6 +60,18 @@ export function initMap() {
     });
     return L.marker([a.lat, a.lng], { icon }).bindPopup(
       `<b>Accident (${a.severity})</b><br>${a.desc || ''}<br><small>${new Date(a.ts).toLocaleString()}</small>`
+    );
+  }
+  function makeViolationMarker(v) {
+    const color = violationColor(v.violation);
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="violation" style="background:${color}"></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+    return L.marker([v.lat, v.lng], { icon }).bindPopup(
+      `<b>Violation</b><br>${v.violation || 'unknown'}<br>${v.description || ''}<br><small>${new Date(v.ts).toLocaleString()}</small>`
     );
   }
   // --- Traffic: styled GeoJSON lines ---
@@ -93,7 +125,7 @@ export function initMap() {
   });
 
   // --- Layer control ---
-  L.control.layers({ 'Accidents': accidentCluster, 'Traffic': trafficLayer, 'Parking': parkingLayer }, {}, { collapsed: false }).addTo(map);
+  L.control.layers({ 'Accidents': accidentCluster, 'Traffic': trafficLayer, 'Parking': parkingLayer, 'Violations': violationCluster }, {}, { collapsed: false }).addTo(map);
 
   // Using base layer radios for mutual exclusivity; no overlay toggling needed
 
@@ -148,6 +180,16 @@ export function initMap() {
         <div class="row"><span class="box" style="background:#e74c3c"></span><span>> 80% occupied</span></div>
       `;
     }
+    if (mode === 'violations') {
+      const rows = violationLegendItems.map(item =>
+        `<div class="row"><span class="box" style="background:${violationColor(item.key)}"></span><span>${item.label}</span></div>`
+      ).join('');
+      return `
+        <div class="title">Legend</div>
+        <div><b>Violations</b></div>
+        ${rows}
+      `;
+    }
     return `
       <div class="title">Legend</div>
       <div><b>Accidents</b></div>
@@ -162,10 +204,11 @@ export function initMap() {
     if (e.name === 'Accidents') setLegend('accidents');
     else if (e.name === 'Traffic') setLegend('traffic');
     else if (e.name === 'Parking') setLegend('parking');
+    else if (e.name === 'Violations') setLegend('violations');
   });
 
   // --- Fit bounds to all overlays ---
-  const all = L.featureGroup([accidentCluster, trafficLayer, parkingLayer]);
+  const all = L.featureGroup([accidentCluster, trafficLayer, parkingLayer, violationCluster]);
   const bounds = all.getBounds();
   if (bounds && bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
 
@@ -191,6 +234,7 @@ export function initMap() {
 
   // Optional: diff-based updates (upsert/remove) for streaming sources
   const accidentIndex = new Map(); // id -> { marker, lastSeen }
+  const violationIndex = new Map(); // id -> { marker, lastSeen }
   function upsertAccident(a) {
     const now = Date.now();
     const entry = accidentIndex.get(a.id);
@@ -220,16 +264,41 @@ export function initMap() {
       }
     }
   }
+  function upsertViolation(v) {
+    const now = Date.now();
+    const entry = violationIndex.get(v.id);
+    if (entry) {
+      entry.marker
+        .setLatLng([v.lat, v.lng])
+        .setIcon(L.divIcon({ className: '', html: `<div class="violation" style="background:${violationColor(v.violation)}"></div>`, iconSize: [18,18], iconAnchor:[9,9] }))
+        .setPopupContent(`<b>Violation</b><br>${v.violation || 'unknown'}<br>${v.description || ''}<br><small>${v.ts ? new Date(v.ts).toLocaleString() : ''}</small>`);
+      entry.lastSeen = now;
+    } else {
+      const m = makeViolationMarker(v);
+      violationIndex.set(v.id, { marker: m, lastSeen: now });
+      violationCluster.addLayer(m);
+    }
+  }
+  function pruneOldViolations() {
+    const now = Date.now();
+    for (const [id, entry] of violationIndex.entries()) {
+      if (now - entry.lastSeen > VIOLATION_TTL_MS) {
+        violationCluster.removeLayer(entry.marker);
+        violationIndex.delete(id);
+      }
+    }
+  }
 
   // Expose API for future adapters (e.g., MQTT handler)
   window.MapAPI = {
     map,
-    layers: { accidentCluster, trafficLayer, parkingLayer },
+    layers: { accidentCluster, trafficLayer, parkingLayer, violationCluster },
     replaceTraffic,
     replaceParking,
     replaceAccidents,
     upsertAccident,
-    removeAccidentById
+    removeAccidentById,
+    upsertViolation
   };
 
   // --- Poll backend API for live accidents (optional) ---
@@ -326,6 +395,18 @@ export function initMap() {
       /* ignore parking fetch errors to avoid breaking accident status */
     }
   }
+  async function fetchRecentViolations() {
+    try {
+      const res = await fetch(`${API_BASE}/api/violations/recent?window=${encodeURIComponent(VIOLATION_WINDOW)}`);
+      if (!res.ok) return;
+      const items = await res.json();
+      if (Array.isArray(items)) {
+        for (const v of items) { upsertViolation(v); }
+      }
+    } catch (_) {
+      /* ignore violation fetch errors */
+    }
+  }
   // Countdown & scheduling
   let nextRefreshAt = 0;
   let fetchTimer = null;
@@ -342,6 +423,7 @@ export function initMap() {
     fetchTimer = setInterval(() => {
       fetchRecentAccidents();
       fetchRecentTraffic();
+      fetchRecentViolations();
       nextRefreshAt = Date.now() + REFRESH_MS;
     }, REFRESH_MS);
     if (countdownTimer) clearInterval(countdownTimer);
@@ -354,14 +436,16 @@ export function initMap() {
       fetchRecentAccidents();
       fetchRecentTraffic();
       fetchRecentParking();
+      fetchRecentViolations();
       startAutoRefresh(); // reset cadence and countdown
     });
   }
   // Prune old accidents periodically
-  setInterval(pruneOldAccidents, PRUNE_MS);
+  setInterval(() => { pruneOldAccidents(); pruneOldViolations(); }, PRUNE_MS);
   // Kick off
   fetchRecentAccidents();
   fetchRecentTraffic();
   fetchRecentParking();
+  fetchRecentViolations();
   startAutoRefresh();
 }

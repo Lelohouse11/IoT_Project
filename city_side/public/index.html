@@ -86,7 +86,7 @@
       <!-- Grafana Card -->
       <article class="card" id="grafana-card" style="grid-column: 1 / -1;">
         <h2>Analytics (Grafana)</h2>
-        <div class="body" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:1rem;">
+        <div class="body grafana-grid">
           <iframe
             class="grafana-embed"
             id="grafanaFrame"
@@ -108,6 +108,14 @@
             class="grafana-embed"
             title="Traffic Distribution"
             src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?timezone=browser&var-location=&var-lat=&var-lng=&refresh=30s&orgId=2&panelId=3&__feature.dashboardSceneSolo"
+            width="450"
+            height="200"
+            frameborder="0"
+          ></iframe>
+          <iframe
+            class="grafana-embed"
+            title="Violations Overview"
+            src="https://labserver.sense-campus.gr:8087/d-solo/af3sxa571x79cc/group9-traffic?timezone=browser&var-location=&var-lat=&var-lng=&refresh=30s&orgId=2&panelId=4&__feature.dashboardSceneSolo"
             width="450"
             height="200"
             frameborder="0"
