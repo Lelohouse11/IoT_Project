@@ -1,6 +1,8 @@
 // Simple LLM client: text input -> POST to LLM API -> output
 // Uses demo.py-compatible API: POST { prompt, model } with X-API-Key
 
+import { CONFIG } from './config.js';
+
 export function initLLM() {
   const input = document.getElementById('llmPrompt');
   const sendBtn = document.getElementById('llmSend');
@@ -8,9 +10,7 @@ export function initLLM() {
 
   if (!output) return;
 
-  const BACKEND = window.LLM_BACKEND_BASE || 'http://localhost:8080';
-  const API_URL = `${BACKEND}/api/llm/chat`;
-  const MODEL = window.LLM_MODEL || 'deepseek-r1:8b';
+  const API_URL = `${CONFIG.LLM_BACKEND}/api/llm/chat`;
 
   function setLoading(loading) {
     if (!sendBtn) return;
@@ -27,7 +27,7 @@ export function initLLM() {
     setLoading(true);
     output.textContent = 'Thinking…';
 
-    const payload = { prompt, model: MODEL };
+    const payload = { prompt, model: CONFIG.LLM_MODEL };
     const headers = { 'Content-Type': 'application/json' };
 
     try {

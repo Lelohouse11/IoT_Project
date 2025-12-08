@@ -24,47 +24,14 @@
   />
 
   <!-- App CSS (layout, legend, accident icons, pills) -->
-  <link rel="stylesheet" href="/src/styles/app.css" />
+  <link rel="stylesheet" href="/src/styles/base.css" />
+  <link rel="stylesheet" href="/src/styles/components.css" />
+  <link rel="stylesheet" href="/src/styles/map.css" />
   
 </head>
 <body>
-  <!-- Topbar -->
-  <header class="topbar" role="banner">
-    <div class="brand" aria-label="Smart City Admin">
-      <span class="brand-dot" aria-hidden="true"></span>
-      <span>Smart City - Admin</span>
-    </div>
-    <nav class="topnav" aria-label="Utility links">
-      <a href="/public/index.html" aria-current="page">Dashboard</a>
-      <a href="/public/settings.html">Settings</a>
-      <a href="/public/help.html">Help</a>
-    </nav>
-    <div class="spacer"></div>
-    <button
-      id="authBtn"
-      class="avatar"
-      title="Sign in / Sign out"
-      aria-haspopup="menu"
-      aria-expanded="false"
-    ></button>
-  </header>
-
-  <!-- Profile dropdown -->
-  <div class="profile-menu" id="profileMenu" role="menu" aria-labelledby="authBtn">
-    <div class="profile-row">
-      <div
-        class="avatar"
-        style="width:28px;height:28px;border:1px solid rgba(79,209,197,.35)"
-      ></div>
-      <div>
-        <div id="profileName">Guest</div>
-        <small id="profileStatus">Signed out</small>
-      </div>
-    </div>
-    <div class="profile-actions">
-      <button class="btn" id="authToggleBtn">Sign in</button>
-    </div>
-  </div>
+  <!-- Topbar & Profile Menu (injected by layout.js) -->
+  <div id="layout-header"></div>
 
   <!-- Main Content -->
   <main class="wrap">
@@ -170,6 +137,10 @@
   </script>
 
   <!-- Main App Script (initializes auth/map/grafana/llm modules) -->
-  <script type="module" src="/src/js/app.js" defer></script>
+  <script type="module">
+    import { initLayout } from '/src/js/layout.js';
+    initLayout();
+  </script>
+  <script type="module" src="/src/js/app.js"></script>
 </body>
 </html>

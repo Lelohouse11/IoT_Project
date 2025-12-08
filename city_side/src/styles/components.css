@@ -1,32 +1,8 @@
 /* =========================================================
-   Smart City Admin – Base Styles
+   Components: Topbar, Nav, Cards, Buttons, Forms
    ========================================================= */
 
-/* -------- Colors & Variables -------- */
-:root {
-  --bg: #0f1116;                /* base page background */
-  --panel: rgb(17, 18, 23);     /* card and panel background */
-  --accent: #6bd4c8;            /* teal accent */
-  --text: #e9eef7;              /* light text */
-  --muted: #95a0b6;             /* muted text */
-}
-
-/* -------- Global Reset & Typography -------- */
-* { box-sizing: border-box; }
-
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Ubuntu, Helvetica, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-}
-
-a { color: inherit; text-decoration: none; }
-
-/* =========================================================
-   Topbar & Navigation
-   ========================================================= */
-
+/* -------- Topbar & Navigation -------- */
 .topbar {
   position: sticky;
   top: 0;
@@ -59,10 +35,6 @@ a { color: inherit; text-decoration: none; }
 
 .spacer { flex: 1; }
 
-/* =========================================================
-   Top Navigation Links
-   ========================================================= */
-
 .topnav {
   display: flex;
   align-items: center;
@@ -91,10 +63,7 @@ a { color: inherit; text-decoration: none; }
   background: rgba(85, 104, 216, 0.14);
 }
 
-/* =========================================================
-   Avatar & Profile Menu
-   ========================================================= */
-
+/* -------- Avatar & Profile Menu -------- */
 .avatar {
   width: 36px;
   height: 36px;
@@ -145,10 +114,7 @@ a { color: inherit; text-decoration: none; }
 
 .profile-actions .btn { padding: 0.4rem 0.7rem; }
 
-/* =========================================================
-   Layout & Cards
-   ========================================================= */
-
+/* -------- Layout & Cards -------- */
 .wrap {
   max-width: 1200px;
   margin: 0 auto;
@@ -184,55 +150,7 @@ a { color: inherit; text-decoration: none; }
 
 .card .body { padding: 1rem; }
 
-/* =========================================================
-   Map & Grafana
-   ========================================================= */
-
-#map { height: 420px; }
-
-.grafana-embed {
-  border: 0;
-  width: 100%;
-  height: 420px;
-  background: #10121a;
-}
-.grafana-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-}
-@media (max-width: 900px) {
-  .grafana-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* =========================================================
-   Leaflet Legend & Accident Icons
-   ========================================================= */
-
-.legend {
-  background: #fff;
-  color: #000;
-  padding: 6px 8px;
-  border-radius: 4px;
-  font: 12px/14px Arial, sans-serif;
-  box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-}
-.legend .title { font-weight: 700; margin-bottom: 4px; }
-.legend .row { display: flex; align-items: center; margin: 2px 0; }
-.legend .box { width: 12px; height: 12px; margin-right: 6px; border: 1px solid #0001; }
-
-.accident { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
-.accident.minor  { background: #2ecc71; }
-.accident.medium { background: #f1c40f; width: 18px; height: 18px; }
-.accident.major  { background: #e74c3c; width: 20px; height: 20px; }
-.violation { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
-
-/* =========================================================
-   Info Bars & Buttons
-   ========================================================= */
-
+/* -------- Info Bars & Buttons -------- */
 .infobar {
   display: flex;
   gap: 1rem;
@@ -266,15 +184,11 @@ a { color: inherit; text-decoration: none; }
   background: rgba(107, 212, 200, 0.12);
 }
 
-/* Status variants for pills */
 .pill.success { border-color: rgba(46, 204, 113, 0.6); color: #2ecc71; }
 .pill.error   { border-color: rgba(231, 76, 60, 0.6);  color: #e74c3c; }
 .pill.warn    { border-color: rgba(243, 156, 18, 0.6); color: #f39c12; }
 
-/* =========================================================
-   Auth Page (Login)
-   ========================================================= */
-
+/* -------- Auth Page -------- */
 .auth-wrap {
   min-height: 100vh;
   display: grid;
@@ -324,7 +238,6 @@ a { color: inherit; text-decoration: none; }
   color: var(--text);
 }
 
-/* LLM input styling (reuses auth palette) */
 .llm-input {
   flex: 1;
   padding: 0.65rem 0.85rem;
@@ -354,8 +267,3 @@ a { color: inherit; text-decoration: none; }
 .btn-primary:hover {
   background: #7fe0d3;
 }
-
-/* Status variants for pills */
-.pill.success { border-color: rgba(46, 204, 113, 0.6); color: #2ecc71; }
-.pill.error   { border-color: rgba(231, 76, 60, 0.6);  color: #e74c3c; }
-.pill.warn    { border-color: rgba(243, 156, 18, 0.6); color: #f39c12; }

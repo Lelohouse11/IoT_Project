@@ -5,44 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="./iot_icon.ico" />
   <title>Settings - Smart City Admin</title>
-  <link rel="stylesheet" href="/src/styles/app.css" />
+  <link rel="stylesheet" href="/src/styles/base.css" />
+  <link rel="stylesheet" href="/src/styles/components.css" />
 </head>
 <body>
-  <header class="topbar" role="banner">
-    <div class="brand" aria-label="Smart City Admin">
-      <span class="brand-dot" aria-hidden="true"></span>
-      <a href="/public/index.html" aria-label="Back to dashboard" style="color: inherit; text-decoration: none;">Smart City - Admin</a>
-    </div>
-    <nav class="topnav" aria-label="Utility links">
-      <a href="/public/index.html">Dashboard</a>
-      <a href="/public/settings.html" aria-current="page">Settings</a>
-      <a href="/public/help.html">Help</a>
-    </nav>
-    <div class="spacer"></div>
-    <button
-      id="authBtn"
-      class="avatar"
-      title="Sign out"
-      aria-haspopup="menu"
-      aria-expanded="false"
-    ></button>
-  </header>
-
-  <div class="profile-menu" id="profileMenu" role="menu" aria-labelledby="authBtn">
-    <div class="profile-row">
-      <div
-        class="avatar"
-        style="width:28px;height:28px;border:1px solid rgba(79,209,197,.35)"
-      ></div>
-      <div>
-        <div id="profileName">City Admin</div>
-        <small id="profileStatus">Signed in</small>
-      </div>
-    </div>
-    <div class="profile-actions">
-      <button class="btn" id="authToggleBtn">Sign out</button>
-    </div>
-  </div>
+  <div id="layout-header"></div>
 
   <main class="wrap">
     <section class="cards">
@@ -57,8 +24,8 @@
     </section>
   </main>
   <script type="module">
-    import { initAuth } from '/src/js/auth.js';
-    initAuth();
+    import { initLayout } from '/src/js/layout.js';
+    initLayout();
   </script>
 </body>
 </html>

@@ -23,24 +23,25 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from data_faker.orion_helpers import OrionClient
+
 # Orion / FIWARE settings (reuse values from accident_faker.py)
 FIWARE_TYPE = "OnStreetParking"
 SMART_DATA_MODEL_SCHEMA = (
     "https://smart-data-models.github.io/dataModel.Parking/OnStreetParking/schema.json"
 )
 ORION_BASE_URL = "http://150.140.186.118:1026"
-ORION_ENTITIES_URL = f"{ORION_BASE_URL}/v2/entities"
 FIWARE_SERVICE_PATH = "/week4_up1125093"
 FIWARE_OWNER = "week4_up1125093"
-ORION_HEADERS = {
-    "Content-Type": "application/json",
-    "FIWARE-ServicePath": FIWARE_SERVICE_PATH,
-}
-ORION_HEADERS_NO_BODY = {
-    "FIWARE-ServicePath": FIWARE_SERVICE_PATH,
-}
 REQUEST_TIMEOUT = 5
 ENTITIES_FILE = Path(__file__).resolve().parent / "parking_entities.json"
+
+ORION = OrionClient(
+    base_url=ORION_BASE_URL,
+    service_path=FIWARE_SERVICE_PATH,
+    request_timeout=REQUEST_TIMEOUT,
+)
+ORION_ENTITIES_URL = ORION.entities_url
 
 
 @dataclass
@@ -66,43 +67,6 @@ class ParkingZone:
         return {"type": "LineString", "coordinates": coord_pairs}
 
 
-def _response_detail(response: requests.Response) -> str:
-    try:
-        data = response.json()
-        error = data.get("error", "")
-        description = data.get("description", "")
-        detail = " ".join(part for part in (error, description) if part)
-        return detail or response.text
-    except ValueError:
-        return response.text
-
-
-def _is_entity_exists_err(response: requests.Response) -> bool:
-    """Return True if Orion reports the entity already exists."""
-    detail = _response_detail(response).lower()
-    return "already exists" in detail
-
-
-def _delete_entity(session: requests.Session, entity_id: str) -> bool:
-    """Delete an existing entity to allow recreation."""
-    try:
-        resp = session.delete(
-            f"{ORION_ENTITIES_URL}/{entity_id}",
-            headers=ORION_HEADERS_NO_BODY,
-            timeout=REQUEST_TIMEOUT,
-        )
-    except requests.RequestException as exc:
-        print(f"[error] delete {entity_id} failed: {exc}")
-        return False
-
-    if resp.status_code in (204, 404):
-        print(f"[delete] {entity_id} removed before recreation")
-        return True
-
-    print(f"[error] delete {entity_id} failed: {resp.status_code} {_response_detail(resp)}")
-    return False
-
-
 def _build_entity(zone: ParkingZone, now_iso: str) -> Dict[str, Dict[str, Any]]:
     """Return a FIWARE OnStreetParking entity matching the Smart Data Model."""
     geojson = zone.to_geojson()
@@ -126,35 +90,6 @@ def _build_entity(zone: ParkingZone, now_iso: str) -> Dict[str, Dict[str, Any]]:
         "location": {"type": "geo:json", "value": geojson},
         "dataModel": {"type": "Text", "value": SMART_DATA_MODEL_SCHEMA},
     }
-
-
-def _send_to_orion(session: requests.Session, entity: Dict[str, Dict[str, Any]]) -> bool:
-    """Create the entity in Orion, deleting beforehand if it already exists."""
-    try:
-        response = session.post(
-            ORION_ENTITIES_URL,
-            json=entity,
-            headers=ORION_HEADERS,
-            timeout=REQUEST_TIMEOUT,
-        )
-        if response.status_code == 422 and _is_entity_exists_err(response):
-            if _delete_entity(session, entity["id"]):
-                response = session.post(
-                    ORION_ENTITIES_URL,
-                    json=entity,
-                    headers=ORION_HEADERS,
-                    timeout=REQUEST_TIMEOUT,
-                )
-    except requests.RequestException as exc:
-        print(f"[error] create {entity['id']} failed: {exc}")
-        return False
-
-    if response.status_code != 201:
-        detail = _response_detail(response)
-        print(f"[error] create {entity['id']} failed: {response.status_code} {detail}")
-        return False
-
-    return True
 
 
 def _default_zones() -> List[ParkingZone]:
@@ -576,3 +511,14 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+    created_ids: List[str] = []
+    with requests.Session() as session:
+        for zone in zones:
+            entity = _build_entity(zone, now_iso)
+            if ORION.send_entity(session, entity, "create"):
+                print(
+                    f"[create] {entity['id']} {zone.name} total={zone.total_spots} occupied={zone.occupied_spots}"
+                )
+                created_ids.append(entity["id"])
+    if created_ids:
+        _persist_entity_ids(created_ids)

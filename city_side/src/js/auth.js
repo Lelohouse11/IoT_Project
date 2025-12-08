@@ -1,4 +1,6 @@
 // Very small in-memory auth mock used to toggle profile UI and handle logout redirect.
+import { CONFIG } from './config.js';
+
 const SIGNED_IN_KEY = 'city_side_signed_in';
 let signedIn = localStorage.getItem(SIGNED_IN_KEY) === 'true';
 
@@ -11,7 +13,7 @@ export function initAuth() {
 
   // If a protected page is accessed without a session, send to login.
   if (!signedIn) {
-    window.location.href = '/public/login.html';
+    window.location.href = CONFIG.AUTH_LOGIN_URL;
     return;
   }
 
@@ -35,7 +37,7 @@ export function initAuth() {
     signedIn = false;
     localStorage.setItem(SIGNED_IN_KEY, 'false');
     toggleProfileMenu(false);
-    window.location.href = '/public/login.html';
+    window.location.href = CONFIG.AUTH_LOGIN_URL;
   });
 
   renderProfile();

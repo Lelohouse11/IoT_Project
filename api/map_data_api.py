@@ -16,16 +16,14 @@ if str(PROJECT_ROOT) not in sys.path:
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from influxdb_client import InfluxDBClient
-import json
-import math
 
-# Reuse InfluxDB settings from sensor_faker.py
-#from sensor_faker import influxdb_url, bucket, org, token
+from api import config
+from data_faker import geo_helpers
 
-influxdb_url = "http://150.140.186.118:8086"
-bucket = "LeandersDB"
-org = "students"
-token = "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BAWqSzAnI2eckYOsbYQqICeA=="
+influxdb_url = config.INFLUX_URL
+bucket = config.INFLUX_BUCKET
+org = config.INFLUX_ORG
+token = config.INFLUX_TOKEN
 
 ROADS_PATH = PROJECT_ROOT / "data_faker" / "patras_roads.geojson"
 
@@ -43,20 +41,10 @@ client = InfluxDBClient(url=influxdb_url, token=token, org=org)
 query_api = client.query_api()
 _road_segments: list = []
 
-MEASUREMENT_ACCIDENTS = "accidents"
-MEASUREMENT_PARKING = "parking_zones"
-MEASUREMENT_TRAFFIC = "traffic_flow"
-MEASUREMENT_VIOLATIONS = "traffic_violations"
-
-
-def _haversine_distance_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-    """Approximate great-circle distance between two points (meters)."""
-    r = 6371000.0
-    phi1, phi2 = math.radians(lat1), math.radians(lat2)
-    dphi = phi2 - phi1
-    dlambda = math.radians(lng2 - lng1)
-    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
-    return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+MEASUREMENT_ACCIDENTS = config.MEASUREMENT_ACCIDENTS
+MEASUREMENT_PARKING = config.MEASUREMENT_PARKING
+MEASUREMENT_TRAFFIC = config.MEASUREMENT_TRAFFIC
+MEASUREMENT_VIOLATIONS = config.MEASUREMENT_VIOLATIONS
 
 
 def _load_roads() -> None:
@@ -64,23 +52,8 @@ def _load_roads() -> None:
     global _road_segments
     if _road_segments:
         return
-    try:
-        data = json.loads(Path(ROADS_PATH).read_text())
-    except Exception:
-        return
-    segments = []
-    for feature in data.get("features", []):
-        geom = feature.get("geometry") or {}
-        if geom.get("type") != "LineString":
-            continue
-        coords = geom.get("coordinates") or []
-        for i in range(len(coords) - 1):
-            try:
-                lng1, lat1 = coords[i]
-                lng2, lat2 = coords[i + 1]
-                segments.append(((lat1, lng1), (lat2, lng2)))
-            except Exception:
-                continue
+    
+    segments, _ = geo_helpers.load_road_segments(ROADS_PATH)
     _road_segments = segments
 
 
@@ -93,7 +66,7 @@ def _nearest_road_segment(lat: float, lng: float) -> Optional[list]:
         # midpoint distance heuristic
         mid_lat = (lat1 + lat2) / 2
         mid_lng = (lng1 + lng2) / 2
-        d = _haversine_distance_m(lat, lng, mid_lat, mid_lng)
+        d = geo_helpers.haversine_distance_m(lat, lng, mid_lat, mid_lng)
         if d < best_dist:
             best_dist = d
             best = [[lng1, lat1], [lng2, lat2]]

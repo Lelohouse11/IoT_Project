@@ -24,9 +24,11 @@ from debug import print_context  # noqa: F401
 import requests
 from flask import Flask, Response, request
 
-DEFAULT_ORION_URL = "http://150.140.186.118:1026"
-DEFAULT_SERVICE = "default"
-DEFAULT_SERVICE_PATH = "/week4_up1125093"
+from api import config
+
+DEFAULT_ORION_URL = config.ORION_URL
+DEFAULT_SERVICE = config.FIWARE_SERVICE
+DEFAULT_SERVICE_PATH = config.FIWARE_SERVICE_PATH
 DEFAULT_ENTITY_TYPE = "TrafficAccident"
 REQUEST_TIMEOUT = 5
 
@@ -172,7 +174,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--fiware-service", default=DEFAULT_SERVICE, help="FIWARE service header")
     parser.add_argument("--service-path", default=DEFAULT_SERVICE_PATH, help="FIWARE service path header")
     parser.add_argument("--entity-type", default=DEFAULT_ENTITY_TYPE, help="Entity type to subscribe to")
-    parser.add_argument("--callback-url", default="http://localhost:8080/orion", help="Public URL for Orion notifications")
+    parser.add_argument("--callback-url", default=config.SUBSCRIPTION_CALLBACK_URL, help="Public URL for Orion notifications")
     parser.add_argument("--description", default="Scoped accident subscription", help="Subscription description label")
     parser.add_argument("--host", default="0.0.0.0", help="Host interface for the local Flask server")
     parser.add_argument("--port", type=int, default=8080, help="Port for the local Flask server")

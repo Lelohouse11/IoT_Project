@@ -25,22 +25,24 @@ import paho.mqtt.client as mqtt
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+from api import config
+
 # MQTT setup (mirrors the admin-made subscription visible in subscriptions.json)
-MQTT_BROKER = "150.140.186.118"
-MQTT_PORT = 1883
-MQTT_TOPIC = "orion_updates"
+MQTT_BROKER = config.MQTT_BROKER
+MQTT_PORT = config.MQTT_PORT
+MQTT_TOPIC = config.MQTT_TOPIC
 FILTER_ATTRIBUTE = "owner"
 FILTER_VALUE = "week4_up1125093"
 
 # InfluxDB configuration reused from mqtt_to_influx_connector.py
-INFLUX_URL = "http://150.140.186.118:8086"
-INFLUX_BUCKET = "LeandersDB"
-INFLUX_ORG = "students"
-INFLUX_TOKEN = "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BAWqSzAnI2eckYOsbYQqICeA=="
-MEASUREMENT_ACCIDENTS = "accidents"
-MEASUREMENT_PARKING = "parking_zones"
-MEASUREMENT_TRAFFIC = "traffic_flow"
-MEASUREMENT_VIOLATIONS = "traffic_violations"
+INFLUX_URL = config.INFLUX_URL
+INFLUX_BUCKET = config.INFLUX_BUCKET
+INFLUX_ORG = config.INFLUX_ORG
+INFLUX_TOKEN = config.INFLUX_TOKEN
+MEASUREMENT_ACCIDENTS = config.MEASUREMENT_ACCIDENTS
+MEASUREMENT_PARKING = config.MEASUREMENT_PARKING
+MEASUREMENT_TRAFFIC = config.MEASUREMENT_TRAFFIC
+MEASUREMENT_VIOLATIONS = config.MEASUREMENT_VIOLATIONS
 
 client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
 write_api = client.write_api(write_options=SYNCHRONOUS)

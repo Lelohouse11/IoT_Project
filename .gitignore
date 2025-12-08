@@ -49,12 +49,21 @@ logs
 *.swp
 *.swo
 
+### Env / Secrets (configure locally)
+Lab_ex/
+.env
+.env.*
+!.env.example
+
+### Database
+*.sqlite
+*.sqlite3
+*.db
+
 ### OS files
 .DS_Store
 Thumbs.db
-
-### Env / Secrets (configure locally)
-Lab_ex/
+__MACOSX
 
 ### Notes
 jegyzetek.txt
