@@ -1,26 +1,18 @@
+import { CONFIG, COLORS } from './config.js';
+import { makeAccidentMarker, makeViolationMarker, trafficStyle, parkingStyle, getLegendHTML } from './map_helpers.js';
+
 // Initialize the Leaflet map, live accident overlay, and polling logic.
 // Exposes a small API on window.MapAPI for future adapters (MQTT, SSE).
 export function initMap() {
-  // --- Config ---
-  const REFRESH_MS = 15000;           // auto-refresh interval for accident fetch
-  const API_WINDOW = '10m';           // how far back to look for active accidents
-  const ACCIDENT_TTL_MS = 5 * 60 * 1000; // keep accidents on map this long after last seen
-  const PRUNE_MS = 30000;             // prune cadence
   // Base map (OSM)
-  const map = L.map('map', { zoomControl: true, scrollWheelZoom: true }).setView([38.2464, 21.7346], 13);
+  const map = L.map('map', { zoomControl: true, scrollWheelZoom: true }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
   // --- Dummy data (Patras area) ---
-
   const roads = { type: 'FeatureCollection', features: [] };
   const zones = { type: 'FeatureCollection', features: [] };
-
-  // --- Helpers ---
-  const speedToColor = v => (v>=70?'#2ecc71':v>=45?'#f1c40f':v>=25?'#e67e22':'#e74c3c');
-  const occColor = frac => (frac<=0.5?'#2ecc71':frac<=0.8?'#f39c12':'#e74c3c');
-  const severityClass = s => (s==='major'?'major':s==='medium'?'medium':'minor');
 
   // --- Accidents: MarkerCluster layer ---
   const accidentCluster = L.markerClusterGroup({
@@ -29,73 +21,21 @@ export function initMap() {
     showCoverageOnHover: false,
     chunkedLoading: true
   });
-
-  function makeAccidentMarker(a) {
-    // Use a lightweight DivIcon so clusters remain performant
-    const icon = L.divIcon({
-      className: '',
-      html: `<div class="accident ${severityClass(a.severity)}"></div>`,
-      iconSize: [20, 20],
-      iconAnchor: [10, 10]
-    });
-    return L.marker([a.lat, a.lng], { icon }).bindPopup(
-      `<b>Accident (${a.severity})</b><br>${a.desc || ''}<br><small>${new Date(a.ts).toLocaleString()}</small>`
-    );
-  }
-  // --- Traffic: styled GeoJSON lines ---
-  const trafficLayer = L.geoJSON(roads, {
-    pointToLayer: (f, latlng) => L.circleMarker(latlng, {
-      radius: 8,
-      fillColor: speedToColor(f.properties.speed || 0),
-      color: '#555',
-      weight: 1,
-      fillOpacity: 0.85
-    }),
-    style: f => ({
-      color: speedToColor(f.properties.speed || 0),
-      weight: 6,
-      opacity: 0.55,
-      lineCap: 'round'
-    }),
-    onEachFeature: (f, layer) => {
-      const ref = f.properties.ref || 'Segment';
-      const speed = f.properties.speed ?? '?';
-      const density = f.properties.density ?? '?';
-      const occupancy = f.properties.occupancy ?? '?';
-      const congestion = f.properties.congestion || '';
-      layer.bindPopup(`<b>${ref}</b><br>Speed: ${speed} km/h<br>Density: ${density}<br>Occupancy: ${Math.round((occupancy||0)*100)}%<br>${congestion}`);
-    }
+  const violationCluster = L.markerClusterGroup({
+    disableClusteringAtZoom: 16,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    chunkedLoading: true
   });
+
+  // --- Traffic: styled GeoJSON lines ---
+  const trafficLayer = L.geoJSON(roads, trafficStyle);
 
   // --- Parking: polygons styled by occupancy ---
-  const parkingLayer = L.geoJSON(zones, {
-    pointToLayer: (f, latlng) => {
-      const occ = f.properties.occupied / (f.properties.capacity || 1);
-      return L.circleMarker(latlng, {
-        radius: 10,
-        fillColor: occColor(occ),
-        color: '#555',
-        weight: 2,
-        fillOpacity: 0.85
-      });
-    },
-    style: f => {
-      const occ = f.properties.occupied / (f.properties.capacity || 1);
-      return { color: occColor(occ), weight: 6, opacity: 0.9 };
-    },
-    onEachFeature: (f, layer) => {
-      const occ = f.properties.occupied / (f.properties.capacity || 1);
-      const pct = Math.round(occ * 100);
-      const free = f.properties.capacity - f.properties.occupied;
-      layer.bindPopup(`<b>${f.properties.name}</b><br>Occupied: ${pct}% (${f.properties.occupied}/${f.properties.capacity})<br>Free: ${free}`);
-      layer.bindTooltip(`${f.properties.name}: ${pct}%`, { sticky: true });
-    }
-  });
+  const parkingLayer = L.geoJSON(zones, parkingStyle);
 
   // --- Layer control ---
-  L.control.layers({ 'Accidents': accidentCluster, 'Traffic': trafficLayer, 'Parking': parkingLayer }, {}, { collapsed: false }).addTo(map);
-
-  // Using base layer radios for mutual exclusivity; no overlay toggling needed
+  L.control.layers({ 'Accidents': accidentCluster, 'Traffic': trafficLayer, 'Parking': parkingLayer, 'Violations': violationCluster }, {}, { collapsed: false }).addTo(map);
 
   // Start with a single default overlay (accidents)
   accidentCluster.addTo(map);
@@ -104,74 +44,30 @@ export function initMap() {
   const legend = L.control({ position: 'bottomright' });
   legend.onAdd = function() {
     const div = L.DomUtil.create('div', 'legend');
-    div.innerHTML = `
-      <div class="title">Legend</div>
-      <div><b>Accidents</b></div>
-      <div class="row"><span class="box" style="background:#e74c3c"></span><span>Severe</span></div>
-      <div class="row"><span class="box" style="background:#f1c40f"></span><span>Medium</span></div>
-      <div class="row"><span class="box" style="background:#2ecc71"></span><span>Minor</span></div>
-      <div style="height:6px"></div>
-      <div><b>Traffic</b></div>
-      <div class="row"><span class="box" style="background:#2ecc71"></span><span>Free flow</span></div>
-      <div class="row"><span class="box" style="background:#f1c40f"></span><span>Slow</span></div>
-      <div class="row"><span class="box" style="background:#e67e22"></span><span>Heavy</span></div>
-      <div class="row"><span class="box" style="background:#e74c3c"></span><span>Jam</span></div>
-      <div style="height:6px"></div>
-      <div><b>Parking occupancy</b></div>
-      <div class="row"><span class="box" style="background:#2ecc71"></span><span>&lt;= 50% occupied</span></div>
-      <div class="row"><span class="box" style="background:#f39c12"></span><span>&lt;= 80% occupied</span></div>
-      <div class="row"><span class="box" style="background:#e74c3c"></span><span>> 80% occupied</span></div>
-    `;
+    div.innerHTML = getLegendHTML('accidents');
     return div;
   };
   legend.addTo(map);
 
   // Dynamic legend content in English based on selected layer
   const legendNode = document.querySelector('.legend');
-  function legendHTML(mode) {
-    if (mode === 'traffic') {
-      return `
-        <div class="title">Legend</div>
-        <div><b>Traffic</b></div>
-        <div class="row"><span class="box" style="background:#2ecc71"></span><span>Free flow</span></div>
-        <div class="row"><span class="box" style="background:#f1c40f"></span><span>Slow</span></div>
-        <div class="row"><span class="box" style="background:#e67e22"></span><span>Heavy</span></div>
-        <div class="row"><span class="box" style="background:#e74c3c"></span><span>Jam</span></div>
-      `;
-    }
-    if (mode === 'parking') {
-      return `
-        <div class="title">Legend</div>
-        <div><b>Parking occupancy</b></div>
-        <div class="row"><span class="box" style="background:#2ecc71"></span><span><= 50% occupied</span></div>
-        <div class="row"><span class="box" style="background:#f39c12"></span><span><= 80% occupied</span></div>
-        <div class="row"><span class="box" style="background:#e74c3c"></span><span>> 80% occupied</span></div>
-      `;
-    }
-    return `
-      <div class="title">Legend</div>
-      <div><b>Accidents</b></div>
-      <div class="row"><span class="box" style="background:#e74c3c"></span><span>Severe</span></div>
-      <div class="row"><span class="box" style="background:#f1c40f"></span><span>Medium</span></div>
-      <div class="row"><span class="box" style="background:#2ecc71"></span><span>Minor</span></div>
-    `;
-  }
-  function setLegend(mode) { if (legendNode) legendNode.innerHTML = legendHTML(mode); }
-  setLegend('accidents');
+  function setLegend(mode) { if (legendNode) legendNode.innerHTML = getLegendHTML(mode); }
+  
   map.on('baselayerchange', function(e){
     if (e.name === 'Accidents') setLegend('accidents');
     else if (e.name === 'Traffic') setLegend('traffic');
     else if (e.name === 'Parking') setLegend('parking');
+    else if (e.name === 'Violations') setLegend('violations');
   });
 
   // --- Fit bounds to all overlays ---
-  const all = L.featureGroup([accidentCluster, trafficLayer, parkingLayer]);
+  const all = L.featureGroup([accidentCluster, trafficLayer, parkingLayer, violationCluster]);
   const bounds = all.getBounds();
   if (bounds && bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
 
   // --- UI: Center button keeps working ---
   document.getElementById('locBtn')?.addEventListener('click', () => {
-    map.setView([38.2464, 21.7346], 13, { animate: true });
+    map.setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM, { animate: true });
   });
 
   // --- Update API for future MQTT/Influx integration ---
@@ -184,39 +80,66 @@ export function initMap() {
     parkingLayer.addData(newGeoJSON);
   }
   function replaceAccidents(items) {
-    // Full replace is available but not used in polling path (we prefer incremental updates)
     accidentCluster.clearLayers();
     items.forEach(a => accidentCluster.addLayer(makeAccidentMarker(a)));
   }
 
   // Optional: diff-based updates (upsert/remove) for streaming sources
   const accidentIndex = new Map(); // id -> { marker, lastSeen }
-  function upsertAccident(a) {
+  const violationIndex = new Map(); // id -> { marker, lastSeen }
+
+  function upsertItem(item, index, cluster, markerFactory, colorFunc, type) {
     const now = Date.now();
-    const entry = accidentIndex.get(a.id);
+    const entry = index.get(item.id);
     if (entry) {
-      entry.marker
-        .setLatLng([a.lat, a.lng])
-        .setIcon(L.divIcon({ className: '', html: `<div class="accident ${severityClass(a.severity)}"></div>`, iconSize: [20,20], iconAnchor:[10,10] }))
-        .setPopupContent(`<b>Accident (${a.severity})</b><br>${a.desc || ''}<br><small>${a.ts ? new Date(a.ts).toLocaleString() : ''}</small>`);
+      entry.marker.setLatLng([item.lat, item.lng]);
+      
+      // Update icon and popup content
+      if (type === 'accident') {
+         entry.marker.setIcon(L.divIcon({
+            className: '',
+            html: `<div class="accident ${COLORS.severityClass(item.severity)}"></div>`,
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+         }));
+         entry.marker.setPopupContent(`<b>Accident (${item.severity})</b><br>${item.desc || ''}<br><small>${item.ts ? new Date(item.ts).toLocaleString() : ''}</small>`);
+      } else if (type === 'violation') {
+         entry.marker.setIcon(L.divIcon({
+            className: '',
+            html: `<div class="violation" style="background:${COLORS.violation(item.violation)}"></div>`,
+            iconSize: [18, 18],
+            iconAnchor: [9, 9]
+         }));
+         entry.marker.setPopupContent(`<b>Violation</b><br>${item.violation || 'unknown'}<br>${item.description || ''}<br><small>${item.ts ? new Date(item.ts).toLocaleString() : ''}</small>`);
+      }
+      
       entry.lastSeen = now;
     } else {
-      const m = makeAccidentMarker(a);
-      accidentIndex.set(a.id, { marker: m, lastSeen: now });
-      accidentCluster.addLayer(m);
+      const m = markerFactory(item);
+      index.set(item.id, { marker: m, lastSeen: now });
+      cluster.addLayer(m);
     }
   }
+
+  function upsertAccident(a) {
+    upsertItem(a, accidentIndex, accidentCluster, makeAccidentMarker, null, 'accident');
+  }
+
+  function upsertViolation(v) {
+    upsertItem(v, violationIndex, violationCluster, makeViolationMarker, null, 'violation');
+  }
+
   function removeAccidentById(id) {
     const entry = accidentIndex.get(id);
     if (entry) { accidentCluster.removeLayer(entry.marker); accidentIndex.delete(id); }
   }
-  function pruneOldAccidents() {
-    // Remove markers that have not been seen for ACCIDENT_TTL_MS
+
+  function pruneOldItems(index, cluster, ttl) {
     const now = Date.now();
-    for (const [id, entry] of accidentIndex.entries()) {
-      if (now - entry.lastSeen > ACCIDENT_TTL_MS) {
-        accidentCluster.removeLayer(entry.marker);
-        accidentIndex.delete(id);
+    for (const [id, entry] of index.entries()) {
+      if (now - entry.lastSeen > ttl) {
+        cluster.removeLayer(entry.marker);
+        index.delete(id);
       }
     }
   }
@@ -224,19 +147,20 @@ export function initMap() {
   // Expose API for future adapters (e.g., MQTT handler)
   window.MapAPI = {
     map,
-    layers: { accidentCluster, trafficLayer, parkingLayer },
+    layers: { accidentCluster, trafficLayer, parkingLayer, violationCluster },
     replaceTraffic,
     replaceParking,
     replaceAccidents,
     upsertAccident,
-    removeAccidentById
+    removeAccidentById,
+    upsertViolation
   };
 
   // --- Poll backend API for live accidents (optional) ---
-  const API_BASE = window.APP_API_BASE || ""; // e.g., set to "http://localhost:8000" if needed
   const apiStatusEl = document.getElementById('apiStatus');
   const nextRefreshEl = document.getElementById('nextRefresh');
   const btnRefreshNow = document.getElementById('btnRefreshNow');
+  
   function setApiStatus(state, note) {
     if (!apiStatusEl) return;
     apiStatusEl.classList.remove('success', 'error', 'warn');
@@ -253,9 +177,10 @@ export function initMap() {
     if (note) apiStatusEl.title = note;
   }
   setApiStatus('checking');
+
   async function fetchRecentAccidents() {
     try {
-      const res = await fetch(`${API_BASE}/api/accidents/recent?window=${encodeURIComponent(API_WINDOW)}`);
+      const res = await fetch(`${CONFIG.API_BASE}/api/accidents/recent?window=${encodeURIComponent(CONFIG.API_WINDOW)}`);
       if (!res.ok) { setApiStatus('error', `HTTP ${res.status}`); return; }
       const items = await res.json();
       if (Array.isArray(items)) {
@@ -267,9 +192,10 @@ export function initMap() {
       setApiStatus('error');
     }
   }
+
   async function fetchRecentTraffic() {
     try {
-      const res = await fetch(`${API_BASE}/api/traffic/recent?window=${encodeURIComponent(API_WINDOW)}`);
+      const res = await fetch(`${CONFIG.API_BASE}/api/traffic/recent?window=${encodeURIComponent(CONFIG.API_WINDOW)}`);
       if (!res.ok) return;
       const items = await res.json();
       if (Array.isArray(items)) {
@@ -296,9 +222,10 @@ export function initMap() {
       /* ignore traffic fetch errors to avoid breaking accident status */
     }
   }
+
   async function fetchRecentParking() {
     try {
-      const res = await fetch(`${API_BASE}/api/parking/recent?window=${encodeURIComponent(API_WINDOW)}`);
+      const res = await fetch(`${CONFIG.API_BASE}/api/parking/recent?window=${encodeURIComponent(CONFIG.API_WINDOW)}`);
       if (!res.ok) return;
       const items = await res.json();
       if (Array.isArray(items)) {
@@ -326,42 +253,67 @@ export function initMap() {
       /* ignore parking fetch errors to avoid breaking accident status */
     }
   }
+
+  async function fetchRecentViolations() {
+    try {
+      const res = await fetch(`${CONFIG.API_BASE}/api/violations/recent?window=${encodeURIComponent(CONFIG.VIOLATION_WINDOW)}`);
+      if (!res.ok) return;
+      const items = await res.json();
+      if (Array.isArray(items)) {
+        for (const v of items) { upsertViolation(v); }
+      }
+    } catch (_) {
+      /* ignore violation fetch errors */
+    }
+  }
+
   // Countdown & scheduling
   let nextRefreshAt = 0;
   let fetchTimer = null;
   let countdownTimer = null;
+
   function updateCountdown() {
     if (!nextRefreshEl) return;
     const remainingMs = Math.max(0, nextRefreshAt - Date.now());
     const s = Math.ceil(remainingMs / 1000);
     nextRefreshEl.textContent = `Next: ${s}s`;
   }
+
   function startAutoRefresh() {
     if (fetchTimer) clearInterval(fetchTimer);
-    nextRefreshAt = Date.now() + REFRESH_MS;
+    nextRefreshAt = Date.now() + CONFIG.REFRESH_MS;
     fetchTimer = setInterval(() => {
       fetchRecentAccidents();
       fetchRecentTraffic();
-      nextRefreshAt = Date.now() + REFRESH_MS;
-    }, REFRESH_MS);
+      fetchRecentViolations();
+      nextRefreshAt = Date.now() + CONFIG.REFRESH_MS;
+    }, CONFIG.REFRESH_MS);
     if (countdownTimer) clearInterval(countdownTimer);
     countdownTimer = setInterval(updateCountdown, 1000);
     updateCountdown();
   }
+
   // Manual refresh button
   if (btnRefreshNow) {
     btnRefreshNow.addEventListener('click', () => {
       fetchRecentAccidents();
       fetchRecentTraffic();
       fetchRecentParking();
+      fetchRecentViolations();
       startAutoRefresh(); // reset cadence and countdown
     });
   }
+
   // Prune old accidents periodically
-  setInterval(pruneOldAccidents, PRUNE_MS);
+  setInterval(() => { 
+      pruneOldItems(accidentIndex, accidentCluster, CONFIG.ACCIDENT_TTL_MS); 
+      pruneOldItems(violationIndex, violationCluster, CONFIG.VIOLATION_TTL_MS); 
+  }, CONFIG.PRUNE_MS);
+
   // Kick off
   fetchRecentAccidents();
   fetchRecentTraffic();
   fetchRecentParking();
+  fetchRecentViolations();
   startAutoRefresh();
 }

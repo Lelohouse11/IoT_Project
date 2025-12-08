@@ -26,6 +26,14 @@
       "problemMatcher": []
     },
     {
+      "label": "traffic-violation-faker",
+      "type": "shell",
+      "command": "python data_faker/traffic_violation_faker.py",
+      "options": { "cwd": "${workspaceFolder}" },
+      "presentation": { "reveal": "always", "panel": "new" },
+      "problemMatcher": []
+    },
+    {
       "label": "orion-bridge",
       "type": "shell",
       "command": "python api/orion_notification_server.py",
@@ -71,6 +79,7 @@
         "accident-faker",
         "parking-faker",
         "traffic-faker",
+        "traffic-violation-faker",
         "orion-bridge",
         "map-api",
         "llm-proxy",

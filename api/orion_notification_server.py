@@ -25,21 +25,24 @@ import paho.mqtt.client as mqtt
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+from api import config
+
 # MQTT setup (mirrors the admin-made subscription visible in subscriptions.json)
-MQTT_BROKER = "150.140.186.118"
-MQTT_PORT = 1883
-MQTT_TOPIC = "orion_updates"
+MQTT_BROKER = config.MQTT_BROKER
+MQTT_PORT = config.MQTT_PORT
+MQTT_TOPIC = config.MQTT_TOPIC
 FILTER_ATTRIBUTE = "owner"
 FILTER_VALUE = "week4_up1125093"
 
 # InfluxDB configuration reused from mqtt_to_influx_connector.py
-INFLUX_URL = "http://150.140.186.118:8086"
-INFLUX_BUCKET = "LeandersDB"
-INFLUX_ORG = "students"
-INFLUX_TOKEN = "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BAWqSzAnI2eckYOsbYQqICeA=="
-MEASUREMENT_ACCIDENTS = "accidents"
-MEASUREMENT_PARKING = "parking_zones"
-MEASUREMENT_TRAFFIC = "traffic_flow"
+INFLUX_URL = config.INFLUX_URL
+INFLUX_BUCKET = config.INFLUX_BUCKET
+INFLUX_ORG = config.INFLUX_ORG
+INFLUX_TOKEN = config.INFLUX_TOKEN
+MEASUREMENT_ACCIDENTS = config.MEASUREMENT_ACCIDENTS
+MEASUREMENT_PARKING = config.MEASUREMENT_PARKING
+MEASUREMENT_TRAFFIC = config.MEASUREMENT_TRAFFIC
+MEASUREMENT_VIOLATIONS = config.MEASUREMENT_VIOLATIONS
 
 client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
 write_api = client.write_api(write_options=SYNCHRONOUS)
@@ -223,6 +226,39 @@ def _traffic_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     return point
 
 
+def _violation_to_point(entity: Dict[str, Any]) -> Optional[Point]:
+    """Map TrafficViolation entity attributes to an InfluxDB point."""
+    entity_id = entity.get("id")
+    if not entity_id:
+        return None
+
+    violation_code = _attr_value(entity, "titleCode", "")
+    description = _attr_value(entity, "description", "")
+    payment_status = _attr_value(entity, "paymentStatus", "")
+    equipment_id = _attr_value(entity, "equipmentId", "")
+    equipment_type = _attr_value(entity, "equipmentType", "")
+    lat, lng = _extract_coords(entity)
+
+    if lat is None or lng is None:
+        print(f"[skip] violation {entity_id} missing coordinates")
+        return None
+
+    point = (
+        Point(MEASUREMENT_VIOLATIONS)
+        .tag("type", entity.get("type", "TrafficViolation"))
+        .tag("violation", violation_code)
+        .field("entity_id", entity_id)
+        .field("description", description)
+        .field("payment_status", payment_status)
+        .field("equipment_id", equipment_id)
+        .field("equipment_type", equipment_type)
+        .field("lat", float(lat))
+        .field("lng", float(lng))
+        .time(_event_time_ns(entity), WritePrecision.NS)
+    )
+    return point
+
+
 def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     """Dispatch entity to the correct InfluxDB measurement."""
     etype = entity.get("type")
@@ -230,6 +266,8 @@ def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
         return _parking_to_point(entity)
     if etype == "TrafficFlowObserved":
         return _traffic_to_point(entity)
+    if etype == "TrafficViolation":
+        return _violation_to_point(entity)
     return _accident_to_point(entity)
 
 

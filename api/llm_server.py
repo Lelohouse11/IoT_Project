@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 
@@ -10,6 +9,8 @@ from debug import print_context  # noqa: F401
 import requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+
+from api import config
 
 
 def create_app():
@@ -24,12 +25,12 @@ def create_app():
             return jsonify({"error": "Invalid JSON body"}), 400
 
         prompt = (data.get('prompt') or '').strip()
-        model = os.getenv("MODEL", "deepseek-r1:8b")
+        model = config.LLM_MODEL
         if not prompt:
             return jsonify({"error": "Missing prompt"}), 400
 
-        upstream = os.getenv('LLM_UPSTREAM_URL', os.getenv('API_URL', 'http://labserver.sense-campus.gr:7080/chat'))
-        api_key = os.getenv('LLM_API_KEY', os.getenv('API_KEY', 'studentpassword'))
+        upstream = config.LLM_UPSTREAM_URL
+        api_key = config.LLM_API_KEY
 
         headers = {
             "Content-Type": "application/json",
@@ -61,7 +62,7 @@ def create_app():
 
 if __name__ == '__main__':
     # Configure host/port via env if desired
-    host = os.getenv('LLM_BIND_HOST', '0.0.0.0')
-    port = int(os.getenv('LLM_BIND_PORT', '9090'))
+    host = config.LLM_BIND_HOST
+    port = config.LLM_BIND_PORT
     create_app().run(host=host, port=port)
 
