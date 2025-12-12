@@ -6,7 +6,7 @@ export const CONFIG = {
   MAP_ZOOM: 13,
   
   // API settings
-  API_BASE: window.APP_API_BASE || "", // e.g. "http://localhost:8000"
+  API_BASE: window.APP_API_BASE || "http://localhost:8000", // e.g. "http://localhost:8000"
   
   // Polling & Data retention
   REFRESH_MS: 15000,           // auto-refresh interval
@@ -17,7 +17,7 @@ export const CONFIG = {
   VIOLATION_TTL_MS: 5 * 60 * 1000,
 
   // LLM settings
-  LLM_BACKEND: window.LLM_BACKEND_BASE || 'http://localhost:8080',
+  LLM_BACKEND: window.LLM_BACKEND_BASE || 'http://localhost:9090',
   LLM_MODEL: window.LLM_MODEL || 'deepseek-r1:8b',
   
   // Auth settings

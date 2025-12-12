@@ -34,28 +34,46 @@ The project uses environment variables for configuration.
 3. The `api/config.py` module loads these settings automatically.
 
 ## Running the Stack
-1. **Install Python dependencies**:
+
+You can run the project in two modes: **Local Development** (best for editing code) or **Full Docker** (best for running the complete system cleanly).
+
+### Option 1: Local Development (Hybrid)
+Runs the database in Docker, but executes Python scripts and Node apps locally on your machine. This allows for easy debugging and hot-reloading.
+
+1. **Install Dependencies**:
    ```bash
+   # Python
    python -m pip install -r requirements.txt
-   ```
-2. **Install Node dependencies** (for the PWA):
-   ```bash
+   
+   # Node.js (Driver App)
    cd drivers_side_pwa
    npm install
    cd ..
    ```
-3. **Start the Stack**:
-   - **VS Code (Recommended)**: Go to "Run and Debug" and select **Start IoT Stack**. This automatically:
-     1. Starts the MySQL database via Docker.
-     2. Runs the database migration (`db_init/migrate_to_db.py`) to populate road/parking data.
-     3. Launches all fakers, APIs, and frontends.
-   - **Manual**:
-     - Start DB: `docker compose up -d`
-     - Migrate Data: `python db_init/migrate_to_db.py`
-     - Run fakers: `python data_faker/accident_faker.py`, etc.
-     - Run APIs: `python -m uvicorn api.map_data_api:app --reload`, `python api/llm_server.py`.
-     - Serve City Side: `python -m http.server 5000 --directory city_side`.
-     - Serve Driver PWA: `npm run dev` inside `drivers_side_pwa`.
+2. **Start via VS Code**:
+   - Go to **Run and Debug** (Ctrl+Shift+D).
+   - Select **Start IoT Stack (Local Dev)**.
+   - This launches the DB, runs migrations, and starts all services in separate terminals.
+
+### Option 2: Full Docker Stack (Containerized)
+Runs the entire system (Fakers, APIs, Frontends, Database) inside containers. No local Python/Node installation required (except for Docker).
+
+1. **Prerequisites**: Install Docker Desktop.
+2. **Start via VS Code**:
+   - Go to **Run and Debug**.
+   - Select **Start IoT Stack (Docker)**.
+   - To stop, select **Stop IoT Stack (Docker)**.
+3. **Start via Terminal**:
+   ```bash
+   docker compose up -d --build
+   ```
+
+**Docker Service Ports**:
+- **City Dashboard**: [http://localhost:5000](http://localhost:5000)
+- **Driver App**: [http://localhost:5173](http://localhost:5173)
+- **Map API**: [http://localhost:8000](http://localhost:8000)
+- **LLM API**: [http://localhost:9090](http://localhost:9090)
+- **phpMyAdmin**: [http://localhost:8081](http://localhost:8081)
 
 ## Project Structure
 ```
