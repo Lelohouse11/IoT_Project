@@ -16,13 +16,13 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from data_faker.orion_helpers import OrionClient
+from api import database
 
 FIWARE_TYPE = "OnStreetParking"
 ORION_BASE_URL = "http://150.140.186.118:1026"
 FIWARE_SERVICE_PATH = "/week4_up1125093"
 FIWARE_OWNER = "week4_up1125093"
 REQUEST_TIMEOUT = 5
-ENTITIES_FILE = Path(__file__).resolve().parent / "parking_entities.json"
 ORION = OrionClient(
     base_url=ORION_BASE_URL,
     service_path=FIWARE_SERVICE_PATH,
@@ -60,25 +60,16 @@ def target_occupancy_range_for_hour(hour: int) -> Tuple[float, float]:
 
 
 def _load_entity_ids() -> List[str]:
-    """Read stored entity ids for reuse by the simulator."""
-    if not ENTITIES_FILE.exists():
-        print(f"[warn] entities file not found: {ENTITIES_FILE}")
-        return []
+    """Read stored entity ids from the MySQL database."""
     try:
-        data = json.loads(ENTITIES_FILE.read_text())
+        rows = database.fetch_all("SELECT entity_id FROM parking_entities")
+        ids = [row["entity_id"] for row in rows]
+        if not ids:
+            print("[warn] no parking entities found in database")
+        return ids
     except Exception as exc:
-        print(f"[warn] failed to read entities file {ENTITIES_FILE}: {exc}")
+        print(f"[warn] failed to read entities from db: {exc}")
         return []
-    ids: List[str] = []
-    if isinstance(data, list):
-        for item in data:
-            if isinstance(item, dict) and item.get("id"):
-                ids.append(str(item["id"]))
-            elif isinstance(item, str):
-                ids.append(item)
-    if not ids:
-        print(f"[warn] no ids in entities file {ENTITIES_FILE}")
-    return ids
 
 
 def _attr_value(entity: Dict[str, Any], key: str) -> Any:
@@ -138,7 +129,7 @@ def _fetch_parking_state(session: requests.Session) -> List[ParkingState]:
             )
         )
 
-    print(f"[info] fetched {len(states)} OnStreetParking entities from {ENTITIES_FILE}")
+    print(f"[info] fetched {len(states)} OnStreetParking entities from Orion")
     return states
 
 

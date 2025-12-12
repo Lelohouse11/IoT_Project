@@ -18,11 +18,12 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 
 ## Data & Infra
 - **FIWARE Orion Context Broker** – Central NGSI v2 endpoint for simulated entities.
+- **MySQL 8.0** – Relational database for static city data (road network, parking entities) and user management. Runs in Docker.
 - **InfluxDB 2.x** – Stores time-series data (accidents, traffic flow) for historical analysis.
 - **Grafana** – Visualizes KPIs and is embedded inside the City Dashboard.
 
 ### External Services & APIs
-- **OpenStreetMap (via Overpass API)** – Source of the Patras road network geometry used by the fakers (`data_faker/patras_roads.geojson`).
+- **OpenStreetMap (via Overpass API)** – Source of the Patras road network geometry used by the fakers (`seed_data/patras_roads.geojson`).
 - **GraphHopper API** – Provides routing and navigation for the Driver Companion App (requires API key).
 - **Leaflet** – Open-source JavaScript library for interactive maps.
 
@@ -44,8 +45,13 @@ The project uses environment variables for configuration.
    cd ..
    ```
 3. **Start the Stack**:
-   - **VS Code (Recommended)**: Go to "Run and Debug" and select **Start IoT Stack**. This launches all fakers, APIs, and frontends simultaneously.
+   - **VS Code (Recommended)**: Go to "Run and Debug" and select **Start IoT Stack**. This automatically:
+     1. Starts the MySQL database via Docker.
+     2. Runs the database migration (`db_init/migrate_to_db.py`) to populate road/parking data.
+     3. Launches all fakers, APIs, and frontends.
    - **Manual**:
+     - Start DB: `docker compose up -d`
+     - Migrate Data: `python db_init/migrate_to_db.py`
      - Run fakers: `python data_faker/accident_faker.py`, etc.
      - Run APIs: `python -m uvicorn api.map_data_api:app --reload`, `python api/llm_server.py`.
      - Serve City Side: `python -m http.server 5000 --directory city_side`.
@@ -57,7 +63,9 @@ IoT_Project/
 ├── api/                 # Backend APIs & Bridges
 ├── city_side/           # Admin Dashboard (JS/HTML)
 ├── data_faker/          # Simulation Scripts
+├── db_init/             # SQL Schema & Migration Scripts
 ├── drivers_side_pwa/    # Driver App (React)
+├── seed_data/           # Raw JSON/GeoJSON Data Files
 ├── docs/                # Documentation & Ideas
 └── .vscode/             # Task & Launch Configs
 ```
