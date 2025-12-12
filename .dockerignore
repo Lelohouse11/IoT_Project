@@ -1,0 +1,10 @@
+mysql_data/
+.git/
+.venv/
+.venve/
+__pycache__/
+*.pyc
+.vscode/
+node_modules/
+Lab_ex/
+docs/

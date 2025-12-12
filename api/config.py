@@ -29,3 +29,11 @@ MEASUREMENT_ACCIDENTS = "accidents"
 MEASUREMENT_PARKING = "parking_zones"
 MEASUREMENT_TRAFFIC = "traffic_flow"
 MEASUREMENT_VIOLATIONS = "traffic_violations"
+
+# MySQL Settings
+MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
+MYSQL_PORT = int(os.getenv("MYSQL_PORT", "3306"))
+MYSQL_USER = os.getenv("MYSQL_USER", "iot_user")
+MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "iot_password")
+MYSQL_DB = os.getenv("MYSQL_DB", "iot_city_db")
+

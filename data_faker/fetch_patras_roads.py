@@ -15,7 +15,7 @@ OVERPASS_QUERY = """
 );
 out geom;
 """
-OUT_PATH = Path(__file__).with_name("patras_roads.geojson")
+OUT_PATH = Path(__file__).resolve().parents[1] / "seed_data" / "patras_roads.geojson"
 
 
 def fetch_patras_roads() -> Path:

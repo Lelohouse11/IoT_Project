@@ -29,7 +29,6 @@ ORION = OrionClient(
     service_path=FIWARE_SERVICE_PATH,
     request_timeout=REQUEST_TIMEOUT,
 )
-ROADS_PATH = PROJECT_ROOT / "data_faker" / "patras_roads.geojson"
 
 
 @dataclass
@@ -81,7 +80,7 @@ def generate_violation_data(config: Optional[GeneratorConfig] = None) -> None:
     if config is None:
         config = GeneratorConfig()
 
-    road_segments, segment_weights = load_road_segments(ROADS_PATH)
+    road_segments, segment_weights = load_road_segments()
     next_id = 1
 
     def rnd_coord() -> Tuple[float, float]:

@@ -38,7 +38,6 @@ ORION = OrionClient(
     service_path=FIWARE_SERVICE_PATH,
     request_timeout=REQUEST_TIMEOUT,
 )
-ROADS_PATH = PROJECT_ROOT / "data_faker" / "patras_roads.geojson"
 
 
 @dataclass
@@ -104,7 +103,7 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
     if config is None:
         config = GeneratorConfig()
 
-    road_segments, segment_weights = load_road_segments(ROADS_PATH)
+    road_segments, segment_weights = load_road_segments()
 
     actions = ("create", "update", "clear")
     weights = (config.prob_new, config.prob_update, config.prob_clear)

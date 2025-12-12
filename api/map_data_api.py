@@ -25,8 +25,6 @@ bucket = config.INFLUX_BUCKET
 org = config.INFLUX_ORG
 token = config.INFLUX_TOKEN
 
-ROADS_PATH = PROJECT_ROOT / "data_faker" / "patras_roads.geojson"
-
 app = FastAPI(title="Accidents API")
 
 app.add_middleware(
@@ -53,7 +51,7 @@ def _load_roads() -> None:
     if _road_segments:
         return
     
-    segments, _ = geo_helpers.load_road_segments(ROADS_PATH)
+    segments, _ = geo_helpers.load_road_segments()
     _road_segments = segments
 
 

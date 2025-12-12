@@ -24,6 +24,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from data_faker.orion_helpers import OrionClient
+from api import database
 
 # Orion / FIWARE settings (reuse values from accident_faker.py)
 FIWARE_TYPE = "OnStreetParking"
@@ -34,7 +35,6 @@ ORION_BASE_URL = "http://150.140.186.118:1026"
 FIWARE_SERVICE_PATH = "/week4_up1125093"
 FIWARE_OWNER = "week4_up1125093"
 REQUEST_TIMEOUT = 5
-ENTITIES_FILE = Path(__file__).resolve().parent / "parking_entities.json"
 
 ORION = OrionClient(
     base_url=ORION_BASE_URL,
@@ -466,34 +466,45 @@ def _load_geojson(path: Path) -> List[ParkingZone]:
     return zones
 
 
-def _persist_entity_ids(entity_ids: Sequence[str]) -> None:
-    """Persist created entity ids for reuse by the simulator."""
-    payload = [{"id": eid, "url": f"{ORION_ENTITIES_URL}/{eid}"} for eid in entity_ids]
+def _persist_zone_to_db(zone: ParkingZone, entity_id: str) -> None:
+    """Persist created entity to the MySQL database."""
     try:
-        ENTITIES_FILE.write_text(json.dumps(payload, indent=2))
-        print(f"[info] wrote {len(payload)} entity ids to {ENTITIES_FILE}")
-    except OSError as exc:
-        print(f"[warn] failed to write entities file {ENTITIES_FILE}: {exc}")
+        # Calculate centroid for simple lat/lng storage
+        lats = [p[0] for p in zone.coords]
+        lngs = [p[1] for p in zone.coords]
+        avg_lat = sum(lats) / len(lats)
+        avg_lng = sum(lngs) / len(lngs)
+
+        query = """
+            INSERT INTO parking_entities (entity_id, name, lat, lng, total_spots)
+            VALUES (%s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                name = VALUES(name),
+                lat = VALUES(lat),
+                lng = VALUES(lng),
+                total_spots = VALUES(total_spots)
+        """
+        database.execute_query(query, (entity_id, zone.name, avg_lat, avg_lng, zone.total_spots))
+        print(f"[info] persisted {entity_id} to database")
+    except Exception as exc:
+        print(f"[warn] failed to persist {entity_id} to db: {exc}")
 
 
 def seed_parking_zones(zones: Sequence[ParkingZone]) -> None:
-    """Create all parking zones in Orion."""
+    """Create all parking zones in Orion and persist to DB."""
     if not zones:
         print("[warn] no parking zones to seed")
         return
 
     now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-    created_ids: List[str] = []
     with requests.Session() as session:
         for zone in zones:
             entity = _build_entity(zone, now_iso)
-            if _send_to_orion(session, entity):
+            if ORION.send_entity(session, entity, "create"):
                 print(
                     f"[create] {entity['id']} {zone.name} total={zone.total_spots} occupied={zone.occupied_spots}"
                 )
-                created_ids.append(entity["id"])
-    if created_ids:
-        _persist_entity_ids(created_ids)
+                _persist_zone_to_db(zone, entity["id"])
 
 
 def main() -> None:
@@ -511,14 +522,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    created_ids: List[str] = []
-    with requests.Session() as session:
-        for zone in zones:
-            entity = _build_entity(zone, now_iso)
-            if ORION.send_entity(session, entity, "create"):
-                print(
-                    f"[create] {entity['id']} {zone.name} total={zone.total_spots} occupied={zone.occupied_spots}"
-                )
-                created_ids.append(entity["id"])
-    if created_ids:
-        _persist_entity_ids(created_ids)

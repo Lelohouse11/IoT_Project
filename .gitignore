@@ -59,6 +59,7 @@ Lab_ex/
 *.sqlite
 *.sqlite3
 *.db
+mysql_data/
 
 ### OS files
 .DS_Store

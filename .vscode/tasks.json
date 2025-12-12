@@ -1,92 +1,193 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "accident-faker",
-      "type": "shell",
-      "command": "python data_faker/accident_faker.py",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "new" },
-      "problemMatcher": []
-    },
-    {
-      "label": "parking-faker",
-      "type": "shell",
-      "command": "python data_faker/parking_faker.py",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "new" },
-      "problemMatcher": []
-    },
-    {
-      "label": "traffic-faker",
-      "type": "shell",
-      "command": "python data_faker/traffic_faker.py",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "new" },
-      "problemMatcher": []
-    },
-    {
-      "label": "traffic-violation-faker",
-      "type": "shell",
-      "command": "python data_faker/traffic_violation_faker.py",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "new" },
-      "problemMatcher": []
-    },
-    {
-      "label": "orion-bridge",
-      "type": "shell",
-      "command": "python api/orion_notification_server.py",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "new" },
-      "problemMatcher": []
-    },
-    {
-      "label": "map-api",
-      "type": "shell",
-      "command": "python -m uvicorn api.map_data_api:app --host 0.0.0.0 --port 8000 --reload",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "new" },
-      "problemMatcher": []
-    },
-    {
-      "label": "llm-proxy",
-      "type": "shell",
-      "command": "python api/llm_server.py",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "new" },
-      "problemMatcher": []
-    },
-    {
-      "label": "city-dashboard",
-      "type": "shell",
-      "command": "python -m http.server 5000 --directory city_side",
-      "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "always", "panel": "new" },
-      "problemMatcher": []
-    },
-    {
-      "label": "driver-pwa",
-      "type": "shell",
-      "command": "npm run dev -- --host 0.0.0.0 --port 5173",
-      "options": { "cwd": "${workspaceFolder}/drivers_side_pwa" },
-      "presentation": { "reveal": "always", "panel": "new" },
-      "problemMatcher": []
-    },
-    {
-      "label": "start-iot-stack",
-      "dependsOn": [
-        "accident-faker",
-        "parking-faker",
-        "traffic-faker",
-        "traffic-violation-faker",
-        "orion-bridge",
-        "map-api",
-        "llm-proxy",
-        "city-dashboard",
-        "driver-pwa"
-      ],
-      "problemMatcher": []
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "accident-faker",
+			"type": "shell",
+			"command": "python data_faker/accident_faker.py",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "parking-faker",
+			"type": "shell",
+			"command": "python data_faker/parking_faker.py",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "traffic-faker",
+			"type": "shell",
+			"command": "python data_faker/traffic_faker.py",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "traffic-violation-faker",
+			"type": "shell",
+			"command": "python data_faker/traffic_violation_faker.py",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "orion-bridge",
+			"type": "shell",
+			"command": "python api/orion_notification_server.py",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "map-api",
+			"type": "shell",
+			"command": "python -m uvicorn api.map_data_api:app --host 0.0.0.0 --port 8000 --reload",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "llm-proxy",
+			"type": "shell",
+			"command": "python api/llm_server.py",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "city-dashboard",
+			"type": "shell",
+			"command": "python -m http.server 5000 --directory city_side",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "driver-pwa",
+			"type": "shell",
+			"command": "npm run dev -- --host 0.0.0.0 --port 5173",
+			"options": {
+				"cwd": "${workspaceFolder}/drivers_side_pwa"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "start-iot-stack-local",
+			"dependsOn": [
+				"docker-up",
+				"db-migration",
+				"accident-faker",
+				"parking-faker",
+				"traffic-faker",
+				"traffic-violation-faker",
+				"orion-bridge",
+				"map-api",
+				"llm-proxy",
+				"city-dashboard",
+				"driver-pwa"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "start-iot-stack-docker",
+			"type": "shell",
+			"command": "docker",
+			"args": [
+				"compose",
+				"up",
+				"-d",
+				"--build"
+			],
+			"isBackground": false,
+			"group": "none",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			}
+		},
+		{
+			"label": "stop-iot-stack-docker",
+			"type": "shell",
+			"command": "docker",
+			"args": [
+				"compose",
+				"stop"
+			],
+			"isBackground": false,
+			"group": "none",
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			}
+		},
+		{
+			"label": "docker-up",
+			"type": "shell",
+			"command": "docker",
+			"args": [
+				"compose",
+				"up",
+				"-d"
+			],
+			"isBackground": false,
+			"group": "none"
+		},
+		{
+			"label": "db-migration",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"db_init/migrate_to_db.py"
+			],
+			"isBackground": false,
+			"group": "none"
+		}
+	]
 }

@@ -1,8 +1,15 @@
 import json
 import math
 import random
+import sys
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from api import database
 
 def haversine_distance_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Approximate distance in meters between two lat/lng pairs."""
@@ -14,39 +21,32 @@ def haversine_distance_m(lat1: float, lng1: float, lat2: float, lng2: float) -> 
     return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
-def load_road_segments(path: Path) -> Tuple[List[Tuple[Tuple[float, float], Tuple[float, float]]], List[float]]:
-    """Load road line segments from a GeoJSON file written by the Overpass fetch step."""
-    if not path.exists():
-        print(f"[warn] road data file missing at {path}, falling back to bounding-box sampling")
-        return [], []
-
-    try:
-        data = json.loads(path.read_text())
-    except Exception as exc:  # pragma: no cover - defensive parsing
-        print(f"[warn] failed to parse road data ({exc}), falling back to bounding-box sampling")
-        return [], []
-
+def load_road_segments(path: Optional[Path] = None) -> Tuple[List[Tuple[Tuple[float, float], Tuple[float, float]]], List[float]]:
+    """Load road line segments from the MySQL database (ignoring path if provided)."""
     segments: List[Tuple[Tuple[float, float], Tuple[float, float]]] = []
     weights: List[float] = []
-    for feature in data.get("features", []):
-        geometry = feature.get("geometry") or {}
-        if geometry.get("type") != "LineString":
-            continue
-        coords: Sequence[Sequence[float]] = geometry.get("coordinates") or []
-        for i in range(len(coords) - 1):
-            lng1, lat1 = coords[i]
-            lng2, lat2 = coords[i + 1]
+
+    try:
+        rows = database.fetch_all("SELECT lat1, lng1, lat2, lng2 FROM road_segments")
+        if not rows:
+            print("[warn] no road segments found in database")
+            return [], []
+            
+        for row in rows:
+            lat1, lng1 = row["lat1"], row["lng1"]
+            lat2, lng2 = row["lat2"], row["lng2"]
             dist = haversine_distance_m(lat1, lng1, lat2, lng2)
             if dist <= 0:
                 continue
             segments.append(((lat1, lng1), (lat2, lng2)))
             weights.append(dist)
+            
+        print(f"[info] loaded {len(segments)} road segments from database")
+        return segments, weights
 
-    if not segments:
-        print(f"[warn] no usable road segments found in {path}, falling back to bounding-box sampling")
-    else:
-        print(f"[info] loaded {len(segments)} road segments from {path}")
-    return segments, weights
+    except Exception as exc:
+        print(f"[warn] failed to load road segments from db: {exc}")
+        return [], []
 
 
 def sample_point_on_road(
