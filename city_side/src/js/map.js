@@ -1,5 +1,6 @@
 import { CONFIG, COLORS } from './config.js';
 import { makeAccidentMarker, makeViolationMarker, trafficStyle, parkingStyle, getLegendHTML } from './map_helpers.js';
+import { updateGrafanaTime, resetGrafanaTime } from './grafana.js';
 
 // Initialize the Leaflet map, live accident overlay, and polling logic.
 // Exposes a small API on window.MapAPI for future adapters (MQTT, SSE).
@@ -161,6 +162,10 @@ export function initMap() {
   const nextRefreshEl = document.getElementById('nextRefresh');
   const btnRefreshNow = document.getElementById('btnRefreshNow');
   
+  // Filter State
+  let filterStart = null;
+  let filterEnd = null;
+
   function setApiStatus(state, note) {
     if (!apiStatusEl) return;
     apiStatusEl.classList.remove('success', 'error', 'warn');
@@ -178,12 +183,25 @@ export function initMap() {
   }
   setApiStatus('checking');
 
+  function getQueryParams(windowParam) {
+    let qs = `?window=${encodeURIComponent(windowParam)}`;
+    if (filterStart && filterEnd) {
+      qs += `&start_time=${encodeURIComponent(filterStart)}&end_time=${encodeURIComponent(filterEnd)}`;
+    }
+    return qs;
+  }
+
   async function fetchRecentAccidents() {
     try {
-      const res = await fetch(`${CONFIG.API_BASE}/api/accidents/recent?window=${encodeURIComponent(CONFIG.API_WINDOW)}`);
+      const res = await fetch(`${CONFIG.API_BASE}/api/accidents/recent${getQueryParams(CONFIG.API_WINDOW)}`);
       if (!res.ok) { setApiStatus('error', `HTTP ${res.status}`); return; }
       const items = await res.json();
       if (Array.isArray(items)) {
+        // If filtering, clear old items first to show only range
+        if (filterStart) {
+            accidentCluster.clearLayers();
+            accidentIndex.clear();
+        }
         for (const a of items) { upsertAccident(a); }
         const ts = new Date().toLocaleTimeString();
         setApiStatus('ok', `Last update ${ts}`);
@@ -195,7 +213,7 @@ export function initMap() {
 
   async function fetchRecentTraffic() {
     try {
-      const res = await fetch(`${CONFIG.API_BASE}/api/traffic/recent?window=${encodeURIComponent(CONFIG.API_WINDOW)}`);
+      const res = await fetch(`${CONFIG.API_BASE}/api/traffic/recent${getQueryParams(CONFIG.API_WINDOW)}`);
       if (!res.ok) return;
       const items = await res.json();
       if (Array.isArray(items)) {
@@ -225,7 +243,7 @@ export function initMap() {
 
   async function fetchRecentParking() {
     try {
-      const res = await fetch(`${CONFIG.API_BASE}/api/parking/recent?window=${encodeURIComponent(CONFIG.API_WINDOW)}`);
+      const res = await fetch(`${CONFIG.API_BASE}/api/parking/recent${getQueryParams(CONFIG.API_WINDOW)}`);
       if (!res.ok) return;
       const items = await res.json();
       if (Array.isArray(items)) {
@@ -256,10 +274,14 @@ export function initMap() {
 
   async function fetchRecentViolations() {
     try {
-      const res = await fetch(`${CONFIG.API_BASE}/api/violations/recent?window=${encodeURIComponent(CONFIG.VIOLATION_WINDOW)}`);
+      const res = await fetch(`${CONFIG.API_BASE}/api/violations/recent${getQueryParams(CONFIG.VIOLATION_WINDOW)}`);
       if (!res.ok) return;
       const items = await res.json();
       if (Array.isArray(items)) {
+        if (filterStart) {
+            violationCluster.clearLayers();
+            violationIndex.clear();
+        }
         for (const v of items) { upsertViolation(v); }
       }
     } catch (_) {
@@ -274,6 +296,10 @@ export function initMap() {
 
   function updateCountdown() {
     if (!nextRefreshEl) return;
+    if (filterStart) {
+        nextRefreshEl.textContent = "Paused (Filter)";
+        return;
+    }
     const remainingMs = Math.max(0, nextRefreshAt - Date.now());
     const s = Math.ceil(remainingMs / 1000);
     nextRefreshEl.textContent = `Next: ${s}s`;
@@ -293,6 +319,14 @@ export function initMap() {
     updateCountdown();
   }
 
+  function stopAutoRefresh() {
+    if (fetchTimer) clearInterval(fetchTimer);
+    if (countdownTimer) clearInterval(countdownTimer);
+    fetchTimer = null;
+    countdownTimer = null;
+    if (nextRefreshEl) nextRefreshEl.textContent = "Paused";
+  }
+
   // Manual refresh button
   if (btnRefreshNow) {
     btnRefreshNow.addEventListener('click', () => {
@@ -300,14 +334,67 @@ export function initMap() {
       fetchRecentTraffic();
       fetchRecentParking();
       fetchRecentViolations();
-      startAutoRefresh(); // reset cadence and countdown
+      if (!filterStart) startAutoRefresh(); // reset cadence and countdown only if not filtering
     });
   }
 
-  // Prune old accidents periodically
+  // Filter UI Logic
+  const btnApplyFilter = document.getElementById('btnApplyFilter');
+  const btnClearFilter = document.getElementById('btnClearFilter');
+  const inputStart = document.getElementById('filterStart');
+  const inputEnd = document.getElementById('filterEnd');
+
+  if (btnApplyFilter && btnClearFilter) {
+    btnApplyFilter.addEventListener('click', () => {
+        const s = inputStart.value;
+        const e = inputEnd.value;
+        if (s && e) {
+            filterStart = new Date(s).toISOString();
+            filterEnd = new Date(e).toISOString();
+            stopAutoRefresh();
+            
+            // Update Grafana
+            updateGrafanaTime(new Date(s).getTime(), new Date(e).getTime());
+
+            // Fetch filtered data
+            fetchRecentAccidents();
+            fetchRecentTraffic();
+            fetchRecentParking();
+            fetchRecentViolations();
+        } else {
+            alert("Please select both start and end times.");
+        }
+    });
+
+    btnClearFilter.addEventListener('click', () => {
+        inputStart.value = '';
+        inputEnd.value = '';
+        filterStart = null;
+        filterEnd = null;
+        
+        // Reset Grafana
+        resetGrafanaTime();
+
+        // Clear map and fetch live data
+        accidentCluster.clearLayers();
+        accidentIndex.clear();
+        violationCluster.clearLayers();
+        violationIndex.clear();
+        
+        fetchRecentAccidents();
+        fetchRecentTraffic();
+        fetchRecentParking();
+        fetchRecentViolations();
+        startAutoRefresh();
+    });
+  }
+
+  // Prune old accidents periodically (only if not filtering)
   setInterval(() => { 
-      pruneOldItems(accidentIndex, accidentCluster, CONFIG.ACCIDENT_TTL_MS); 
-      pruneOldItems(violationIndex, violationCluster, CONFIG.VIOLATION_TTL_MS); 
+      if (!filterStart) {
+        pruneOldItems(accidentIndex, accidentCluster, CONFIG.ACCIDENT_TTL_MS); 
+        pruneOldItems(violationIndex, violationCluster, CONFIG.VIOLATION_TTL_MS); 
+      }
   }, CONFIG.PRUNE_MS);
 
   // Kick off

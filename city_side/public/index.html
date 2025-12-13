@@ -36,6 +36,23 @@
   <!-- Main Content -->
   <main class="wrap">
     <section class="cards">
+      <!-- Filter Card -->
+      <article class="card" id="filter-card" style="grid-column: 1 / -1;">
+        <h2>Time Filter</h2>
+        <div class="body" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+          <label>
+            Start:
+            <input type="datetime-local" id="filterStart" />
+          </label>
+          <label>
+            End:
+            <input type="datetime-local" id="filterEnd" />
+          </label>
+          <button class="btn" id="btnApplyFilter">Apply Filter</button>
+          <button class="btn" id="btnClearFilter">Clear</button>
+        </div>
+      </article>
+
       <!-- Map Card -->
       <article class="card" id="map-card" style="grid-column: 1 / -1;">
         <h2>Live Map</h2>
