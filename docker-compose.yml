@@ -43,6 +43,9 @@ services:
       MYSQL_USER: iot_user
       MYSQL_PASSWORD: iot_password
       MYSQL_DB: iot_city_db
+    volumes:
+      - ./data_faker:/app/data_faker
+      - ./api:/app/api
     command: ["bash", "docker/start_fakers.sh"]
 
   iot_apis:
@@ -61,6 +64,9 @@ services:
       MYSQL_USER: iot_user
       MYSQL_PASSWORD: iot_password
       MYSQL_DB: iot_city_db
+    volumes:
+      - ./api:/app/api
+      - ./data_faker:/app/data_faker
     command: ["bash", "docker/start_apis.sh"]
 
   iot_frontends:
@@ -72,4 +78,6 @@ services:
     ports:
       - "5000:5000" # City Dashboard
       - "5173:5173" # Driver PWA
+    volumes:
+      - ./city_side:/app/city_side
     command: ["bash", "docker/start_frontends.sh"]
