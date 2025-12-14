@@ -7,75 +7,59 @@ Detection, double-parking events, and parking-spot availability are modularized.
 from __future__ import annotations
 
 import argparse
+import logging
 import uuid
 import sys
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Optional, List
 
 import cv2
 from ultralytics import YOLO
+try:
+    from ultralytics.utils import LOGGER as ULTRA_LOGGER
+except Exception:
+    ULTRA_LOGGER = None
 
 # Support execution both as a package module and as a standalone script.
 if __package__ is None or __package__ == "":
     sys.path.append(str(Path(__file__).resolve().parent))
 
+if ULTRA_LOGGER is not None:
+    ULTRA_LOGGER.setLevel(logging.ERROR)
+
 try:
-    from yolov8_tests.double_parking import (
-        DOUBLE_PARKING_STATIONARY_SEC,
-        MOVE_EPS_REL,
-        detect_double_parking_events,
-        VEHICLE_CLASS_NAMES as VEHICLE_CLASSES_DOUBLE,
-    )
     from yolov8_tests.parking_spots import (
-        CURB_DISTANCE_NORM,
-        DEFAULT_METERS_PER_PIXEL,
-        PARKING_GAP_THRESHOLD_M,
+        PARKING_AREA_BOX,
         detect_roadside_spots,
     )
     from yolov8_tests.general_detection import (
-        BASE_DIR,
         INPUT_IMAGES,
         INPUT_VIDEOS,
         OUTPUT_IMAGES,
         OUTPUT_VIDEOS,
-        ZONES_CONFIG,
         IMAGE_EXTS,
         VIDEO_EXTS,
         VEHICLE_CLASS_NAMES,
         iter_files,
         utc_timestamp,
         write_metadata,
-        load_zones,
-        in_any_zone,
     )
 except ImportError:  # fallback for direct script execution
-    from double_parking import (
-        DOUBLE_PARKING_STATIONARY_SEC,
-        MOVE_EPS_REL,
-        detect_double_parking_events,
-        VEHICLE_CLASS_NAMES as VEHICLE_CLASSES_DOUBLE,
-    )
     from parking_spots import (
-        CURB_DISTANCE_NORM,
-        DEFAULT_METERS_PER_PIXEL,
-        PARKING_GAP_THRESHOLD_M,
+        PARKING_AREA_BOX,
         detect_roadside_spots,
     )
     from general_detection import (
-        BASE_DIR,
         INPUT_IMAGES,
         INPUT_VIDEOS,
         OUTPUT_IMAGES,
         OUTPUT_VIDEOS,
-        ZONES_CONFIG,
         IMAGE_EXTS,
         VIDEO_EXTS,
         VEHICLE_CLASS_NAMES,
         iter_files,
         utc_timestamp,
         write_metadata,
-        load_zones,
-        in_any_zone,
     )
 
 
@@ -91,8 +75,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--conf",
         type=float,
-        default=0.25,
-        help="Confidence threshold for detections.",
+        default=0.15,
+        help="Confidence threshold for detections (lower -> more boxes).",
     )
     parser.add_argument(
         "--images",
@@ -121,25 +105,28 @@ def parse_args() -> argparse.Namespace:
         default=0.0,
         help="GPS longitude for metadata.",
     )
-    parser.add_argument(
-        "--spot-threshold-m",
-        type=float,
-        default=PARKING_GAP_THRESHOLD_M,
-        help="Minimum gap (meters) to classify as available curbside spot.",
-    )
-    parser.add_argument(
-        "--curb-threshold",
-        type=float,
-        default=CURB_DISTANCE_NORM,
-        help="Normalized distance (0-1 of max image dim) to consider vehicle near curb.",
-    )
-    parser.add_argument(
-        "--meters-per-pixel",
-        type=float,
-        default=None,
-        help="Override calibration for converting pixels to meters along curb (optional).",
-    )
     return parser.parse_args()
+
+
+def draw_parking_area_overlay(image, line_y_px: float, label: str = "Parking area (top region)") -> None:
+    """Draw the full parking area box (top region) with a highlighted bottom edge."""
+    y_bottom = int(round(line_y_px))
+    color = (0, 255, 255)  # yellow
+    thickness = 2
+    # Draw rectangle covering the parking area (top portion of the frame)
+    cv2.rectangle(image, (0, 0), (image.shape[1] - 1, y_bottom), color, thickness)
+    # Emphasize the bottom edge
+    cv2.line(image, (0, y_bottom), (image.shape[1] - 1, y_bottom), color, thickness + 1)
+    cv2.putText(
+        image,
+        label,
+        (10, max(20, y_bottom - 10)),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        0.7,
+        color,
+        2,
+        cv2.LINE_AA,
+    )
 
 
 def run_on_images(
@@ -149,12 +136,6 @@ def run_on_images(
     camera_id: str,
     gps_lat: float,
     gps_lon: float,
-    lanes,
-    parking_zones,
-    curbs,
-    gap_threshold_m: float,
-    curb_distance_norm: float,
-    meters_per_pixel_override: Optional[float],
     vehicle_class_ids: Optional[List[int]],
 ) -> None:
     OUTPUT_IMAGES.mkdir(parents=True, exist_ok=True)
@@ -168,29 +149,7 @@ def run_on_images(
         results = model.predict(source=str(image_path), conf=conf, device=device, classes=vehicle_class_ids)
         for result in results:
             annotated = result.plot()  # BGR-Array
-            save_path = OUTPUT_IMAGES / f"{image_path.stem}_yolov8n{image_path.suffix}"
-            cv2.imwrite(str(save_path), annotated)
             detection_count = len(result.boxes)
-            print(f"{image_path.name}: {detection_count} objects -> {save_path}")
-
-            if detection_count > 0:
-                confidence = float(result.boxes.conf.max().item())
-                snippet_id = uuid.uuid4().hex
-                meta = {
-                    "event_type": "vehicle_detected",
-                    "camera_id": camera_id,
-                    "segment_id": image_path.stem,
-                    "timestamp": utc_timestamp(),
-                    "gps_position": {"lat": gps_lat, "lon": gps_lon},
-                    "severity": confidence,
-                    "snippet_id": snippet_id,
-                    "image_id": snippet_id,
-                    "source_file": image_path.name,
-                    "output_file": save_path.name,
-                }
-                meta_path = OUTPUT_IMAGES / f"{image_path.stem}_yolov8n.json"
-                write_metadata(meta_path, meta)
-                print(f"Metadata -> {meta_path}")
 
             names = result.names
             vehicle_centers = []
@@ -212,28 +171,54 @@ def run_on_images(
                     }
                 )
 
-            spot_events = detect_roadside_spots(
+            occupancy_events = detect_roadside_spots(
                 vehicle_centers,
-                curbs,
                 img_w,
                 img_h,
-                gap_threshold_m,
-                curb_distance_norm,
-                meters_per_pixel_override,
             )
-            if spot_events:
-                spots_path = OUTPUT_IMAGES / f"{image_path.stem}_spots.json"
+            line_y_px = img_h * PARKING_AREA_BOX["y1"]
+            if occupancy_events:
+                # Use the line position from the detector if present
+                line_y_px = occupancy_events[0].get("line_y_px", line_y_px)
+
+            draw_parking_area_overlay(annotated, line_y_px)
+
+            save_path = OUTPUT_IMAGES / f"{image_path.stem}_yolov8n{image_path.suffix}"
+            cv2.imwrite(str(save_path), annotated)
+            print(f"{image_path.name}: {detection_count} objects -> {save_path}")
+
+            if detection_count > 0:
+                confidence = float(result.boxes.conf.max().item())
+                snippet_id = uuid.uuid4().hex
+                meta = {
+                    "event_type": "vehicle_detected",
+                    "camera_id": camera_id,
+                    "segment_id": image_path.stem,
+                    "timestamp": utc_timestamp(),
+                    "gps_position": {"lat": gps_lat, "lon": gps_lon},
+                    "severity": confidence,
+                    "snippet_id": snippet_id,
+                    "image_id": snippet_id,
+                    "source_file": image_path.name,
+                    "output_file": save_path.name,
+                }
+                meta_path = OUTPUT_IMAGES / f"{image_path.stem}_yolov8n.json"
+                write_metadata(meta_path, meta)
+                print(f"Metadata -> {meta_path}")
+
+            if occupancy_events:
+                occupancy_path = OUTPUT_IMAGES / f"{image_path.stem}_parking_area.json"
                 payload = {
-                    "event_type": "parking_spot_available",
+                    "event_type": "parking_area_occupancy",
                     "camera_id": camera_id,
                     "segment_id": image_path.stem,
                     "timestamp": utc_timestamp(),
                     "gps_position": {"lat": gps_lat, "lon": gps_lon},
                     "source_file": image_path.name,
-                    "spots": spot_events,
+                    **occupancy_events[0],
                 }
-                write_metadata(spots_path, payload)
-                print(f"Parking spots -> {spots_path}")
+                write_metadata(occupancy_path, payload)
+                print(f"Parking area occupancy -> {occupancy_path}")
 
 
 def run_on_videos(
@@ -243,12 +228,6 @@ def run_on_videos(
     camera_id: str,
     gps_lat: float,
     gps_lon: float,
-    lanes,
-    parking_zones,
-    curbs,
-    gap_threshold_m: float,
-    curb_distance_norm: float,
-    meters_per_pixel_override: Optional[float],
     vehicle_class_ids: Optional[List[int]],
 ) -> None:
     OUTPUT_VIDEOS.mkdir(parents=True, exist_ok=True)
@@ -257,11 +236,6 @@ def run_on_videos(
     if not video_paths:
         print(f"No videos found in {INPUT_VIDEOS}.")
         return
-
-    if not lanes:
-        print("No lane zones configured (zones.json). Double parking detection will be skipped.")
-    if not curbs:
-        print("No curb lines configured (zones.json). Roadside spot detection will be skipped.")
 
     for video_path in video_paths:
         output_dir = OUTPUT_VIDEOS / video_path.stem
@@ -273,12 +247,11 @@ def run_on_videos(
         fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
         cap.release()
 
-        track_state: Dict[int, Dict[str, Optional[float]]] = {}
         detection_count = 0
         max_conf = 0.0
-        events_written = 0
         parking_events_written = 0
-        parking_event_keys: set[tuple[int, int, int]] = set()
+        parking_event_keys: set[int] = set()  # track_ids that already emitted
+        track_state: dict[int, dict[str, float]] = {}
 
         stream = model.track(
             source=str(video_path),
@@ -294,6 +267,9 @@ def run_on_videos(
             classes=vehicle_class_ids,
         )
 
+        move_eps_rel = 0.01  # 1% of max dimension
+        min_stationary_sec = 3.0
+
         for frame_idx, result in enumerate(stream):
             boxes = result.boxes
             img_h, img_w = result.orig_shape
@@ -301,51 +277,15 @@ def run_on_videos(
             if len(boxes) > 0:
                 max_conf = max(max_conf, float(boxes.conf.max().item()))
 
-            # Double parking detection
-            if lanes and len(boxes) > 0:
-                dp_events = detect_double_parking_events(
-                    result=result,
-                    frame_idx=frame_idx,
-                    fps=fps,
-                    lanes=lanes,
-                    parking_zones=parking_zones,
-                    track_state=track_state,
-                    move_eps_rel=MOVE_EPS_REL,
-                    stationary_sec=DOUBLE_PARKING_STATIONARY_SEC,
-                )
-                for ev in dp_events:
-                    snippet_id = ev["event_id"]
-                    annotated_frame = ev.pop("annotated_frame")
-                    frame_path = events_dir / f"{snippet_id}.jpg"
-                    cv2.imwrite(str(frame_path), annotated_frame)
-
-                    meta = {
-                        "event_type": "double_parking",
-                        "camera_id": camera_id,
-                        "segment_id": video_path.stem,
-                        "timestamp": utc_timestamp(),
-                        "gps_position": {"lat": gps_lat, "lon": gps_lon},
-                        "snippet_id": snippet_id,
-                        "video_id": snippet_id,
-                        "source_file": video_path.name,
-                        "output_dir": str(output_dir.name),
-                        "detections": detection_count,
-                        **{k: v for k, v in ev.items() if k != "event_id"},
-                    }
-                    meta_path = events_dir / f"{snippet_id}.json"
-                    write_metadata(meta_path, meta)
-                    events_written += 1
-                    print(f"Double parking event -> {meta_path}")
-
-            # Roadside parking spot detection per frame
-            if curbs and len(boxes) > 0:
+            # Parking area occupancy per frame (upper half of the image)
+            if len(boxes) > 0:
                 annotated_frame = None
                 vehicle_centers = []
                 names = result.names
                 for i in range(len(boxes)):
                     cls_id = int(boxes.cls[i].item())
                     cls_name = names.get(cls_id, "")
-                    if cls_name not in VEHICLE_CLASSES_DOUBLE:
+                    if cls_name not in VEHICLE_CLASS_NAMES:
                         continue
                     cx, cy, bw, bh = boxes.xywh[i].tolist()
                     track_id_tensor = boxes.id
@@ -359,49 +299,60 @@ def run_on_videos(
                             "conf": float(boxes.conf[i].item()),
                             "class": cls_name,
                             "track_id": track_id_val,
-                        }
-                    )
-
-                spot_events = detect_roadside_spots(
-                    vehicle_centers,
-                    curbs,
-                    img_w,
-                    img_h,
-                    gap_threshold_m,
-                    curb_distance_norm,
-                    meters_per_pixel_override,
+                    }
                 )
-                if spot_events:
-                    if annotated_frame is None:
-                        annotated_frame = result.plot()
-                    for ev in spot_events:
-                        key = (
-                            ev["curb_index"],
-                            int(ev["start_meters"] * 10),
-                            int(ev["end_meters"] * 10),
-                        )
-                        if key in parking_event_keys:
-                            continue
-                        parking_event_keys.add(key)
-                        snippet_id = uuid.uuid4().hex
-                        frame_path = events_dir / f"{snippet_id}_spot.jpg"
-                        cv2.imwrite(str(frame_path), annotated_frame)
-                        meta = {
-                            **ev,
-                            "event_type": "parking_spot_available",
-                            "camera_id": camera_id,
-                            "segment_id": video_path.stem,
-                            "timestamp": utc_timestamp(),
-                            "gps_position": {"lat": gps_lat, "lon": gps_lon},
-                            "snippet_id": snippet_id,
-                            "video_frame": frame_idx,
-                            "source_file": video_path.name,
-                            "output_dir": str(output_dir.name),
-                        }
-                        meta_path = events_dir / f"{snippet_id}_spot.json"
-                        write_metadata(meta_path, meta)
-                        parking_events_written += 1
-                        print(f"Parking spot available -> {meta_path}")
+
+                occupancy_events = detect_roadside_spots(vehicle_centers, img_w, img_h)
+                if occupancy_events:
+                    ev = occupancy_events[0]
+                    vehicles_in_area = ev.get("vehicles", [])
+                    if vehicles_in_area:
+                        annotated_frame = annotated_frame or result.plot()
+                        line_y_px = ev.get("line_y_px", img_h * PARKING_AREA_BOX["y1"])
+                        draw_parking_area_overlay(annotated_frame, line_y_px)
+                        move_eps = move_eps_rel * max(img_w, img_h)
+                        for v in vehicles_in_area:
+                            tid = v.get("track_id")
+                            if tid is None:
+                                continue
+                            cx_px = v.get("cx_px", v["cx"] * img_w)
+                            cy_px = v.get("cy_px", v["cy"] * img_h)
+                            state = track_state.get(tid, {"last_x": cx_px, "last_y": cy_px, "stationary_start": frame_idx})
+                            dist = ((cx_px - state["last_x"]) ** 2 + (cy_px - state["last_y"]) ** 2) ** 0.5
+                            if dist > move_eps:
+                                # Reset stationary timer
+                                state["stationary_start"] = frame_idx
+                                state["last_x"] = cx_px
+                                state["last_y"] = cy_px
+                                track_state[tid] = state
+                                continue
+
+                            # stationary long enough?
+                            elapsed_sec = (frame_idx - state["stationary_start"]) / fps if fps else 0.0
+                            track_state[tid] = state
+                            if elapsed_sec >= min_stationary_sec and tid not in parking_event_keys:
+                                parking_event_keys.add(tid)
+                                snippet_id = uuid.uuid4().hex
+                                frame_path = events_dir / f"{snippet_id}_parking.jpg"
+                                cv2.imwrite(str(frame_path), annotated_frame)
+                                meta = {
+                                    **ev,
+                                    "event_type": ev.get("event_type", "parking_area_occupancy"),
+                                    "camera_id": camera_id,
+                                    "segment_id": video_path.stem,
+                                    "timestamp": utc_timestamp(),
+                                    "gps_position": {"lat": gps_lat, "lon": gps_lon},
+                                    "snippet_id": snippet_id,
+                                    "video_frame": frame_idx,
+                                    "source_file": video_path.name,
+                                    "output_dir": str(output_dir.name),
+                                    "trigger_track_id": tid,
+                                    "stationary_seconds": elapsed_sec,
+                                }
+                                meta_path = events_dir / f"{snippet_id}_parking.json"
+                                write_metadata(meta_path, meta)
+                                parking_events_written += 1
+                                print(f"Parking area occupancy -> {meta_path}")
 
         video_meta = {
             "event_type": "vehicle_detected",
@@ -414,7 +365,6 @@ def run_on_videos(
             "source_file": video_path.name,
             "output_dir": str((OUTPUT_VIDEOS / video_path.stem).name),
             "detections": detection_count,
-            "double_parking_events": events_written,
             "parking_spot_events": parking_events_written,
         }
         meta_path = output_dir / "metadata.json"
@@ -435,8 +385,6 @@ def main() -> None:
     INPUT_IMAGES.mkdir(parents=True, exist_ok=True)
     INPUT_VIDEOS.mkdir(parents=True, exist_ok=True)
 
-    lanes, parking_zones, curbs = load_zones(ZONES_CONFIG)
-
     if run_images:
         run_on_images(
             model,
@@ -445,12 +393,6 @@ def main() -> None:
             args.camera_id,
             args.gps_lat,
             args.gps_lon,
-            lanes,
-            parking_zones,
-            curbs,
-            args.spot_threshold_m,
-            args.curb_threshold,
-            args.meters_per_pixel,
             vehicle_class_ids,
         )
     if run_videos:
@@ -461,12 +403,6 @@ def main() -> None:
             args.camera_id,
             args.gps_lat,
             args.gps_lon,
-            lanes,
-            parking_zones,
-            curbs,
-            args.spot_threshold_m,
-            args.curb_threshold,
-            args.meters_per_pixel,
             vehicle_class_ids,
         )
 
