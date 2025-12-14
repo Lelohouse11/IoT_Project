@@ -121,7 +121,7 @@
 		{
 			"label": "start-iot-stack-local",
 			"dependsOn": [
-				"docker-up",
+				"docker-db-only",
 				"db-migration",
 				"accident-faker",
 				"parking-faker",
@@ -175,6 +175,20 @@
 				"compose",
 				"up",
 				"-d"
+			],
+			"isBackground": false,
+			"group": "none"
+		},
+		{
+			"label": "docker-db-only",
+			"type": "shell",
+			"command": "docker",
+			"args": [
+				"compose",
+				"up",
+				"-d",
+				"mysql_db",
+				"phpmyadmin"
 			],
 			"isBackground": false,
 			"group": "none"

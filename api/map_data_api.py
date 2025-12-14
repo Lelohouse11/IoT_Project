@@ -71,37 +71,52 @@ def _nearest_road_segment(lat: float, lng: float) -> Optional[list]:
     return best
 
 
-def _flux_recent_active(window: str = "15m") -> str:
-    """Flux to retrieve the latest active record per accident id in a window.
+def _flux_recent_active(window: str = "15m", start: Optional[str] = None, stop: Optional[str] = None,
+                        lat_min: Optional[float] = None, lat_max: Optional[float] = None,
+                        lng_min: Optional[float] = None, lng_max: Optional[float] = None) -> str:
+    """Flux to retrieve the latest active record per accident id in a window."""
+    range_clause = f'range(start: -{window})'
+    if start and stop:
+        range_clause = f'range(start: time(v: "{start}"), stop: time(v: "{stop}"))'
 
-    Steps
-    - filter fields we need
-    - pivot field names to columns for easier JSON mapping
-    - group by id and keep the newest record per id
-    - filter to active only
-    """
+    loc_filter = ""
+    if lat_min is not None and lat_max is not None and lng_min is not None and lng_max is not None:
+        loc_filter = f'|> filter(fn: (r) => r.lat >= {lat_min} and r.lat <= {lat_max} and r.lng >= {lng_min} and r.lng <= {lng_max})'
+
     return f'''
 from(bucket: "{bucket}")
-  |> range(start: -{window})
+  |> {range_clause}
   |> filter(fn: (r) => r._measurement == "{MEASUREMENT_ACCIDENTS}")
   |> filter(fn: (r) => r._field == "id" or r._field == "entity_id" or r._field == "desc" or r._field == "lat" or r._field == "lng" or r._field == "status" or r._field == "event")
   |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  {loc_filter}
   |> group(columns: ["id"])
   |> sort(columns: ["_time"], desc: true)
   |> unique(column: "id")
   |> filter(fn: (r) => r.status == "active")
-  |> keep(columns: ["_time", "id", "entity_id", "lat", "lng", "desc", "severity", "event", "status"])  // severity/tag included
+  |> keep(columns: ["_time", "id", "entity_id", "lat", "lng", "desc", "severity", "event", "status"])
 '''
 
 
-def _flux_recent_parking(window: str = "15m") -> str:
+def _flux_recent_parking(window: str = "15m", start: Optional[str] = None, stop: Optional[str] = None,
+                         lat_min: Optional[float] = None, lat_max: Optional[float] = None,
+                         lng_min: Optional[float] = None, lng_max: Optional[float] = None) -> str:
     """Flux to retrieve the latest record per parking entity within a window."""
+    range_clause = f'range(start: -{window})'
+    if start and stop:
+        range_clause = f'range(start: time(v: "{start}"), stop: time(v: "{stop}"))'
+
+    loc_filter = ""
+    if lat_min is not None and lat_max is not None and lng_min is not None and lng_max is not None:
+        loc_filter = f'|> filter(fn: (r) => r.lat >= {lat_min} and r.lat <= {lat_max} and r.lng >= {lng_min} and r.lng <= {lng_max})'
+
     return f'''
 from(bucket: "{bucket}")
-  |> range(start: -{window})
+  |> {range_clause}
   |> filter(fn: (r) => r._measurement == "{MEASUREMENT_PARKING}")
   |> filter(fn: (r) => r._field == "entity_id" or r._field == "total_spots" or r._field == "occupied_spots" or r._field == "available_spots" or r._field == "status" or r._field == "lat" or r._field == "lng" or r._field == "street")
   |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  {loc_filter}
   |> group(columns: ["entity_id"])
   |> sort(columns: ["_time"], desc: true)
   |> unique(column: "entity_id")
@@ -109,14 +124,25 @@ from(bucket: "{bucket}")
 '''
 
 
-def _flux_recent_traffic(window: str = "15m") -> str:
+def _flux_recent_traffic(window: str = "15m", start: Optional[str] = None, stop: Optional[str] = None,
+                         lat_min: Optional[float] = None, lat_max: Optional[float] = None,
+                         lng_min: Optional[float] = None, lng_max: Optional[float] = None) -> str:
     """Flux to retrieve the latest traffic observations per segment within a window."""
+    range_clause = f'range(start: -{window})'
+    if start and stop:
+        range_clause = f'range(start: time(v: "{start}"), stop: time(v: "{stop}"))'
+
+    loc_filter = ""
+    if lat_min is not None and lat_max is not None and lng_min is not None and lng_max is not None:
+        loc_filter = f'|> filter(fn: (r) => r.lat >= {lat_min} and r.lat <= {lat_max} and r.lng >= {lng_min} and r.lng <= {lng_max})'
+
     return f'''
 from(bucket: "{bucket}")
-  |> range(start: -{window})
+  |> {range_clause}
   |> filter(fn: (r) => r._measurement == "{MEASUREMENT_TRAFFIC}")
   |> filter(fn: (r) => r._field == "entity_id" or r._field == "ref_segment" or r._field == "intensity" or r._field == "avg_speed" or r._field == "density" or r._field == "occupancy" or r._field == "congested" or r._field == "lat" or r._field == "lng")
   |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  {loc_filter}
   |> group(columns: ["entity_id"])
   |> sort(columns: ["_time"], desc: true)
   |> unique(column: "entity_id")
@@ -124,14 +150,25 @@ from(bucket: "{bucket}")
 '''
 
 
-def _flux_recent_violations(window: str = "5m") -> str:
+def _flux_recent_violations(window: str = "5m", start: Optional[str] = None, stop: Optional[str] = None,
+                            lat_min: Optional[float] = None, lat_max: Optional[float] = None,
+                            lng_min: Optional[float] = None, lng_max: Optional[float] = None) -> str:
     """Flux to retrieve the latest traffic violation detections within a window."""
+    range_clause = f'range(start: -{window})'
+    if start and stop:
+        range_clause = f'range(start: time(v: "{start}"), stop: time(v: "{stop}"))'
+
+    loc_filter = ""
+    if lat_min is not None and lat_max is not None and lng_min is not None and lng_max is not None:
+        loc_filter = f'|> filter(fn: (r) => r.lat >= {lat_min} and r.lat <= {lat_max} and r.lng >= {lng_min} and r.lng <= {lng_max})'
+
     return f'''
 from(bucket: "{bucket}")
-  |> range(start: -{window})
+  |> {range_clause}
   |> filter(fn: (r) => r._measurement == "{MEASUREMENT_VIOLATIONS}")
   |> filter(fn: (r) => r._field == "entity_id" or r._field == "description" or r._field == "payment_status" or r._field == "equipment_id" or r._field == "equipment_type" or r._field == "lat" or r._field == "lng")
   |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  {loc_filter}
   |> group(columns: ["entity_id"])
   |> sort(columns: ["_time"], desc: true)
   |> unique(column: "entity_id")
@@ -140,12 +177,14 @@ from(bucket: "{bucket}")
 
 
 @app.get("/api/accidents/recent")
-def recent_accidents(window: str = "15m") -> List[Dict[str, Any]]:
+def recent_accidents(window: str = "15m", start_time: Optional[str] = None, end_time: Optional[str] = None,
+                     lat_min: Optional[float] = None, lat_max: Optional[float] = None,
+                     lng_min: Optional[float] = None, lng_max: Optional[float] = None) -> List[Dict[str, Any]]:
     """Return latest active accidents within the given time window.
 
     Response schema: [{ id, lat, lng, severity, desc, ts }]
     """
-    flux = _flux_recent_active(window)
+    flux = _flux_recent_active(window, start_time, end_time, lat_min, lat_max, lng_min, lng_max)
     tables = query_api.query(org=org, query=flux)
 
     items: List[Dict[str, Any]] = []
@@ -185,12 +224,14 @@ def recent_accidents(window: str = "15m") -> List[Dict[str, Any]]:
 
 
 @app.get("/api/parking/recent")
-def recent_parking(window: str = "15m") -> List[Dict[str, Any]]:
+def recent_parking(window: str = "15m", start_time: Optional[str] = None, end_time: Optional[str] = None,
+                   lat_min: Optional[float] = None, lat_max: Optional[float] = None,
+                   lng_min: Optional[float] = None, lng_max: Optional[float] = None) -> List[Dict[str, Any]]:
     """Return latest parking occupancy points within the given time window.
 
     Response schema: [{ id, entity_id, lat, lng, total_spots, occupied_spots, available_spots, status, street, ts, geometry }]
     """
-    flux = _flux_recent_parking(window)
+    flux = _flux_recent_parking(window, start_time, end_time, lat_min, lat_max, lng_min, lng_max)
     tables = query_api.query(org=org, query=flux)
 
     items: List[Dict[str, Any]] = []
@@ -234,12 +275,14 @@ def recent_parking(window: str = "15m") -> List[Dict[str, Any]]:
 
 
 @app.get("/api/traffic/recent")
-def recent_traffic(window: str = "15m") -> List[Dict[str, Any]]:
+def recent_traffic(window: str = "15m", start_time: Optional[str] = None, end_time: Optional[str] = None,
+                   lat_min: Optional[float] = None, lat_max: Optional[float] = None,
+                   lng_min: Optional[float] = None, lng_max: Optional[float] = None) -> List[Dict[str, Any]]:
     """Return latest traffic observations within the given time window.
 
     Response schema: [{ id, entity_id, ref_segment, lat, lng, intensity, avg_speed, density, occupancy, congested, congestion, ts }]
     """
-    flux = _flux_recent_traffic(window)
+    flux = _flux_recent_traffic(window, start_time, end_time, lat_min, lat_max, lng_min, lng_max)
     tables = query_api.query(org=org, query=flux)
 
     items: List[Dict[str, Any]] = []
@@ -291,12 +334,14 @@ def recent_traffic(window: str = "15m") -> List[Dict[str, Any]]:
 
 
 @app.get("/api/violations/recent")
-def recent_violations(window: str = "5m") -> List[Dict[str, Any]]:
+def recent_violations(window: str = "15m", start_time: Optional[str] = None, end_time: Optional[str] = None,
+                      lat_min: Optional[float] = None, lat_max: Optional[float] = None,
+                      lng_min: Optional[float] = None, lng_max: Optional[float] = None) -> List[Dict[str, Any]]:
     """Return latest traffic violations within the given time window.
 
     Response schema: [{ id, entity_id, lat, lng, violation, description, payment_status, equipment_id, ts }]
     """
-    flux = _flux_recent_violations(window)
+    flux = _flux_recent_violations(window, start_time, end_time, lat_min, lat_max, lng_min, lng_max)
     tables = query_api.query(org=org, query=flux)
 
     items: List[Dict[str, Any]] = []
