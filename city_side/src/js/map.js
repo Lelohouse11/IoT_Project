@@ -1,6 +1,6 @@
 import { CONFIG, COLORS } from './config.js';
 import { makeAccidentMarker, makeViolationMarker, trafficStyle, parkingStyle, getLegendHTML } from './map_helpers.js';
-import { updateGrafanaTime, resetGrafanaTime } from './grafana.js';
+import { updateGrafanaTime, updateGrafanaLocation, resetGrafanaFilters, clearGrafanaLocation } from './grafana.js';
 
 // Initialize the Leaflet map, live accident overlay, and polling logic.
 // Exposes a small API on window.MapAPI for future adapters (MQTT, SSE).
@@ -165,6 +165,7 @@ export function initMap() {
   // Filter State
   let filterStart = null;
   let filterEnd = null;
+  let filterBounds = null; // { latMin, latMax, lngMin, lngMax }
 
   function setApiStatus(state, note) {
     if (!apiStatusEl) return;
@@ -188,6 +189,9 @@ export function initMap() {
     if (filterStart && filterEnd) {
       qs += `&start_time=${encodeURIComponent(filterStart)}&end_time=${encodeURIComponent(filterEnd)}`;
     }
+    if (filterBounds) {
+      qs += `&lat_min=${filterBounds.latMin}&lat_max=${filterBounds.latMax}&lng_min=${filterBounds.lngMin}&lng_max=${filterBounds.lngMax}`;
+    }
     return qs;
   }
 
@@ -197,11 +201,6 @@ export function initMap() {
       if (!res.ok) { setApiStatus('error', `HTTP ${res.status}`); return; }
       const items = await res.json();
       if (Array.isArray(items)) {
-        // If filtering, clear old items first to show only range
-        if (filterStart) {
-            accidentCluster.clearLayers();
-            accidentIndex.clear();
-        }
         for (const a of items) { upsertAccident(a); }
         const ts = new Date().toLocaleTimeString();
         setApiStatus('ok', `Last update ${ts}`);
@@ -278,10 +277,6 @@ export function initMap() {
       if (!res.ok) return;
       const items = await res.json();
       if (Array.isArray(items)) {
-        if (filterStart) {
-            violationCluster.clearLayers();
-            violationIndex.clear();
-        }
         for (const v of items) { upsertViolation(v); }
       }
     } catch (_) {
@@ -296,10 +291,7 @@ export function initMap() {
 
   function updateCountdown() {
     if (!nextRefreshEl) return;
-    if (filterStart) {
-        nextRefreshEl.textContent = "Paused (Filter)";
-        return;
-    }
+    // Always show countdown, even if filtering
     const remainingMs = Math.max(0, nextRefreshAt - Date.now());
     const s = Math.ceil(remainingMs / 1000);
     nextRefreshEl.textContent = `Next: ${s}s`;
@@ -334,67 +326,178 @@ export function initMap() {
       fetchRecentTraffic();
       fetchRecentParking();
       fetchRecentViolations();
-      if (!filterStart) startAutoRefresh(); // reset cadence and countdown only if not filtering
+      if (!filterStart && !filterBounds) startAutoRefresh(); // reset cadence and countdown only if not filtering
     });
   }
 
   // Filter UI Logic
-  const btnApplyFilter = document.getElementById('btnApplyFilter');
-  const btnClearFilter = document.getElementById('btnClearFilter');
-  const inputStart = document.getElementById('filterStart');
-  const inputEnd = document.getElementById('filterEnd');
+  const btnClearTime = document.getElementById('btnClearTime');
+  const filterLocationToggle = document.getElementById('filterLocationToggle');
+  const timeRangeSelect = document.getElementById('timeRangeSelect');
+  const customTimeContainer = document.getElementById('customTimeContainer');
+  const flatpickrRange = document.getElementById('flatpickrRange');
+  let fpInstance = null;
 
-  if (btnApplyFilter && btnClearFilter) {
-    btnApplyFilter.addEventListener('click', () => {
-        const s = inputStart.value;
-        const e = inputEnd.value;
-        if (s && e) {
-            filterStart = new Date(s).toISOString();
-            filterEnd = new Date(e).toISOString();
-            stopAutoRefresh();
-            
-            // Update Grafana
-            updateGrafanaTime(new Date(s).getTime(), new Date(e).getTime());
+  function refreshData() {
+      accidentCluster.clearLayers();
+      accidentIndex.clear();
+      violationCluster.clearLayers();
+      violationIndex.clear();
+      
+      fetchRecentAccidents();
+      fetchRecentTraffic();
+      fetchRecentParking();
+      fetchRecentViolations();
+  }
 
-            // Fetch filtered data
-            fetchRecentAccidents();
-            fetchRecentTraffic();
-            fetchRecentParking();
-            fetchRecentViolations();
-        } else {
-            alert("Please select both start and end times.");
-        }
+  function applyLocationFilterFromMap() {
+    if (!filterLocationToggle || !filterLocationToggle.checked) return;
+
+    const bounds = map.getBounds();
+    const latMin = parseFloat(bounds.getSouth().toFixed(5));
+    const latMax = parseFloat(bounds.getNorth().toFixed(5));
+    const lngMin = parseFloat(bounds.getWest().toFixed(5));
+    const lngMax = parseFloat(bounds.getEast().toFixed(5));
+
+    console.log('Syncing map bounds to filter:', { latMin, latMax, lngMin, lngMax });
+
+    // Only update if bounds actually changed significantly to avoid loops or tiny shifts
+    if (filterBounds && 
+        Math.abs(filterBounds.latMin - latMin) < 0.00001 &&
+        Math.abs(filterBounds.latMax - latMax) < 0.00001 &&
+        Math.abs(filterBounds.lngMin - lngMin) < 0.00001 &&
+        Math.abs(filterBounds.lngMax - lngMax) < 0.00001) {
+        return;
+    }
+
+    filterBounds = { latMin, latMax, lngMin, lngMax };
+    updateGrafanaLocation(latMin, latMax, lngMin, lngMax);
+    
+    refreshData();
+  }
+
+  map.on('moveend', () => {
+    if (filterLocationToggle && filterLocationToggle.checked) {
+      applyLocationFilterFromMap();
+    }
+  });
+
+  if (filterLocationToggle) {
+    filterLocationToggle.addEventListener('change', () => {
+      if (filterLocationToggle.checked) {
+        applyLocationFilterFromMap();
+      } else {
+        filterBounds = null;
+        clearGrafanaLocation();
+        refreshData();
+      }
     });
+  }
 
-    btnClearFilter.addEventListener('click', () => {
-        inputStart.value = '';
-        inputEnd.value = '';
+  // Initialize Flatpickr
+  if (flatpickrRange) {
+      // Wait for flatpickr to load if it's not ready yet (though script is in head)
+      if (typeof flatpickr !== 'undefined') {
+          fpInstance = flatpickr(flatpickrRange, {
+              mode: "range",
+              enableTime: true,
+              dateFormat: "Y-m-d H:i",
+              time_24hr: true,
+              onClose: function(selectedDates, dateStr, instance) {
+                  if (selectedDates.length === 2) {
+                      filterStart = selectedDates[0].toISOString();
+                      filterEnd = selectedDates[1].toISOString();
+                      updateGrafanaTime(selectedDates[0].getTime(), selectedDates[1].getTime());
+                      refreshData();
+                  }
+              }
+          });
+      } else {
+          console.error("Flatpickr library not loaded");
+      }
+  }
+
+  if (timeRangeSelect) {
+      timeRangeSelect.addEventListener('change', (e) => {
+          const val = e.target.value;
+          
+          if (val === 'custom') {
+              customTimeContainer.style.display = 'block';
+              // Open the calendar automatically for better UX
+              if (fpInstance) {
+                  setTimeout(() => fpInstance.open(), 50);
+              }
+          } else {
+              customTimeContainer.style.display = 'none';
+              if (val === '') {
+                  // Clear
+                  filterStart = null;
+                  filterEnd = null;
+                  // Clear Grafana
+                  const iframes = document.querySelectorAll('.grafana-embed');
+                  iframes.forEach(iframe => {
+                      const url = new URL(iframe.src);
+                      url.searchParams.delete('from');
+                      url.searchParams.delete('to');
+                      iframe.src = url.toString();
+                  });
+                  refreshData();
+                  return;
+              }
+
+              // Calculate range
+              const now = new Date();
+              let start = new Date();
+              
+              switch(val) {
+                  case '15m': start.setMinutes(now.getMinutes() - 15); break;
+                  case '1h': start.setHours(now.getHours() - 1); break;
+                  case '6h': start.setHours(now.getHours() - 6); break;
+                  case '24h': start.setHours(now.getHours() - 24); break;
+                  case '7d': start.setDate(now.getDate() - 7); break;
+              }
+
+              filterStart = start.toISOString();
+              filterEnd = now.toISOString();
+              
+              // Update Flatpickr to reflect this range (optional but nice)
+              if (fpInstance) {
+                  fpInstance.setDate([start, now]);
+              }
+
+              updateGrafanaTime(start.getTime(), now.getTime());
+              refreshData();
+          }
+      });
+  }
+
+  if (btnClearTime) {
+    btnClearTime.addEventListener('click', () => {
+        if (timeRangeSelect) timeRangeSelect.value = '';
+        if (fpInstance) fpInstance.clear();
+        customTimeContainer.style.display = 'none';
+        
         filterStart = null;
         filterEnd = null;
         
-        // Reset Grafana
-        resetGrafanaTime();
+        // Reset Grafana Time only
+        const iframes = document.querySelectorAll('.grafana-embed');
+        iframes.forEach(iframe => {
+            const url = new URL(iframe.src);
+            url.searchParams.delete('from');
+            url.searchParams.delete('to');
+            iframe.src = url.toString();
+        });
 
-        // Clear map and fetch live data
-        accidentCluster.clearLayers();
-        accidentIndex.clear();
-        violationCluster.clearLayers();
-        violationIndex.clear();
-        
-        fetchRecentAccidents();
-        fetchRecentTraffic();
-        fetchRecentParking();
-        fetchRecentViolations();
+        refreshData();
         startAutoRefresh();
     });
   }
 
-  // Prune old accidents periodically (only if not filtering)
+  // Prune old accidents periodically
   setInterval(() => { 
-      if (!filterStart) {
-        pruneOldItems(accidentIndex, accidentCluster, CONFIG.ACCIDENT_TTL_MS); 
-        pruneOldItems(violationIndex, violationCluster, CONFIG.VIOLATION_TTL_MS); 
-      }
+      pruneOldItems(accidentIndex, accidentCluster, CONFIG.ACCIDENT_TTL_MS); 
+      pruneOldItems(violationIndex, violationCluster, CONFIG.VIOLATION_TTL_MS); 
   }, CONFIG.PRUNE_MS);
 
   // Kick off

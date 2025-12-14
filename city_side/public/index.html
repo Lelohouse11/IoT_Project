@@ -28,6 +28,10 @@
   <link rel="stylesheet" href="/src/styles/components.css" />
   <link rel="stylesheet" href="/src/styles/map.css" />
   
+  <!-- Flatpickr (Date Range Picker) -->
+  <link rel="stylesheet" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
 </head>
 <body>
   <!-- Topbar & Profile Menu (injected by layout.js) -->
@@ -36,30 +40,44 @@
   <!-- Main Content -->
   <main class="wrap">
     <section class="cards">
-      <!-- Filter Card -->
-      <article class="card" id="filter-card" style="grid-column: 1 / -1;">
-        <h2>Time Filter</h2>
-        <div class="body" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-          <label>
-            Start:
-            <input type="datetime-local" id="filterStart" />
-          </label>
-          <label>
-            End:
-            <input type="datetime-local" id="filterEnd" />
-          </label>
-          <button class="btn" id="btnApplyFilter">Apply Filter</button>
-          <button class="btn" id="btnClearFilter">Clear</button>
-        </div>
-      </article>
-
       <!-- Map Card -->
       <article class="card" id="map-card" style="grid-column: 1 / -1;">
         <h2>Live Map</h2>
         <div class="body">
           <div id="map" aria-label="Interactive city map"></div>
         </div>
-        <div class="infobar" style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+        <div class="infobar" style="display:flex; gap: 1rem; align-items:center; flex-wrap:wrap; padding-top: 0.5rem;">
+          
+          <!-- Filters moved here -->
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <strong>Filters:</strong>
+            <select id="timeRangeSelect" class="filter-input" style="padding: 0.4rem; border-radius: 4px; border: 1px solid #444; background: #222; color: #eee;">
+              <option value="">Time Range...</option>
+              <option value="15m">Last 15 Minutes</option>
+              <option value="1h">Last 1 Hour</option>
+              <option value="6h">Last 6 Hours</option>
+              <option value="24h">Last 24 Hours</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="custom">Custom Range</option>
+            </select>
+            
+            <div id="customTimeContainer" style="display: none;">
+              <input type="text" id="flatpickrRange" class="filter-input" placeholder="Select Date Range" style="width: 220px; padding: 0.4rem; border-radius: 4px; border: 1px solid #444; background: #222; color: #eee;" />
+            </div>
+
+            <button class="btn" id="btnClearTime" title="Clear Time Filter">Clear</button>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem; border-left: 1px solid #444; padding-left: 1rem;">
+              <label class="toggle-switch" title="Sync with Map View">
+                <input type="checkbox" id="filterLocationToggle">
+                <span class="slider"></span>
+              </label>
+              <span style="font-size: 0.9rem;">Sync Map</span>
+          </div>
+
+          <div style="flex: 1;"></div> <!-- Spacer -->
+
           <button class="btn" id="locBtn">Center on Patras</button>
           <span class="pill" id="apiStatus" title="Backend connectivity">API: checking...</span>
           <span class="pill" id="nextRefresh" title="Next scheduled refresh">Next: --s</span>
