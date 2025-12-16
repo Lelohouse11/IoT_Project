@@ -1,12 +1,27 @@
 // App entry: wires up UI scaffolding and feature modules.
-// Order matters a bit: auth (profile state) is light, map bootstraps Leaflet + polling,
-// grafana handles iframe refresh, llm is demo.
 import { initMap }    from './map.js';
 import { initGrafana } from './grafana.js';
 import { initLLM }     from './llm.js';
 
-window.addEventListener('DOMContentLoaded', () => {
+console.log('app.js v5 loaded');
+
+// Expose initLLM globally for debugging
+window.debugInitLLM = initLLM;
+
+function startApp() {
+  console.log('Starting App...');
   initMap();
   initGrafana();
-  initLLM();
-});
+  
+  // Delay LLM init slightly to ensure DOM is fully settled
+  setTimeout(() => {
+      console.log('Calling initLLM from app.js...');
+      initLLM();
+  }, 500);
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', startApp);
+} else {
+  startApp();
+}

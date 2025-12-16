@@ -35,8 +35,8 @@ class TrafficSimConfig:
     center_lat: float = 38.2464
     center_lng: float = 21.7346
     max_offset_deg: float = 0.02
-    interval_sec: float = 5.0
-    segments: int = 6
+    interval_sec: float = 2.0
+    segments: int = 20
     base_intensity_range: Tuple[int, int] = (300, 1100)  # vehicles/hour
     base_speed_range: Tuple[float, float] = (28.0, 55.0)  # km/h
     speed_jitter: float = 6.0

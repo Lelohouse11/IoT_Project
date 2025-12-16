@@ -18,7 +18,7 @@ FIWARE_SERVICE_PATH = os.getenv("FIWARE_SERVICE_PATH", "/week4_up1125093")
 SUBSCRIPTION_CALLBACK_URL = os.getenv("SUBSCRIPTION_CALLBACK_URL", "http://localhost:8080/orion")
 
 # LLM Settings
-LLM_MODEL = os.getenv("MODEL", "deepseek-r1:8b")
+LLM_MODEL = os.getenv("MODEL", "llama3.1:8b-instruct-q4_K_M")
 LLM_UPSTREAM_URL = os.getenv("LLM_UPSTREAM_URL", "http://labserver.sense-campus.gr:7080/chat")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "studentpassword")
 LLM_BIND_HOST = os.getenv("LLM_BIND_HOST", "0.0.0.0")
