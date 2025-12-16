@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
+import { fetchRecentTraffic } from '../api/traffic'
 
 const cityCenter = [38.2464, 21.7346]
 const beach = [38.2588, 21.7347]
@@ -12,6 +13,22 @@ function MapView({ active }) {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
   const routeRef = useRef(null)
+  const trafficLayerRef = useRef(null)
+
+  const trafficColor = (props = {}) => {
+    if (props.congested) return '#dc2626'
+    const congestion = (props.congestion || '').toString().toLowerCase()
+    if (congestion === 'high') return '#f97316'
+    if (congestion === 'medium') return '#f59e0b'
+    if (congestion === 'low') return '#22c55e'
+    const speed = Number(props.avg_speed)
+    if (Number.isFinite(speed)) {
+      if (speed < 15) return '#dc2626'
+      if (speed < 25) return '#f97316'
+      if (speed < 40) return '#fbbf24'
+    }
+    return '#10b981'
+  }
 
   // configure Leaflet default marker assets once
   useEffect(() => {
@@ -33,8 +50,76 @@ function MapView({ active }) {
     setTimeout(() => map.invalidateSize(), 0)
 
     mapRef.current = map
+    let cancelled = false
+    let trafficIntervalId
+
+    const renderTraffic = async () => {
+      try {
+        const traffic = await fetchRecentTraffic()
+        if (cancelled) return
+
+        const features = traffic.map((item) => ({
+          type: 'Feature',
+          geometry: item.geometry,
+          properties: {
+            id: item.id,
+            congestion: item.congestion,
+            congested: item.congested,
+            avg_speed: item.avg_speed,
+            intensity: item.intensity,
+          },
+        }))
+
+        if (trafficLayerRef.current) {
+          map.removeLayer(trafficLayerRef.current)
+          trafficLayerRef.current = null
+        }
+
+        if (!features.length) return
+
+        const layer = L.geoJSON(
+          { type: 'FeatureCollection', features },
+          {
+            style: (feature) => ({
+              color: trafficColor(feature.properties),
+              weight: 6,
+              opacity: 0.9,
+            }),
+            pointToLayer: (feature, latlng) => {
+              const color = trafficColor(feature.properties)
+              return L.circleMarker(latlng, {
+                radius: 6,
+                color,
+                weight: 2,
+                fillColor: color,
+                fillOpacity: 0.8,
+              })
+            },
+            onEachFeature: (feature, layer) => {
+              const props = feature.properties || {}
+              const speed = Number.isFinite(props.avg_speed) ? `${props.avg_speed.toFixed(1)} km/h` : 'n/a'
+              const intensity = props.intensity ?? 'n/a'
+              const congestion = props.congestion || (props.congested ? 'congested' : 'normal')
+              layer.bindPopup(`<strong>Traffic</strong><br/>Speed: ${speed}<br/>Intensity: ${intensity}<br/>Congestion: ${congestion}`)
+            },
+          },
+        ).addTo(map)
+        trafficLayerRef.current = layer
+      } catch (err) {
+        if (!cancelled) console.error('Failed to load traffic data', err)
+      }
+    }
+
+    renderTraffic()
+    trafficIntervalId = window.setInterval(renderTraffic, 60000)
 
     return () => {
+      cancelled = true
+      if (trafficIntervalId) clearInterval(trafficIntervalId)
+      if (trafficLayerRef.current) {
+        map.removeLayer(trafficLayerRef.current)
+        trafficLayerRef.current = null
+      }
       map.remove()
       mapRef.current = null
       routeRef.current = null
