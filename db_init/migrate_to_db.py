@@ -9,7 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from api import database
-from data_faker import geo_helpers, parking_zones_init
+from data_faker import geo_helpers, parking_zones_init, traffic_segments_init
 
 def wait_for_db(timeout=30, interval=2):
     """Wait for the database to become available."""
@@ -70,6 +70,48 @@ def init_rich_parking():
         print("Rich parking zones initialized.")
     except Exception as e:
         print(f"Error initializing parking zones: {e}")
+
+def ensure_traffic_table():
+    """Ensure the traffic_entities table exists."""
+    query = """
+    CREATE TABLE IF NOT EXISTS traffic_entities (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        entity_id VARCHAR(100) NOT NULL UNIQUE,
+        name VARCHAR(255),
+        lat DOUBLE,
+        lng DOUBLE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    """
+    try:
+        database.execute_query(query)
+        print("Ensured traffic_entities table exists.")
+    except Exception as e:
+        print(f"Error creating traffic_entities table: {e}")
+
+def init_traffic_segments():
+    """Initialize traffic segments if table is empty."""
+    try:
+        ensure_traffic_table()
+        
+        # Check if table exists first
+        try:
+            count = database.fetch_all("SELECT COUNT(*) as c FROM traffic_entities")[0]["c"]
+        except Exception:
+            # Table might not exist or other error
+            print("Traffic entities table not found or error checking count. Skipping init.")
+            return
+
+        if count > 0:
+            print(f"Traffic entities already populated ({count} rows). Skipping initialization.")
+            return
+
+        print("Initializing traffic segments...")
+        segments = traffic_segments_init._default_segments()
+        traffic_segments_init.seed_traffic_segments(segments)
+        print("Traffic segments initialized.")
+    except Exception as e:
+        print(f"Error initializing traffic segments: {e}")
 
 def migrate_roads():
     geojson_path = PROJECT_ROOT / "seed_data" / "patras_roads.geojson"
@@ -142,6 +184,7 @@ if __name__ == "__main__":
     if wait_for_db():
         migrate_roads()
         init_rich_parking()
+        init_traffic_segments()
         # migrate_parking() # Legacy fallback
         print("Database setup complete.")
     else:

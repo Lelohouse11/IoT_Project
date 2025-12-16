@@ -15,6 +15,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from data_faker.orion_helpers import OrionClient
+from api import database
 
 FIWARE_TYPE = "TrafficFlowObserved"
 ORION_BASE_URL = "http://150.140.186.118:1026"
@@ -30,13 +31,8 @@ ORION = OrionClient(
 
 @dataclass
 class TrafficSimConfig:
-    """Simulation knobs for street coverage and dynamics."""
-
-    center_lat: float = 38.2464
-    center_lng: float = 21.7346
-    max_offset_deg: float = 0.02
+    """Simulation knobs for dynamics."""
     interval_sec: float = 2.0
-    segments: int = 20
     base_intensity_range: Tuple[int, int] = (300, 1100)  # vehicles/hour
     base_speed_range: Tuple[float, float] = (28.0, 55.0)  # km/h
     speed_jitter: float = 6.0
@@ -49,30 +45,35 @@ class TrafficSimConfig:
 @dataclass
 class SegmentState:
     """Track current state for a monitored street segment."""
-
-    ref_id: str
-    lat: float
-    lng: float
+    entity_id: str
     base_intensity: float
     base_speed: float
     current_intensity: float
     current_speed: float
 
 
-def _seed_segments(cfg: TrafficSimConfig) -> List[SegmentState]:
-    """Create a set of random street segments around the configured center."""
+def _load_entity_ids() -> List[str]:
+    """Read stored entity ids from the MySQL database."""
+    try:
+        rows = database.fetch_all("SELECT entity_id FROM traffic_entities")
+        ids = [row["entity_id"] for row in rows]
+        if not ids:
+            print("[warn] no traffic entities found in database")
+        return ids
+    except Exception as exc:
+        print(f"[warn] failed to read entities from db: {exc}")
+        return []
+
+
+def _init_segments(entity_ids: List[str], cfg: TrafficSimConfig) -> List[SegmentState]:
+    """Initialize simulation state for existing entities."""
     segments: List[SegmentState] = []
-    for idx in range(cfg.segments):
-        lat = cfg.center_lat + random.uniform(-cfg.max_offset_deg, cfg.max_offset_deg)
-        lng = cfg.center_lng + random.uniform(-cfg.max_offset_deg, cfg.max_offset_deg)
+    for eid in entity_ids:
         base_intensity = random.uniform(*cfg.base_intensity_range)
         base_speed = random.uniform(*cfg.base_speed_range)
-        ref_id = f"SEG{idx + 1:03d}"
         segments.append(
             SegmentState(
-                ref_id=ref_id,
-                lat=lat,
-                lng=lng,
+                entity_id=eid,
                 base_intensity=base_intensity,
                 base_speed=base_speed,
                 current_intensity=base_intensity,
@@ -94,16 +95,11 @@ def _traffic_payload(seg: SegmentState, cfg: TrafficSimConfig, now_iso: str) -> 
         level = "freeFlow"
     congested = level != "freeFlow"
 
+    # We only send the dynamic attributes + id/type
     return {
-        "id": f"urn:ngsi-ld:{FIWARE_TYPE}:{seg.ref_id}",
+        "id": seg.entity_id,
         "type": FIWARE_TYPE,
-        "owner": {"type": "Text", "value": FIWARE_OWNER},
-        "refRoadSegment": {"type": "Text", "value": seg.ref_id},
         "dateObserved": {"type": "DateTime", "value": now_iso},
-        "location": {
-            "type": "geo:json",
-            "value": {"type": "Point", "coordinates": [round(seg.lng, 6), round(seg.lat, 6)]},
-        },
         "intensity": {"type": "Number", "value": int(round(seg.current_intensity))},
         "averageVehicleSpeed": {"type": "Number", "value": round(seg.current_speed, 1)},
         "density": {"type": "Number", "value": round(density, 2)},
@@ -130,43 +126,46 @@ def _tick_segment(seg: SegmentState, cfg: TrafficSimConfig) -> None:
 
 
 def simulate_traffic(cfg: TrafficSimConfig) -> None:
-    """Continuously emit traffic observations for several street segments."""
-    segments = _seed_segments(cfg)
-    first_publish = True
+    """Continuously emit traffic observations for existing street segments."""
+    entity_ids = _load_entity_ids()
+    while not entity_ids:
+        print("[warn] No traffic entities found; will retry after sleep")
+        time.sleep(cfg.interval_sec)
+        entity_ids = _load_entity_ids()
+
+    segments = _init_segments(entity_ids, cfg)
+    print(f"[info] Starting simulation for {len(segments)} segments...")
 
     with requests.Session() as session:
         while True:
             now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
-            action = "create" if first_publish else "update"
             sent = 0
+            total_speed = 0.0
+            total_intensity = 0.0
 
             for seg in segments:
                 _tick_segment(seg, cfg)
                 entity = _traffic_payload(seg, cfg, now_iso)
-                if ORION.send_entity(session, entity, action):
+                # Use 'update' action to patch existing entities
+                if ORION.send_entity(session, entity, "update"):
                     sent += 1
+                    total_speed += seg.current_speed
+                    total_intensity += seg.current_intensity
 
-            first_publish = False
-            print(f"[traffic] sent {sent} {action} requests at {now_iso}")
+            avg_speed = (total_speed / sent) if sent else 0.0
+            avg_intensity = (total_intensity / sent) if sent else 0.0
+            print(f"[traffic] updated {sent} segments, avg speed={avg_speed:.1f} km/h, avg intensity={avg_intensity:.0f} at {now_iso}")
             time.sleep(cfg.interval_sec)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="TrafficFlowObserved data faker (Orion Context Broker)")
     parser.add_argument("--interval", type=float, default=TrafficSimConfig.interval_sec, help="Interval between updates (seconds)")
-    parser.add_argument("--segments", type=int, default=TrafficSimConfig.segments, help="Number of street segments to simulate")
     parser.add_argument("--congestion", type=float, default=TrafficSimConfig.congestion_chance, help="Probability of congestion per segment per tick (0-1)")
-    parser.add_argument("--center-lat", type=float, default=TrafficSimConfig.center_lat, help="Center latitude for generated segments")
-    parser.add_argument("--center-lng", type=float, default=TrafficSimConfig.center_lng, help="Center longitude for generated segments")
-    parser.add_argument("--offset", type=float, default=TrafficSimConfig.max_offset_deg, help="Max random offset in degrees from the center")
     args = parser.parse_args()
 
     cfg = TrafficSimConfig(
-        center_lat=args.center_lat,
-        center_lng=args.center_lng,
-        max_offset_deg=args.offset,
         interval_sec=args.interval,
-        segments=args.segments,
         congestion_chance=args.congestion,
     )
     simulate_traffic(cfg)

@@ -11,6 +11,7 @@ Each feature should include properties: id, name, totalSpotNumber, occupiedSpotN
 
 import argparse
 import json
+import random
 import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -93,289 +94,43 @@ def _build_entity(zone: ParkingZone, now_iso: str) -> Dict[str, Dict[str, Any]]:
 
 
 def _default_zones() -> List[ParkingZone]:
-    """Return a handful of sample on-street segments around Patras."""
-    return [
-        ParkingZone(
-            pid="P-001",
-            name="Parking Center",
-            street_name="Maizonos",
-            highway_type="tertiary",
-            category=("public", "free"),
-            allowed_vehicle_types=("car",),
-            total_spots=60,
-            occupied_spots=30,
-            coords=[
-                (38.2448, 21.7310),
-                (38.2454, 21.7330),
-            ],
-        ),
-        ParkingZone(
-            pid="P-002",
-            name="Harbor Lot",
-            street_name="Akti Dymaion",
-            highway_type="primary",
-            category=("public", "feeCharged"),
-            allowed_vehicle_types=("car", "motorcycle"),
-            total_spots=90,
-            occupied_spots=50,
-            coords=[
-                (38.2475, 21.7410),
-                (38.2488, 21.7440),
-            ],
-        ),
-        ParkingZone(
-            pid="P-003",
-            name="University Street",
-            street_name="Kostas",
-            highway_type="secondary",
-            category=("public",),
-            allowed_vehicle_types=("car", "motorcycle"),
-            total_spots=45,
-            occupied_spots=18,
-            coords=[
-                (38.2498, 21.7285),
-                (38.2512, 21.7310),
-            ],
-        ),
-        ParkingZone(
-            pid="P-004",
-            name="Old Town Stretch",
-            street_name="Agiou Nikolaou",
-            highway_type="tertiary",
-            category=("public", "free"),
-            allowed_vehicle_types=("car",),
-            total_spots=35,
-            occupied_spots=12,
-            coords=[
-                (38.2459, 21.7355),
-                (38.2468, 21.7378),
-            ],
-        ),
-        ParkingZone(
-            pid="P-005",
-            name="Hospital Side",
-            street_name="Panepistimiou",
-            highway_type="secondary",
-            category=("public", "forDisabled"),
-            allowed_vehicle_types=("car", "motorcycle"),
-            total_spots=55,
-            occupied_spots=25,
-            coords=[
-                (38.2625, 21.7450),
-                (38.2640, 21.7475),
-            ],
-        ),
-        ParkingZone(
-            pid="P-006",
-            name="Coastal Strip",
-            street_name="Akti Dymaion",
-            highway_type="primary",
-            category=("public", "feeCharged"),
-            allowed_vehicle_types=("car", "motorcycle"),
-            total_spots=80,
-            occupied_spots=52,
-            coords=[
-                (38.2422, 21.7365),
-                (38.2436, 21.7390),
-            ],
-        ),
-        ParkingZone(
-            pid="P-007",
-            name="North Pier",
-            street_name="Gounari",
-            highway_type="secondary",
-            category=("public",),
-            allowed_vehicle_types=("car",),
-            total_spots=50,
-            occupied_spots=28,
-            coords=[
-                (38.2490, 21.7405),
-                (38.2502, 21.7428),
-            ],
-        ),
-        ParkingZone(
-            pid="P-008",
-            name="South Dock",
-            street_name="Othonos Amalias",
-            highway_type="primary",
-            category=("public", "feeCharged"),
-            allowed_vehicle_types=("car",),
-            total_spots=70,
-            occupied_spots=46,
-            coords=[
-                (38.2385, 21.7325),
-                (38.2399, 21.7351),
-            ],
-        ),
-        ParkingZone(
-            pid="P-009",
-            name="Market Lane",
-            street_name="Ermou",
-            highway_type="tertiary",
-            category=("public",),
-            allowed_vehicle_types=("car", "motorcycle"),
-            total_spots=40,
-            occupied_spots=20,
-            coords=[
-                (38.2474, 21.7360),
-                (38.2485, 21.7380),
-            ],
-        ),
-        ParkingZone(
-            pid="P-010",
-            name="Station Front",
-            street_name="Kalogeras",
-            highway_type="tertiary",
-            category=("public", "shortTerm"),
-            allowed_vehicle_types=("car",),
-            total_spots=30,
-            occupied_spots=18,
-            coords=[
-                (38.2582, 21.7348),
-                (38.2593, 21.7365),
-            ],
-        ),
-        ParkingZone(
-            pid="P-011",
-            name="River Bend",
-            street_name="Trion Navarchon",
-            highway_type="secondary",
-            category=("public",),
-            allowed_vehicle_types=("car", "motorcycle"),
-            total_spots=65,
-            occupied_spots=34,
-            coords=[
-                (38.2460, 21.7288),
-                (38.2475, 21.7314),
-            ],
-        ),
-        ParkingZone(
-            pid="P-012",
-            name="Park Edge",
-            street_name="Korinthou",
-            highway_type="secondary",
-            category=("public", "free"),
-            allowed_vehicle_types=("car",),
-            total_spots=55,
-            occupied_spots=22,
-            coords=[
-                (38.2445, 21.7245),
-                (38.2457, 21.7270),
-            ],
-        ),
-        ParkingZone(
-            pid="P-013",
-            name="Museum Side",
-            street_name="Maizonos",
-            highway_type="secondary",
-            category=("public",),
-            allowed_vehicle_types=("car", "motorcycle"),
-            total_spots=48,
-            occupied_spots=30,
-            coords=[
-                (38.2433, 21.7308),
-                (38.2446, 21.7330),
-            ],
-        ),
-        ParkingZone(
-            pid="P-014",
-            name="Harbor West",
-            street_name="Akti Dymaion",
-            highway_type="primary",
-            category=("public", "feeCharged"),
-            allowed_vehicle_types=("car",),
-            total_spots=85,
-            occupied_spots=60,
-            coords=[
-                (38.2405, 21.7290),
-                (38.2420, 21.7318),
-            ],
-        ),
-        ParkingZone(
-            pid="P-015",
-            name="Library Front",
-            street_name="Kanakari",
-            highway_type="tertiary",
-            category=("public", "shortTerm"),
-            allowed_vehicle_types=("car",),
-            total_spots=28,
-            occupied_spots=12,
-            coords=[
-                (38.2488, 21.7275),
-                (38.2496, 21.7295),
-            ],
-        ),
-        ParkingZone(
-            pid="P-016",
-            name="University Link",
-            street_name="Ateas",
-            highway_type="secondary",
-            category=("public",),
-            allowed_vehicle_types=("car", "motorcycle"),
-            total_spots=60,
-            occupied_spots=38,
-            coords=[
-                (38.2620, 21.7380),
-                (38.2634, 21.7405),
-            ],
-        ),
-        ParkingZone(
-            pid="P-017",
-            name="Industrial Row",
-            street_name="Asklipiou",
-            highway_type="secondary",
-            category=("public", "forLoadUnload"),
-            allowed_vehicle_types=("car", "van"),
-            total_spots=50,
-            occupied_spots=26,
-            coords=[
-                (38.2550, 21.7470),
-                (38.2562, 21.7495),
-            ],
-        ),
-        ParkingZone(
-            pid="P-018",
-            name="Bus Terminal Side",
-            street_name="Aratou",
-            highway_type="tertiary",
-            category=("public",),
-            allowed_vehicle_types=("car", "motorcycle"),
-            total_spots=42,
-            occupied_spots=24,
-            coords=[
-                (38.2528, 21.7322),
-                (38.2539, 21.7346),
-            ],
-        ),
-        ParkingZone(
-            pid="P-019",
-            name="Residential Stretch",
-            street_name="Agias Sofias",
-            highway_type="residential",
-            category=("public", "free"),
-            allowed_vehicle_types=("car",),
-            total_spots=38,
-            occupied_spots=14,
-            coords=[
-                (38.2415, 21.7265),
-                (38.2429, 21.7288),
-            ],
-        ),
-        ParkingZone(
-            pid="P-020",
-            name="Upper Hill",
-            street_name="Gerokostopoulou",
-            highway_type="residential",
-            category=("public",),
-            allowed_vehicle_types=("car", "motorcycle"),
-            total_spots=33,
-            occupied_spots=10,
-            coords=[
-                (38.2570, 21.7278),
-                (38.2581, 21.7301),
-            ],
-        ),
-    ]
+    """Return a generated set of 100 sample on-street segments around Patras."""
+    zones = []
+    center_lat = 38.2464
+    center_lng = 21.7346
+    max_offset = 0.02
+
+    street_names = ["Maizonos", "Korinthou", "Agiou Andreou", "Gounari", "Agiou Nikolaou", "Ermou", "Patreos", "Votsi", "Kanari", "Miaouli"]
+    categories = [("public", "free"), ("public", "feeCharged"), ("public", "shortTerm"), ("public", "forDisabled")]
+    
+    for i in range(100):
+        pid = f"P-{i+1:03d}"
+        
+        # Random start point
+        lat1 = center_lat + random.uniform(-max_offset, max_offset)
+        lng1 = center_lng + random.uniform(-max_offset, max_offset)
+        
+        # Random end point (short segment)
+        lat2 = lat1 + random.uniform(-0.001, 0.001)
+        lng2 = lng1 + random.uniform(-0.001, 0.001)
+        
+        total_spots = random.randint(10, 100)
+        occupied_spots = random.randint(0, total_spots)
+        
+        zones.append(
+            ParkingZone(
+                pid=pid,
+                name=f"Parking Zone {pid}",
+                street_name=random.choice(street_names),
+                highway_type="residential",
+                category=random.choice(categories),
+                allowed_vehicle_types=("car",),
+                total_spots=total_spots,
+                occupied_spots=occupied_spots,
+                coords=[(lat1, lng1), (lat2, lng2)],
+            )
+        )
+    return zones
 
 
 def _parse_feature(feature: Dict[str, Any]) -> Optional[ParkingZone]:
