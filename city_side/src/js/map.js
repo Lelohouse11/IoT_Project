@@ -7,6 +7,7 @@ import { updateGrafanaTime, updateGrafanaLocation, resetGrafanaFilters, clearGra
 export function initMap() {
   // Base map (OSM)
   const map = L.map('map', { zoomControl: true, scrollWheelZoom: true }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);
+  window.map = map; // Expose for LLM
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
@@ -166,6 +167,7 @@ export function initMap() {
   let filterStart = null;
   let filterEnd = null;
   let filterBounds = null; // { latMin, latMax, lngMin, lngMax }
+  window.getMapFilters = () => ({ start: filterStart, end: filterEnd }); // Expose for LLM
 
   function setApiStatus(state, note) {
     if (!apiStatusEl) return;

@@ -30,3 +30,13 @@ CREATE TABLE IF NOT EXISTS road_segments (
     lng2 DOUBLE NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Traffic entities to simulate
+CREATE TABLE IF NOT EXISTS traffic_entities (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    entity_id VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(255),
+    lat DOUBLE,
+    lng DOUBLE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

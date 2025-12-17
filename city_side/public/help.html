@@ -7,30 +7,87 @@
   <title>Help - Smart City Admin</title>
   <link rel="stylesheet" href="/src/styles/base.css" />
   <link rel="stylesheet" href="/src/styles/components.css" />
+  <style>
+    .help-section {
+      margin-bottom: 1.5rem;
+    }
+    .help-section h3 {
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+    }
+    .help-list {
+      color: var(--text);
+      padding-left: 1.2rem;
+      line-height: 1.6;
+    }
+    .help-list li {
+      margin-bottom: 0.5rem;
+    }
+    .help-list strong {
+      color: #fff;
+    }
+    .kbd {
+      background: #333;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.9em;
+      border: 1px solid #444;
+    }
+  </style>
 </head>
 <body>
   <div id="layout-header"></div>
 
   <main class="wrap">
     <section class="cards">
-      <article class="card">
-        <h2>Help</h2>
+      <article class="card" style="grid-column: 1 / -1;">
+        <h2>Dashboard Help Guide</h2>
         <div class="body">
-          <p style="color: var(--muted); margin-top: 0;">
-            Quick guide to the Smart City dashboard.
+          <p style="color: var(--muted); margin-top: 0; margin-bottom: 1.5rem;">
+            Welcome to the Smart City Admin Dashboard. Here is an overview of the latest features and how to use them.
           </p>
-          <ul style="color: var(--text); padding-left: 1.1rem; line-height: 1.5;">
-            <li><strong>Login</strong>: Start at the login page, use the prefilled credentials, and press Login to enter.</li>
-            <li><strong>Navigation</strong>: Use the top bar links (Dashboard, Settings, Help) to move around.</li>
-            <li><strong>Profile menu</strong>: Click the avatar in the top right to view status or sign out (returns to login).</li>
-            <li><strong>Live Map</strong>: View incidents and recenter with “Center on Patras”; refresh with “Refresh now”.</li>
-            <li><strong>Analytics</strong>: The Grafana panel shows traffic metrics; use “Refresh” to reload the iframe.</li>
-            <li><strong>AI Assistant</strong>: Type a prompt in the AI card and press “Send” for LLM responses.</li>
-          </ul>
-          <p style="color: var(--muted); margin-bottom: 0;">
-            Still need help? Watch the quick walkthrough
+
+          <div class="help-section">
+            <h3>🗺️ Live Map & Filters</h3>
+            <ul class="help-list">
+              <li><strong>Time Range Filters</strong>: Use the dropdown to filter accidents and events by time (e.g., Last 15m, 1h, 24h). Select "Custom Range" to pick specific dates.</li>
+              <li><strong>Sync Map</strong>: Toggle this switch to ensure the map view updates automatically when you change filters.</li>
+              <li><strong>Navigation</strong>: Click <span class="kbd">Center on Patras</span> to reset the view. Use <span class="kbd">Refresh now</span> to manually fetch the latest data.</li>
+              <li><strong>Clusters</strong>: Accidents are grouped into clusters. Click a cluster to zoom in and see individual incidents.</li>
+            </ul>
+          </div>
+
+          <div class="help-section">
+            <h3>🤖 AI City Analyst</h3>
+            <ul class="help-list">
+              <li><strong>Context-Aware Analysis</strong>: The AI Analyst generates reports based on your <em>current map view</em> and <em>selected time range</em>.</li>
+              <li><strong>How to Use</strong>: Pan/zoom the map to an area of interest, set a time filter, and click <span class="kbd">Analyze Visible Area</span>.</li>
+              <li><strong>Insights</strong>: The AI will identify patterns, high-risk zones, and suggest improvements based on the visible data.</li>
+            </ul>
+          </div>
+
+          <div class="help-section">
+            <h3>📊 Analytics & Grafana</h3>
+            <ul class="help-list">
+              <li><strong>Traffic Metrics</strong>: View real-time traffic flow and density charts.</li>
+              <li><strong>Parking & Violations</strong>: Monitor parking availability and traffic violation statistics in dedicated panels.</li>
+              <li><strong>Interaction</strong>: These panels are powered by Grafana. You can hover over charts for details, though full control is restricted to the dashboard view.</li>
+            </ul>
+          </div>
+
+          <div class="help-section">
+            <h3>👤 Account & Navigation</h3>
+            <ul class="help-list">
+              <li><strong>Profile</strong>: Click your avatar in the top-right to view your status or <strong>Sign Out</strong>.</li>
+            </ul>
+          </div>
+
+          <p style="color: var(--muted); margin-top: 2rem; border-top: 1px solid #333; padding-top: 1rem;">
+            Need technical support? Contact the system administrator or check the 
             <a href="https://youtu.be/dQw4w9WgXcQ?si=tAsHB7sAzIlb1WQ6" target="_blank" rel="noopener noreferrer" style="color: var(--accent);">
-              here
+              video walkthrough
             </a>.
           </p>
         </div>

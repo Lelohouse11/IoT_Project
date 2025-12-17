@@ -9,7 +9,6 @@ export function initLayout() {
     </div>
     <nav class="topnav" aria-label="Utility links">
       <a href="/public/index.html" id="nav-dashboard">Dashboard</a>
-      <a href="/public/settings.html" id="nav-settings">Settings</a>
       <a href="/public/help.html" id="nav-help">Help</a>
     </nav>
     <div class="spacer"></div>
@@ -46,7 +45,6 @@ export function initLayout() {
     // Highlight active link
     const path = window.location.pathname;
     if (path.includes('index.html')) document.getElementById('nav-dashboard')?.setAttribute('aria-current', 'page');
-    if (path.includes('settings.html')) document.getElementById('nav-settings')?.setAttribute('aria-current', 'page');
     if (path.includes('help.html')) document.getElementById('nav-help')?.setAttribute('aria-current', 'page');
 
     // Initialize auth now that elements exist

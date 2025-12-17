@@ -127,26 +127,22 @@
 
       <!-- LLM Card -->
       <article class="card" id="llm-card" style="grid-column: 1 / -1;">
-        <h2>AI Assistant (LLM)</h2>
+        <h2>AI City Analyst</h2>
         <div class="body">
           <div style="display:flex; gap:.5rem; margin-bottom:.5rem; align-items:center;">
-            <input
-              id="llmPrompt"
-              type="text"
-              placeholder="Ask the city assistant (e.g., summarize parking occupancy)"
-              class="llm-input"
-              aria-label="LLM prompt"
-            />
-            <button class="btn" id="llmSend" aria-label="Send prompt">Send</button>
+            <p style="flex: 1; color: var(--muted); margin: 0;">
+              Generate an AI report based on the current map view and selected time range.
+            </p>
+            <button class="btn" id="llmAnalyzeBtn" aria-label="Analyze Visible Area">Analyze Visible Area</button>
           </div>
           <div
             id="llmOutput"
             style="min-height:160px;border:1px dashed rgba(79,209,197,.35);border-radius:10px;padding:1rem;color:var(--muted);white-space:pre-wrap"
             aria-live="polite"
-          ></div>
+          >Select a time range and map area, then click Analyze.</div>
         </div>
         <div class="infobar">
-          <span class="pill">LLM Ready</span>
+          <span class="pill" id="llmStatus">Ready</span>
         </div>
       </article>
     </section>
@@ -176,6 +172,96 @@
     import { initLayout } from '/src/js/layout.js';
     initLayout();
   </script>
-  <script type="module" src="/src/js/app.js"></script>
+  <script type="module" src="/src/js/app.js?v=7"></script>
+
+  <!-- STANDALONE LLM SCRIPT (Bypasses Module Loading Issues) -->
+  <script>
+    (function() {
+        console.log("Standalone LLM Script: Initializing...");
+        
+        const btn = document.getElementById('llmAnalyzeBtn');
+        const output = document.getElementById('llmOutput');
+        const statusPill = document.getElementById('llmStatus');
+        const LLM_BACKEND = window.LLM_BACKEND_BASE || 'http://localhost:9090';
+
+        // Activate Analyze Button
+        if (btn) {
+            btn.onclick = async function() {
+                console.log("Analyze Button Clicked (Standalone)");
+                
+                if (btn.disabled) return;
+
+                // Check if map is ready
+                if (!window.map) {
+                    alert("Map is not fully loaded yet. Please wait a moment.");
+                    return;
+                }
+
+                // UI Loading State
+                btn.disabled = true;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<span class="spinner"></span> Analyzing...';
+                if (statusPill) {
+                    statusPill.textContent = 'Processing';
+                    statusPill.className = 'pill warn';
+                }
+                if (output) {
+                    output.innerHTML = '<div style="color:#888; text-align:center; padding: 20px;">Gathering data from visible area...</div>';
+                }
+
+                try {
+                    // Gather Data
+                    const bounds = window.map.getBounds();
+                    // Try to get filters from window if available, else default
+                    const filters = window.getMapFilters ? window.getMapFilters() : {};
+                    
+                    const payload = {
+                        startTime: filters.start || '-1h',
+                        endTime: filters.end || 'now()',
+                        bounds: {
+                            north: bounds.getNorth(),
+                            south: bounds.getSouth(),
+                            east: bounds.getEast(),
+                            west: bounds.getWest()
+                        }
+                    };
+
+                    console.log('Sending payload:', payload);
+
+                    const res = await fetch(`${LLM_BACKEND}/api/llm/analyze`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const text = await res.text();
+                    let data = {};
+                    try { data = JSON.parse(text); } catch(e) {}
+
+                    if (!res.ok) {
+                        throw new Error(data.error || data.message || `HTTP ${res.status}`);
+                    }
+
+                    const report = data.output || data.text || text;
+                    if (output) output.innerHTML = report.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+
+                } catch (err) {
+                    console.error('LLM Error:', err);
+                    if (output) output.innerHTML = `<div style="color:#e74c3c; padding: 10px; border: 1px solid #e74c3c; border-radius: 4px;"><strong>Error:</strong> ${err.message}</div>`;
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    if (statusPill) {
+                        statusPill.textContent = 'Ready';
+                        statusPill.className = 'pill';
+                    }
+                }
+            };
+            console.log("Standalone LLM Script: Analyze Button Activated");
+        } else {
+            console.error("Standalone LLM Script: Analyze Button NOT found in DOM");
+        }
+    })();
+  </script>
 </body>
 </html>
