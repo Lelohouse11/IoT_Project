@@ -12,6 +12,7 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
   - `traffic_faker.py`: Drives `TrafficFlowObserved` entities.
 - **Backend Services** (`api/`) – Python services bridging data and serving the frontend:
   - `map_data_api.py` (FastAPI): Serves geo-snapped data for the map.
+  - `auth_server.py` (FastAPI): Dedicated authentication server for login/register.
   - `orion_notification_server.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
   - `llm_server.py` (Flask): Proxy for the LLM chat assistant.
   - `orion_subscription_server.py`: Helper to manage Orion subscriptions.
@@ -31,7 +32,17 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 The project uses environment variables for configuration. 
 1. Copy `.env.example` to `.env` in the root directory.
 2. Update the values in `.env` with your specific credentials (InfluxDB token, API keys, etc.).
+   - Add `SECRET_KEY` for JWT signing (optional, defaults to a dev key).
 3. The `api/config.py` module loads these settings automatically.
+
+## Authentication
+The system implements a secure, standard-library based JWT authentication mechanism.
+
+- **Registration**: Users can register at `/register.html`. Registration is restricted to a whitelist of email addresses defined in `api/config.py`.
+- **Login**: Users log in at `/login.html` to receive an access token.
+- **Account Management**: Users can view their profile and permanently delete their account via the dashboard profile menu.
+- **Whitelist**: By default, allowed emails are `admin@smartcity.com`, `leander@smartcity.com`, and `test@test.com`.
+- **Security**: Passwords are hashed using PBKDF2 (SHA256). Tokens are signed using HMAC-SHA256.
 
 ## Running the Stack
 
@@ -71,6 +82,7 @@ Runs the entire system (Fakers, APIs, Frontends, Database) inside containers. No
 **Docker Service Ports**:
 - **City Dashboard**: [http://localhost:5000](http://localhost:5000)
 - **Driver App**: [http://localhost:5173](http://localhost:5173)
+- **Auth API**: [http://localhost:8002](http://localhost:8002)
 - **Map API**: [http://localhost:8000](http://localhost:8000)
 - **LLM API**: [http://localhost:9090](http://localhost:9090)
 - **phpMyAdmin**: [http://localhost:8081](http://localhost:8081)

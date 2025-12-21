@@ -4,16 +4,20 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link rel="icon" href="./iot_icon.ico" />
-  <title>Login - Smart City Admin</title>
+  <title>Register - Smart City Admin</title>
   <link rel="stylesheet" href="/src/styles/base.css" />
   <link rel="stylesheet" href="/src/styles/components.css" />
   <link rel="stylesheet" href="/src/styles/auth.css" />
 </head>
 <body class="auth-wrap">
-  <form class="auth-card" id="loginForm">
-    <h1>Welcome back</h1>
-    <p>Sign in to access the Smart City dashboard.</p>
+  <form class="auth-card" id="registerForm">
+    <h1>Create Account</h1>
+    <p>Register to access the Smart City dashboard.</p>
     <div class="form-stack">
+      <label>
+        Username
+        <input type="text" name="username" id="username" required />
+      </label>
       <label>
         Email
         <input type="email" name="email" id="email" required />
@@ -23,45 +27,47 @@
         <input type="password" name="password" id="password" required />
       </label>
       <div class="auth-actions">
-        <button type="submit" class="btn btn-primary">Login</button>
+        <button type="submit" class="btn btn-primary">Register</button>
       </div>
       <div style="text-align: center; margin-top: 1rem;">
-        <a href="register.html" style="color: #007bff; text-decoration: none;">Don't have an account? Register</a>
+        <a href="login.html" style="color: #007bff; text-decoration: none;">Already have an account? Login</a>
       </div>
       <div id="errorMessage" style="color: #dc3545; text-align: center; margin-top: 1rem; display: none;"></div>
     </div>
   </form>
 
-  <script type="module">
-    import { CONFIG } from '/src/js/config.js';
-    const SIGNED_IN_KEY = 'city_side_signed_in';
-    const TOKEN_KEY = 'access_token';
+  <!-- Success Modal -->
+  <div id="successModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-icon">✓</div>
+      <h2 style="margin-top:0; color:var(--text)">Success!</h2>
+      <p style="color:var(--muted)">Your account has been created successfully.</p>
+      <button id="goToLoginBtn" class="btn btn-primary" style="width:100%; margin-top:1rem">Go to Login</button>
+    </div>
+  </div>
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const username = document.getElementById('username').value;
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
       const errorMessage = document.getElementById('errorMessage');
 
       try {
-        const response = await fetch('http://localhost:8002/login', {
+        const response = await fetch('http://localhost:8002/register', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ username, email, password }),
         });
 
         if (response.ok) {
-            const data = await response.json();
-            localStorage.setItem(SIGNED_IN_KEY, 'true');
-            localStorage.setItem(TOKEN_KEY, data.access_token);
-            localStorage.setItem('user_name', data.username);
-            localStorage.setItem('user_email', data.email);
-            window.location.href = CONFIG.AUTH_DASHBOARD_URL;
+            document.getElementById('successModal').classList.add('show');
         } else {
             const data = await response.json();
-            errorMessage.textContent = data.detail || 'Login failed';
+            errorMessage.textContent = data.detail || 'Registration failed';
             errorMessage.style.display = 'block';
         }
       } catch (error) {
@@ -69,6 +75,10 @@
         errorMessage.style.display = 'block';
         console.error('Error:', error);
       }
+    });
+
+    document.getElementById('goToLoginBtn').addEventListener('click', () => {
+        window.location.href = 'login.html';
     });
   </script>
 </body>

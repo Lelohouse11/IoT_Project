@@ -8,6 +8,7 @@ export function initAuth() {
   const authBtn       = document.getElementById('authBtn');
   const profileMenu   = document.getElementById('profileMenu');
   const authToggleBtn = document.getElementById('authToggleBtn');
+  const deleteAccountBtn = document.getElementById('deleteAccountBtn');
   const profileName   = document.getElementById('profileName');
   const profileStatus = document.getElementById('profileStatus');
 
@@ -18,8 +19,11 @@ export function initAuth() {
   }
 
   function renderProfile() {
-    profileName.textContent   = 'City Admin';
-    profileStatus.textContent = 'Signed in';
+    const name = localStorage.getItem('user_name') || 'City Admin';
+    const email = localStorage.getItem('user_email') || 'Signed in';
+    
+    profileName.textContent   = name;
+    profileStatus.textContent = email;
     authToggleBtn.textContent = 'Sign out';
   }
 
@@ -36,9 +40,65 @@ export function initAuth() {
   authToggleBtn.addEventListener('click', () => {
     signedIn = false;
     localStorage.setItem(SIGNED_IN_KEY, 'false');
+    localStorage.removeItem('user_name');
+    localStorage.removeItem('user_email');
+    localStorage.removeItem('access_token');
     toggleProfileMenu(false);
     window.location.href = CONFIG.AUTH_LOGIN_URL;
   });
+
+  if (deleteAccountBtn) {
+    const deleteConfirmModal = document.getElementById('deleteConfirmModal');
+    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+    deleteAccountBtn.addEventListener('click', () => {
+      toggleProfileMenu(false);
+      if (deleteConfirmModal) deleteConfirmModal.classList.add('show');
+    });
+
+    if (cancelDeleteBtn) {
+      cancelDeleteBtn.addEventListener('click', () => {
+        deleteConfirmModal.classList.remove('show');
+      });
+    }
+
+    if (confirmDeleteBtn) {
+      confirmDeleteBtn.addEventListener('click', async () => {
+        confirmDeleteBtn.disabled = true;
+        confirmDeleteBtn.textContent = 'Deleting...';
+
+        const token = localStorage.getItem('access_token');
+        try {
+          const response = await fetch('http://localhost:8002/delete_account', {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (response.ok) {
+            authToggleBtn.click();
+          } else {
+            alert('Failed to delete account.');
+            confirmDeleteBtn.disabled = false;
+            confirmDeleteBtn.textContent = 'Delete';
+          }
+        } catch (error) {
+          console.error('Error deleting account:', error);
+          alert('An error occurred.');
+          confirmDeleteBtn.disabled = false;
+          confirmDeleteBtn.textContent = 'Delete';
+        }
+      });
+    }
+
+    if (deleteConfirmModal) {
+      deleteConfirmModal.addEventListener('click', (e) => {
+        if (e.target === deleteConfirmModal) deleteConfirmModal.classList.remove('show');
+      });
+    }
+  }
 
   renderProfile();
 }
