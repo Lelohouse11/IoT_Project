@@ -32,8 +32,22 @@ export function initLayout() {
         <small id="profileStatus">Signed out</small>
       </div>
     </div>
-    <div class="profile-actions">
+    <div class="profile-actions" style="display:flex; justify-content:space-between; align-items:center;">
+      <button class="btn" id="deleteAccountBtn" style="color:#e74c3c; border-color:rgba(231,76,60,0.3); font-size:0.85rem; padding:0.3rem 0.6rem;">Delete</button>
       <button class="btn" id="authToggleBtn">Sign in</button>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteConfirmModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-icon warn">!</div>
+      <h2 style="margin-top:0; color:var(--text)">Delete Account?</h2>
+      <p style="color:var(--muted)">Are you sure you want to delete your account? This action cannot be undone.</p>
+      <div style="display:flex; gap:1rem; justify-content:center; margin-top:1.5rem;">
+        <button id="cancelDeleteBtn" class="btn" style="border-color:rgba(255,255,255,0.2)">Cancel</button>
+        <button id="confirmDeleteBtn" class="btn" style="background:rgba(231,76,60,0.2); color:#e74c3c; border-color:rgba(231,76,60,0.5)">Delete</button>
+      </div>
     </div>
   </div>
   `;

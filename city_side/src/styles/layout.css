@@ -1,0 +1,120 @@
+/* =========================================================
+   Layout: Topbar, Navigation, Main Grid, Profile Menu
+   ========================================================= */
+
+/* -------- Topbar & Navigation -------- */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(180deg, rgba(20, 22, 30, 0.96), rgba(16, 18, 24, 0.9));
+  backdrop-filter: saturate(1.2) blur(6px);
+  border-bottom: 1px solid rgba(107, 212, 200, 0.2);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.brand-dot {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 999px;
+  background: var(--accent);
+  display: inline-block;
+  box-shadow: 0 0 20px rgba(107, 212, 200, 0.3);
+}
+
+.spacer { flex: 1; }
+
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: 0.5rem;
+}
+
+.topnav a {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.55rem;
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.1px;
+}
+
+.topnav a:hover {
+  color: var(--text);
+  background: rgba(85, 104, 216, 0.12);
+  border: 1px solid rgba(85, 104, 216, 0.2);
+}
+
+.topnav a[aria-current="page"] {
+  color: var(--text);
+  border: 1px solid rgba(85, 104, 216, 0.35);
+  background: rgba(85, 104, 216, 0.14);
+}
+
+/* -------- Profile Menu -------- */
+.profile-menu {
+  position: fixed;
+  top: 64px;
+  right: 12px;
+  width: 260px;
+  max-width: calc(100% - 24px);
+  background: var(--panel);
+  border: 1px solid rgba(107, 212, 200, 0.2);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(2, 3, 6, 0.45);
+  padding: 0.5rem;
+  display: none;
+  z-index: 1300;
+}
+
+.profile-menu.open { display: block; }
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  color: var(--text);
+}
+
+.profile-row small { color: var(--muted); }
+
+.profile-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding: 0.5rem;
+}
+
+.profile-actions .btn { padding: 0.4rem 0.7rem; }
+
+/* -------- Main Layout -------- */
+.wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .cards {
+    grid-template-columns: 1.4fr 0.9fr;
+  }
+}
