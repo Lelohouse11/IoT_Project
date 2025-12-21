@@ -4,7 +4,7 @@
 		{
 			"label": "accident-faker",
 			"type": "shell",
-			"command": "python data_faker/accident_faker.py",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe data_faker/accident_faker.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -17,7 +17,7 @@
 		{
 			"label": "parking-faker",
 			"type": "shell",
-			"command": "python data_faker/parking_faker.py",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe data_faker/parking_faker.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -30,7 +30,7 @@
 		{
 			"label": "traffic-faker",
 			"type": "shell",
-			"command": "python data_faker/traffic_faker.py",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe data_faker/traffic_faker.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -43,7 +43,7 @@
 		{
 			"label": "traffic-violation-faker",
 			"type": "shell",
-			"command": "python data_faker/traffic_violation_faker.py",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe data_faker/traffic_violation_faker.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -56,7 +56,7 @@
 		{
 			"label": "orion-bridge",
 			"type": "shell",
-			"command": "python api/orion_notification_server.py",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe api/orion_notification_server.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -69,7 +69,7 @@
 		{
 			"label": "map-api",
 			"type": "shell",
-			"command": "python -m uvicorn api.map_data_api:app --host 0.0.0.0 --port 8000 --reload",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe -m uvicorn api.map_data_api:app --host 0.0.0.0 --port 8000 --reload",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -82,7 +82,7 @@
 		{
 			"label": "llm-proxy",
 			"type": "shell",
-			"command": "python api/llm_server.py",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe api/llm_server.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -95,7 +95,7 @@
 		{
 			"label": "city-dashboard",
 			"type": "shell",
-			"command": "python -m http.server 5000 --directory city_side",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe -m http.server 5000 --directory city_side",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -196,7 +196,7 @@
 		{
 			"label": "db-migration",
 			"type": "shell",
-			"command": "python",
+			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
 			"args": [
 				"db_init/migrate_to_db.py"
 			],
