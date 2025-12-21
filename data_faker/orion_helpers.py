@@ -1,7 +1,7 @@
 """Shared helpers for talking to the Orion Context Broker (NGSI v2)."""
 
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import requests
 

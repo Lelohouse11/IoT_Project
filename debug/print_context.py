@@ -4,8 +4,6 @@ Import this module early in any entry point to prepend `[module.function]`
 labels to every console log, which simplifies debugging.
 """
 
-from __future__ import annotations
-
 import builtins
 import inspect
 import threading

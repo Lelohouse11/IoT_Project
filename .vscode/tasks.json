@@ -4,7 +4,7 @@
 		{
 			"label": "accident-faker",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe data_faker/accident_faker.py",
+			"command": "${command:python.interpreterPath} data_faker/accident_faker.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -17,7 +17,7 @@
 		{
 			"label": "parking-faker",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe data_faker/parking_faker.py",
+			"command": "${command:python.interpreterPath} data_faker/parking_faker.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -30,7 +30,7 @@
 		{
 			"label": "traffic-faker",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe data_faker/traffic_faker.py",
+			"command": "${command:python.interpreterPath} data_faker/traffic_faker.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -43,7 +43,7 @@
 		{
 			"label": "traffic-violation-faker",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe data_faker/traffic_violation_faker.py",
+			"command": "${command:python.interpreterPath} data_faker/traffic_violation_faker.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -56,7 +56,7 @@
 		{
 			"label": "orion-bridge",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe api/orion_notification_server.py",
+			"command": "${command:python.interpreterPath} api/orion_notification_server.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -69,7 +69,7 @@
 		{
 			"label": "map-api",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe -m uvicorn api.map_data_api:app --host 0.0.0.0 --port 8000 --reload",
+			"command": "${command:python.interpreterPath} -m uvicorn api.map_data_api:app --host 0.0.0.0 --port 8000 --reload",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -82,7 +82,7 @@
 		{
 			"label": "auth-api",
 			"type": "shell",
-			"command": "python -m uvicorn api.auth_server:app --host 0.0.0.0 --port 8002 --reload",
+			"command": "${command:python.interpreterPath} -m uvicorn api.auth_server:app --host 0.0.0.0 --port 8002 --reload",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -95,7 +95,7 @@
 		{
 			"label": "llm-proxy",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe api/llm_server.py",
+			"command": "${command:python.interpreterPath} api/llm_server.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -108,9 +108,9 @@
 		{
 			"label": "city-dashboard",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe -m http.server 5000 --directory city_side",
+			"command": "${command:python.interpreterPath} -m http.server 5000",
 			"options": {
-				"cwd": "${workspaceFolder}"
+				"cwd": "${workspaceFolder}/city_side"
 			},
 			"presentation": {
 				"reveal": "always",
@@ -210,7 +210,7 @@
 		{
 			"label": "db-migration",
 			"type": "shell",
-			"command": "${workspaceFolder}/.venv/Scripts/python.exe",
+			"command": "${command:python.interpreterPath}",
 			"args": [
 				"db_init/migrate_to_db.py"
 			],

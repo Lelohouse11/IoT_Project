@@ -12,7 +12,9 @@ import json
 import random
 import sys
 import time
+from collections import defaultdict
 from datetime import datetime
+from dateutil.parser import isoparse
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
@@ -93,11 +95,11 @@ def _event_time_ns(entity: Dict[str, Any]) -> int:
     if isinstance(observed, str) and observed:
         try:
             cleaned = observed.replace("Z", "+00:00")
-            dt = datetime.fromisoformat(cleaned)
+            dt = isoparse(cleaned)
             return int(dt.timestamp() * 1_000_000_000)
         except ValueError:
             pass
-    return time.time_ns()
+    return int(time.time() * 1_000_000_000)
 
 
 def _accident_to_point(entity: Dict[str, Any]) -> Optional[Point]:
@@ -283,8 +285,15 @@ def _is_allowed_entity(entity: Dict[str, Any]) -> bool:
     return True
 
 
+
+_STATS = defaultdict(int)
+_LAST_PRINT_TIME = time.time()
+_PRINT_INTERVAL = 5.0
+
+
 def _process_notification(message: str) -> None:
     """Handle a single MQTT payload (JSON with `data` array)."""
+    global _LAST_PRINT_TIME
     try:
         payload = json.loads(message)
     except json.JSONDecodeError:
@@ -296,7 +305,7 @@ def _process_notification(message: str) -> None:
         print("[error] process_notification Notification missing 'data' array")
         return
 
-    print(f"[notify]  {len(entities)} entities from MQTT")
+    # print(f"[notify]  {len(entities)} entities from MQTT")
     stored = 0
     for entity in entities:
         if not isinstance(entity, dict):
@@ -310,11 +319,22 @@ def _process_notification(message: str) -> None:
         try:
             write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=point)
             stored += 1
-            print(f"[store] {entity.get('id')} written to Influx")
+            # print(f"[store] {entity.get('id')} written to Influx")
+            entity_type = entity.get("type", "Unknown")
+            _STATS[entity_type] += 1
         except Exception as exc:  # pragma: no cover - log and continue
             print(f"[error] Failed to write {entity.get('id')}: {exc}")
-    if stored == 0:
-        print("[warn] No entities stored for this notification")
+    
+    # if stored == 0:
+    #     print("[warn] No entities stored for this notification")
+
+    now = time.time()
+    if now - _LAST_PRINT_TIME > _PRINT_INTERVAL:
+        if _STATS:
+            summary = ", ".join(f"{count} {etype}" for etype, count in _STATS.items())
+            print(f"[summary] Stored in last {int(_PRINT_INTERVAL)}s: {summary}")
+            _STATS.clear()
+        _LAST_PRINT_TIME = now
 
 
 def _on_connect(mqtt_client: mqtt.Client, userdata, flags, rc):
