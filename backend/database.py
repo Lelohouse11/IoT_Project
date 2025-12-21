@@ -1,6 +1,8 @@
+"""Database utility module for connecting to MySQL and executing queries."""
+
 import mysql.connector
 from mysql.connector import Error
-from api import config
+from backend import config
 
 def get_db_connection():
     """Create and return a database connection."""

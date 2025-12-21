@@ -1,3 +1,10 @@
+# ---------------------------------------------------------------------------
+# Dockerfile: Dockerfile.backend
+# Description: Builds the Python backend environment.
+#              Installs system dependencies, Python requirements, and sets up
+#              the execution environment for APIs and simulations.
+# ---------------------------------------------------------------------------
+
 FROM python:3.9-slim
 
 WORKDIR /app

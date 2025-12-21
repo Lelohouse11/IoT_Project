@@ -1,4 +1,4 @@
-"""Fetch Patras street data from Overpass API and store it locally for the accident faker."""
+"""Utility script to fetch Patras road network data from Overpass API."""
 
 import json
 from datetime import datetime, timezone
@@ -15,7 +15,7 @@ OVERPASS_QUERY = """
 );
 out geom;
 """
-OUT_PATH = Path(__file__).resolve().parents[1] / "seed_data" / "patras_roads.geojson"
+OUT_PATH = Path(__file__).resolve().parents[1] / "db_init" / "seed_data" / "patras_roads.geojson"
 
 
 def fetch_patras_roads() -> Path:

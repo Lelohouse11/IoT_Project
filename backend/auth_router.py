@@ -1,3 +1,5 @@
+"""Authentication router handling user registration, login, and token verification."""
+
 from fastapi import APIRouter, HTTPException, status, Depends, Header
 from pydantic import BaseModel
 from typing import Optional
@@ -7,7 +9,7 @@ import hmac
 import json
 import base64
 import os
-from api import config, database
+from backend import config, database
 
 router = APIRouter()
 

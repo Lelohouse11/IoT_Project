@@ -1,5 +1,17 @@
+/**
+ * @file layout.js
+ * @description Manages the common layout elements of the application.
+ * Handles the injection of the header, navigation, and profile menu.
+ * Also manages the account deletion modal.
+ */
+
 import { initAuth } from './auth.js';
 
+/**
+ * Initializes the application layout.
+ * Injects the header HTML, highlights the active navigation link,
+ * and initializes the authentication module.
+ */
 export function initLayout() {
   const headerHTML = `
   <header class="topbar" role="banner">

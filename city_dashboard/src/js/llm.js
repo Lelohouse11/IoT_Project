@@ -1,5 +1,16 @@
+/**
+ * @file llm.js
+ * @description Handles interactions with the LLM (Large Language Model) service.
+ * Manages the "Analyze Visible Area" feature, sending map data to the backend
+ * and displaying the generated report.
+ */
+
 import { CONFIG } from './config.js';
 
+/**
+ * Initializes the LLM analysis feature.
+ * Sets up the event listener for the analysis button and handles the API request.
+ */
 export function initLLM() {
   console.log('initLLM: Starting...');
 

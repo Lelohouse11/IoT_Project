@@ -1,3 +1,10 @@
+/**
+ * @file config.js
+ * @description Global configuration settings for the City Dashboard.
+ * Contains constants for map settings, API endpoints, polling intervals,
+ * LLM configuration, and UI color definitions.
+ */
+
 // Global configuration for the City Dashboard
 
 export const CONFIG = {

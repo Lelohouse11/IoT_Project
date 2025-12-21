@@ -1,3 +1,5 @@
+"""Flask server acting as a proxy to the LLM, enriching prompts with city data."""
+
 import sys
 from pathlib import Path
 
@@ -11,7 +13,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from influxdb_client import InfluxDBClient
 
-from api import config
+from backend import config
 
 
 def get_city_stats(start_time, end_time, bounds=None):

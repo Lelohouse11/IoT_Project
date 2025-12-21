@@ -1,10 +1,4 @@
-"""Seed Orion Context Broker with TrafficFlowObserved entities.
-
-The script follows the Smart Data Models TrafficFlowObserved schema:
-  - NGSI v2 payload built with TrafficFlowObserved attributes.
-  - creates a handful of static traffic segments (cameras).
-  - persists the created entities to the MySQL database.
-"""
+"""Initialization script to seed TrafficFlowObserved entities in Orion and MySQL."""
 
 import argparse
 import random
@@ -20,8 +14,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from data_faker.orion_helpers import OrionClient
-from api import database
+from simulation.orion_helpers import OrionClient
+from backend import database
 
 # Orion / FIWARE settings
 FIWARE_TYPE = "TrafficFlowObserved"

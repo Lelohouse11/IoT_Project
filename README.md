@@ -3,18 +3,18 @@
 Compact toolkit for simulating, collecting, and visualizing city traffic incidents.
 
 ## Modules & Tech
-- **City Dashboard** (`city_side`) – Vanilla JS + Leaflet frontend. Renders live accidents, parking, and traffic data. Features a modular architecture (`config.js`, `layout.js`) and embeds Grafana widgets.
+- **City Dashboard** (`city_dashboard`) – Vanilla JS + Leaflet frontend. Renders live accidents, parking, and traffic data. Features a modular architecture (`config.js`, `layout.js`) and embeds Grafana widgets.
 - **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and report incidents.
-- **Data Fakers** (`data_faker/`) – Python scripts simulating smart city entities:
-  - `accident_faker.py`: Synthesizes `TrafficAccident` entities.
-  - `traffic_violation_faker.py`: Emits `TrafficViolation` detections (red light, illegal parking).
-  - `parking_faker.py`: Simulates `OnStreetParking` occupancy.
-  - `traffic_faker.py`: Drives `TrafficFlowObserved` entities.
-- **Backend Services** (`api/`) – Python services bridging data and serving the frontend:
-  - `map_data_api.py` (FastAPI): Serves geo-snapped data for the map.
-  - `auth_server.py` (FastAPI): Dedicated authentication server for login/register.
-  - `orion_notification_server.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
-  - `llm_server.py` (Flask): Proxy for the LLM chat assistant.
+- **Simulation** (`simulation/`) – Python scripts simulating smart city entities:
+  - `accident_generator.py`: Synthesizes `TrafficAccident` entities.
+  - `traffic_violation_generator.py`: Emits `TrafficViolation` detections (red light, illegal parking).
+  - `parking_generator.py`: Simulates `OnStreetParking` occupancy.
+  - `traffic_generator.py`: Drives `TrafficFlowObserved` entities.
+- **Backend Services** (`backend/`) – Python services bridging data and serving the frontend:
+  - `map_service.py` (FastAPI): Serves geo-snapped data for the map.
+  - `auth_service.py` (FastAPI): Dedicated authentication server for login/register.
+  - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
+  - `llm_service.py` (Flask): Proxy for the LLM chat assistant.
   - `orion_subscription_server.py`: Helper to manage Orion subscriptions.
 
 ## Data & Infra
@@ -24,7 +24,7 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 - **Grafana** – Visualizes KPIs and is embedded inside the City Dashboard.
 
 ### External Services & APIs
-- **OpenStreetMap (via Overpass API)** – Source of the Patras road network geometry used by the fakers (`seed_data/patras_roads.geojson`).
+- **OpenStreetMap (via Overpass API)** – Source of the Patras road network geometry used by the fakers (`db_init/seed_data/patras_roads.geojson`).
 - **GraphHopper API** – Provides routing and navigation for the Driver Companion App (requires API key).
 - **Leaflet** – Open-source JavaScript library for interactive maps.
 
@@ -33,12 +33,12 @@ The project uses environment variables for configuration.
 1. Copy `.env.example` to `.env` in the root directory.
 2. Update the values in `.env` with your specific credentials (InfluxDB token, API keys, etc.).
    - Add `SECRET_KEY` for JWT signing (optional, defaults to a dev key).
-3. The `api/config.py` module loads these settings automatically.
+3. The `backend/config.py` module loads these settings automatically.
 
 ## Authentication
 The system implements a secure, standard-library based JWT authentication mechanism.
 
-- **Registration**: Users can register at `/register.html`. Registration is restricted to a whitelist of email addresses defined in `api/config.py`.
+- **Registration**: Users can register at `/register.html`. Registration is restricted to a whitelist of email addresses defined in `backend/config.py`.
 - **Login**: Users log in at `/login.html` to receive an access token.
 - **Account Management**: Users can view their profile and permanently delete their account via the dashboard profile menu.
 - **Whitelist**: By default, allowed emails are `admin@smartcity.com`, `leander@smartcity.com`, and `test@test.com`.
@@ -90,12 +90,12 @@ Runs the entire system (Fakers, APIs, Frontends, Database) inside containers. No
 ## Project Structure
 ```
 IoT_Project/
-├── api/                 # Backend APIs & Bridges
-├── city_side/           # Admin Dashboard (JS/HTML)
-├── data_faker/          # Simulation Scripts
+├── backend/             # Backend APIs & Bridges
+├── city_dashboard/      # Admin Dashboard (JS/HTML)
+├── simulation/          # Simulation Scripts
 ├── db_init/             # SQL Schema & Migration Scripts
+│   └── seed_data/       # Raw JSON/GeoJSON Data Files
 ├── drivers_side_pwa/    # Driver App (React)
-├── seed_data/           # Raw JSON/GeoJSON Data Files
 ├── docs/                # Documentation & Ideas
 └── .vscode/             # Task & Launch Configs
 ```

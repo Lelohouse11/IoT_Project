@@ -1,9 +1,21 @@
+/**
+ * @file auth.js
+ * @description Handles client-side authentication logic for the City Dashboard.
+ * Manages user session state, profile UI toggling, and logout functionality.
+ * Includes a mock auth implementation for demonstration purposes.
+ */
+
 // Very small in-memory auth mock used to toggle profile UI and handle logout redirect.
 import { CONFIG } from './config.js';
 
 const SIGNED_IN_KEY = 'city_side_signed_in';
 let signedIn = localStorage.getItem(SIGNED_IN_KEY) === 'true';
 
+/**
+ * Initializes the authentication module.
+ * Sets up event listeners for the profile menu, sign-out, and account deletion.
+ * Redirects to the login page if the user is not signed in.
+ */
 export function initAuth() {
   const authBtn       = document.getElementById('authBtn');
   const profileMenu   = document.getElementById('profileMenu');

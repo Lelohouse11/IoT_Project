@@ -1,6 +1,17 @@
+/**
+ * @file grafana.js
+ * @description Helper module for managing Grafana iframe integration.
+ * Provides functions to update Grafana dashboards based on time ranges and map locations.
+ */
+
 // Minimal helper for the Grafana iframe.
 // The embedded panel/dashboard URL is configured in index.html.
 // We expose a manual refresh to reload the iframe without a full page reload.
+
+/**
+ * Initializes the Grafana refresh button.
+ * Adds a click listener to reload all Grafana iframes.
+ */
 export function initGrafana() {
   const btn = document.getElementById('refreshGrafana');
   const iframes = document.querySelectorAll('.grafana-embed');
@@ -12,6 +23,11 @@ export function initGrafana() {
   });
 }
 
+/**
+ * Updates the time range for all Grafana iframes.
+ * @param {number} startMs - Start time in milliseconds.
+ * @param {number} endMs - End time in milliseconds.
+ */
 export function updateGrafanaTime(startMs, endMs) {
   const iframes = document.querySelectorAll('.grafana-embed');
   iframes.forEach(iframe => {
@@ -22,6 +38,14 @@ export function updateGrafanaTime(startMs, endMs) {
   });
 }
 
+/**
+ * Updates the location variables for Grafana dashboards.
+ * Used to filter data based on the current map view.
+ * @param {number} latMin - Minimum latitude.
+ * @param {number} latMax - Maximum latitude.
+ * @param {number} lngMin - Minimum longitude.
+ * @param {number} lngMax - Maximum longitude.
+ */
 export function updateGrafanaLocation(latMin, latMax, lngMin, lngMax) {
   const iframes = document.querySelectorAll('.grafana-embed');
   iframes.forEach(iframe => {
@@ -34,6 +58,9 @@ export function updateGrafanaLocation(latMin, latMax, lngMin, lngMax) {
   });
 }
 
+/**
+ * Resets all Grafana filters (time and location).
+ */
 export function resetGrafanaFilters() {
   const iframes = document.querySelectorAll('.grafana-embed');
   iframes.forEach(iframe => {
@@ -48,6 +75,9 @@ export function resetGrafanaFilters() {
   });
 }
 
+/**
+ * Clears only the location filters from Grafana dashboards.
+ */
 export function clearGrafanaLocation() {
   const iframes = document.querySelectorAll('.grafana-embed');
   iframes.forEach(iframe => {

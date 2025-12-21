@@ -15,6 +15,12 @@ if not getattr(builtins, "_print_with_context_active", False):
     _original_print = builtins.print
 
     def _caller_label() -> str:
+        """
+        Determine the caller's module and function name.
+        
+        Returns:
+            str: A string label in the format "[module.function]".
+        """
         frame = inspect.currentframe()
         if frame is None or frame.f_back is None:
             return "[unknown]"
@@ -27,6 +33,10 @@ if not getattr(builtins, "_print_with_context_active", False):
         return f"[{module}.{func}]"
 
     def _print_with_context(*args: Any, **kwargs: Any) -> None:
+        """
+        Replacement for the built-in print function.
+        Prepends the caller's context label to the output.
+        """
         label = _caller_label()
         with _LOCK:
             _original_print(label, *args, **kwargs)

@@ -1,4 +1,4 @@
-"""Generate synthetic TrafficViolation events and push them to Orion Context Broker."""
+"""Simulation script generating synthetic traffic violation events for Orion."""
 
 import argparse
 import json
@@ -16,8 +16,8 @@ import requests
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-from data_faker.orion_helpers import OrionClient
-from data_faker.geo_helpers import load_road_segments, sample_point_on_road
+from simulation.orion_helpers import OrionClient
+from simulation.geo_helpers import load_road_segments, sample_point_on_road
 
 FIWARE_TYPE = "TrafficViolation"
 ORION_BASE_URL = "http://150.140.186.118:1026"

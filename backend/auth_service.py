@@ -1,3 +1,5 @@
+"""Standalone FastAPI service for handling authentication requests."""
+
 import sys
 from pathlib import Path
 
@@ -7,7 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from api import auth
+from backend import auth_router
 
 app = FastAPI(title="Auth API")
 
@@ -19,7 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router)
+app.include_router(auth_router.router)
 
 if __name__ == "__main__":
     import uvicorn

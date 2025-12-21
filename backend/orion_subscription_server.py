@@ -1,13 +1,4 @@
-"""HTTP receiver that registers a scoped Orion subscription.
-
-Run this service on a publicly reachable address (or expose it via a tunnel)
-and it will:
-  1. Ensure a FIWARE NGSI v2 subscription exists for the provided service path.
-  2. Accept Orion notifications on the `/orion` endpoint and print them.
-
-This is useful when you only want entities from your service path instead of
-consuming the shared `orion_updates` MQTT feed.
-"""
+"""HTTP server for managing and receiving scoped Orion subscriptions."""
 
 import argparse
 import atexit
@@ -24,7 +15,7 @@ from debug import print_context  # noqa: F401
 import requests
 from flask import Flask, Response, request
 
-from api import config
+from backend import config
 
 DEFAULT_ORION_URL = config.ORION_URL
 DEFAULT_SERVICE = config.FIWARE_SERVICE

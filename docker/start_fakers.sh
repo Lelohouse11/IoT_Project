@@ -1,20 +1,32 @@
 #!/bin/bash
+# ---------------------------------------------------------------------------
+# Script: start_fakers.sh
+# Description: Starts all simulation generators (fakers) for the IoT Smart City project.
+#              Generates synthetic data for accidents, parking, traffic flow,
+#              and traffic violations.
+# ---------------------------------------------------------------------------
+
 # Start all data fakers in the background
 
 echo "Waiting for DB..."
+# Ensure database schema is up to date
 python db_init/migrate_to_db.py
 
 echo "Starting Accident Faker..."
-python data_faker/accident_faker.py &
+# Simulates random traffic accidents
+python simulation/accident_generator.py &
 
 echo "Starting Parking Faker..."
-python data_faker/parking_faker.py &
+# Simulates parking spot occupancy changes
+python simulation/parking_generator.py &
 
 echo "Starting Traffic Faker..."
-python data_faker/traffic_faker.py &
+# Simulates traffic flow speed and density
+python simulation/traffic_generator.py &
 
 echo "Starting Traffic Violation Faker..."
-python data_faker/traffic_violation_faker.py &
+# Simulates various traffic violations
+python simulation/traffic_violation_generator.py &
 
 # Keep container alive
 wait

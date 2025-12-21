@@ -1,4 +1,4 @@
-"""Shared helpers for talking to the Orion Context Broker (NGSI v2)."""
+"""Shared helper class for interacting with the Orion Context Broker API."""
 
 from dataclasses import dataclass
 from typing import Any, Dict, Optional

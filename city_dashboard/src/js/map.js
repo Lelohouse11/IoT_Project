@@ -1,9 +1,22 @@
+/**
+ * @file map.js
+ * @description Core mapping logic for the City Dashboard.
+ * Initializes the Leaflet map, manages layers (accidents, traffic, parking, violations),
+ * and handles data updates and user interactions.
+ */
+
 import { CONFIG, COLORS } from './config.js';
 import { makeAccidentMarker, makeViolationMarker, trafficStyle, parkingStyle, getLegendHTML } from './map_helpers.js';
 import { updateGrafanaTime, updateGrafanaLocation, resetGrafanaFilters, clearGrafanaLocation } from './grafana.js';
 
 // Initialize the Leaflet map, live accident overlay, and polling logic.
 // Exposes a small API on window.MapAPI for future adapters (MQTT, SSE).
+
+/**
+ * Initializes the map and its layers.
+ * Sets up the base map, marker clusters, and layer controls.
+ * Also configures the legend and event listeners for map interactions.
+ */
 export function initMap() {
   // Base map (OSM)
   const map = L.map('map', { zoomControl: true, scrollWheelZoom: true }).setView(CONFIG.MAP_CENTER, CONFIG.MAP_ZOOM);

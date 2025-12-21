@@ -1,13 +1,4 @@
-"""Seed Orion Context Broker with OnStreetParking (Smart Data Models) entities.
-
-The script now follows the Smart Data Models OnStreetParking schema:
-  - NGSI v2 payload built with OnStreetParking attributes (totalSpotNumber, etc.)
-  - creates a handful of static parking zones (LineString geometry)
-  - deletes and recreates entities if they already exist
-
-You can also point the script at a GeoJSON FeatureCollection via --geojson.
-Each feature should include properties: id, name, totalSpotNumber, occupiedSpotNumber.
-"""
+"""Initialization script to seed OnStreetParking entities in Orion and MySQL."""
 
 import argparse
 import json
@@ -24,10 +15,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from data_faker.orion_helpers import OrionClient
-from api import database
+from simulation.orion_helpers import OrionClient
+from backend import database
 
-# Orion / FIWARE settings (reuse values from accident_faker.py)
+# Orion / FIWARE settings (reuse values from accident_generator.py)
 FIWARE_TYPE = "OnStreetParking"
 SMART_DATA_MODEL_SCHEMA = (
     "https://smart-data-models.github.io/dataModel.Parking/OnStreetParking/schema.json"

@@ -1,7 +1,19 @@
+/**
+ * @file map_helpers.js
+ * @description Helper functions for map visualization.
+ * Contains logic for creating markers, styling map layers (traffic, parking),
+ * and generating legend HTML.
+ */
+
 import { COLORS, VIOLATION_LEGEND_ITEMS } from './config.js';
 
 // --- Marker Generators ---
 
+/**
+ * Creates a Leaflet marker for an accident.
+ * @param {Object} a - Accident data object.
+ * @returns {L.Marker} A Leaflet marker instance.
+ */
 export function makeAccidentMarker(a) {
   // Use a lightweight DivIcon so clusters remain performant
   const icon = L.divIcon({
@@ -15,6 +27,11 @@ export function makeAccidentMarker(a) {
   );
 }
 
+/**
+ * Creates a Leaflet marker for a traffic violation.
+ * @param {Object} v - Violation data object.
+ * @returns {L.Marker} A Leaflet marker instance.
+ */
 export function makeViolationMarker(v) {
   const color = COLORS.violation(v.violation);
   const icon = L.divIcon({
@@ -30,6 +47,10 @@ export function makeViolationMarker(v) {
 
 // --- Layer Styles ---
 
+/**
+ * Style definition for traffic segments.
+ * Colors lines based on speed and adds popups with details.
+ */
 export const trafficStyle = {
   pointToLayer: (f, latlng) => L.circleMarker(latlng, {
     radius: 8,
@@ -54,6 +75,10 @@ export const trafficStyle = {
   }
 };
 
+/**
+ * Style definition for parking zones.
+ * Colors polygons based on occupancy percentage.
+ */
 export const parkingStyle = {
   pointToLayer: (f, latlng) => {
     const occ = f.properties.occupied / (f.properties.capacity || 1);
@@ -80,6 +105,11 @@ export const parkingStyle = {
 
 // --- Legend Logic ---
 
+/**
+ * Generates the HTML for the map legend based on the active mode.
+ * @param {string} mode - The current map mode ('traffic', 'parking', 'accidents', 'violations').
+ * @returns {string} HTML string for the legend.
+ */
 export function getLegendHTML(mode) {
   if (mode === 'traffic') {
     return `

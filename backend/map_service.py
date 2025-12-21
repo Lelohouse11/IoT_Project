@@ -1,9 +1,4 @@
-"""Map data API for the dashboard.
-
-Exposes lightweight endpoints that read accidents and parking occupancy from
-InfluxDB, and provides simple geometries (with road snapping for parking) for
-the frontend map overlays.
-"""
+"""Map data API serving geo-snapped accidents, parking, and traffic data to the dashboard."""
 
 import sys
 from pathlib import Path
@@ -17,8 +12,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from influxdb_client import InfluxDBClient
 
-from api import config
-from data_faker import geo_helpers
+from backend import config
+from simulation import geo_helpers
 
 influxdb_url = config.INFLUX_URL
 bucket = config.INFLUX_BUCKET

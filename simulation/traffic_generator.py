@@ -1,4 +1,4 @@
-"""Simulate TrafficFlowObserved entities and push updates to Orion Context Broker."""
+"""Simulation script generating synthetic traffic flow updates for Orion."""
 
 import argparse
 import random
@@ -14,8 +14,8 @@ import requests
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-from data_faker.orion_helpers import OrionClient
-from api import database
+from simulation.orion_helpers import OrionClient
+from backend import database
 
 FIWARE_TYPE = "TrafficFlowObserved"
 ORION_BASE_URL = "http://150.140.186.118:1026"

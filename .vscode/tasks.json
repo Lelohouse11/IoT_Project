@@ -4,7 +4,7 @@
 		{
 			"label": "accident-faker",
 			"type": "shell",
-			"command": "${command:python.interpreterPath} data_faker/accident_faker.py",
+			"command": "${command:python.interpreterPath} simulation/accident_generator.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -17,7 +17,7 @@
 		{
 			"label": "parking-faker",
 			"type": "shell",
-			"command": "${command:python.interpreterPath} data_faker/parking_faker.py",
+			"command": "${command:python.interpreterPath} simulation/parking_generator.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -30,7 +30,7 @@
 		{
 			"label": "traffic-faker",
 			"type": "shell",
-			"command": "${command:python.interpreterPath} data_faker/traffic_faker.py",
+			"command": "${command:python.interpreterPath} simulation/traffic_generator.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -43,7 +43,7 @@
 		{
 			"label": "traffic-violation-faker",
 			"type": "shell",
-			"command": "${command:python.interpreterPath} data_faker/traffic_violation_faker.py",
+			"command": "${command:python.interpreterPath} simulation/traffic_violation_generator.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -56,7 +56,7 @@
 		{
 			"label": "orion-bridge",
 			"type": "shell",
-			"command": "${command:python.interpreterPath} api/orion_notification_server.py",
+			"command": "${command:python.interpreterPath} backend/orion_bridge_service.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -69,7 +69,7 @@
 		{
 			"label": "map-api",
 			"type": "shell",
-			"command": "${command:python.interpreterPath} -m uvicorn api.map_data_api:app --host 0.0.0.0 --port 8000 --reload",
+			"command": "${command:python.interpreterPath} -m uvicorn backend.map_service:app --host 0.0.0.0 --port 8000 --reload",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -82,7 +82,7 @@
 		{
 			"label": "auth-api",
 			"type": "shell",
-			"command": "${command:python.interpreterPath} -m uvicorn api.auth_server:app --host 0.0.0.0 --port 8002 --reload",
+			"command": "${command:python.interpreterPath} -m uvicorn backend.auth_service:app --host 0.0.0.0 --port 8002 --reload",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -95,7 +95,7 @@
 		{
 			"label": "llm-proxy",
 			"type": "shell",
-			"command": "${command:python.interpreterPath} api/llm_server.py",
+			"command": "${command:python.interpreterPath} backend/llm_service.py",
 			"options": {
 				"cwd": "${workspaceFolder}"
 			},
@@ -110,7 +110,7 @@
 			"type": "shell",
 			"command": "${command:python.interpreterPath} -m http.server 5000",
 			"options": {
-				"cwd": "${workspaceFolder}/city_side"
+				"cwd": "${workspaceFolder}/city_dashboard"
 			},
 			"presentation": {
 				"reveal": "always",

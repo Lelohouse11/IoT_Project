@@ -1,3 +1,5 @@
+"""Helper module for geospatial calculations and road network loading."""
+
 import json
 import math
 import random
@@ -9,7 +11,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from api import database
+from backend import database
 
 def haversine_distance_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Approximate distance in meters between two lat/lng pairs."""

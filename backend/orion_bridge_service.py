@@ -1,11 +1,4 @@
-"""MQTT bridge that listens to Orion notifications and stores them in InfluxDB.
-
-The Orion instance already forwards every change to the public MQTT broker
-(`mqtt://150.140.186.118:1883`, topic `orion_updates`). This service subscribes
-to that feed, extracts the NGSI entities (same payload shape as HTTP
-notifications), and writes them into the InfluxDB bucket reused from
-`mqtt_to_influx_connector.py`.
-"""
+"""MQTT bridge service that consumes Orion updates and persists them to InfluxDB."""
 
 import argparse
 import json
@@ -27,7 +20,7 @@ import paho.mqtt.client as mqtt
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-from api import config
+from backend import config
 
 # MQTT setup (mirrors the admin-made subscription visible in subscriptions.json)
 MQTT_BROKER = config.MQTT_BROKER

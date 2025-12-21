@@ -1,3 +1,9 @@
+# ---------------------------------------------------------------------------
+# Dockerfile: Dockerfile.frontend
+# Description: Builds the Node.js frontend environment.
+#              Used for serving the City Dashboard and running the Driver PWA.
+# ---------------------------------------------------------------------------
+
 FROM node:18-slim
 
 WORKDIR /app

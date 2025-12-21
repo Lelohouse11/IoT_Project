@@ -1,3 +1,10 @@
+"""
+Script: migrate_to_db.py
+Description: Handles the initialization and migration of database schemas and seed data.
+             Ensures the database is ready, creates necessary tables, and populates
+             initial data for parking zones and traffic segments.
+"""
+
 import json
 import sys
 import time
@@ -8,11 +15,20 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from api import database
-from data_faker import geo_helpers, parking_zones_init, traffic_segments_init
+from backend import database
+from simulation import geo_helpers, parking_zones_init, traffic_segments_init
 
 def wait_for_db(timeout=30, interval=2):
-    """Wait for the database to become available."""
+    """
+    Wait for the database to become available.
+    
+    Args:
+        timeout (int): Maximum time to wait in seconds.
+        interval (int): Time to wait between retries in seconds.
+        
+    Returns:
+        bool: True if database is ready, False otherwise.
+    """
     print("Waiting for database connection...")
     start_time = time.time()
     while time.time() - start_time < timeout:
@@ -27,8 +43,12 @@ def wait_for_db(timeout=30, interval=2):
     return False
 
 def migrate_parking():
-    """Migrate legacy parking entities from JSON if needed."""
-    json_path = PROJECT_ROOT / "seed_data" / "parking_entities.json"
+    """
+    Migrate legacy parking entities from JSON if needed.
+    Reads from db_init/seed_data/parking_entities.json and inserts into the database
+    if the table is empty.
+    """
+    json_path = PROJECT_ROOT / "db_init" / "seed_data" / "parking_entities.json"
     if not json_path.exists():
         return
 
@@ -57,7 +77,10 @@ def migrate_parking():
         print(f"Error migrating parking: {e}")
 
 def init_rich_parking():
-    """Initialize rich parking zones if table is empty."""
+    """
+    Initialize rich parking zones if table is empty.
+    Uses the parking_zones_init module to seed detailed parking data.
+    """
     try:
         count = database.fetch_all("SELECT COUNT(*) as c FROM parking_entities")[0]["c"]
         if count > 0:
@@ -72,7 +95,10 @@ def init_rich_parking():
         print(f"Error initializing parking zones: {e}")
 
 def ensure_traffic_table():
-    """Ensure the traffic_entities table exists."""
+    """
+    Ensure the traffic_entities table exists.
+    Creates the table if it does not exist.
+    """
     query = """
     CREATE TABLE IF NOT EXISTS traffic_entities (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -90,7 +116,10 @@ def ensure_traffic_table():
         print(f"Error creating traffic_entities table: {e}")
 
 def init_traffic_segments():
-    """Initialize traffic segments if table is empty."""
+    """
+    Initialize traffic segments if table is empty.
+    Uses the traffic_segments_init module to seed traffic segment data.
+    """
     try:
         ensure_traffic_table()
         
@@ -114,7 +143,7 @@ def init_traffic_segments():
         print(f"Error initializing traffic segments: {e}")
 
 def migrate_roads():
-    geojson_path = PROJECT_ROOT / "seed_data" / "patras_roads.geojson"
+    geojson_path = PROJECT_ROOT / "db_init" / "seed_data" / "patras_roads.geojson"
     if not geojson_path.exists():
         print("Roads GeoJSON file not found.")
         return
