@@ -17,7 +17,19 @@ FIWARE_SERVICE = os.getenv("FIWARE_SERVICE", "default")
 FIWARE_SERVICE_PATH = os.getenv("FIWARE_SERVICE_PATH", "/week4_up1125093")
 SUBSCRIPTION_CALLBACK_URL = os.getenv("SUBSCRIPTION_CALLBACK_URL", "http://localhost:8080/orion")
 
+# Auth Settings
+SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey123")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+WHITELISTED_EMAILS = [
+    "admin@smartcity.com",
+    "leander@smartcity.com",
+    "test@test.com",
+    "lelohouse11@gmail.com"
+]
+
 # LLM Settings
+LLM_API_URL = os.getenv("LLM_API_URL", "http://localhost:5001/ask")
 LLM_MODEL = os.getenv("MODEL", "llama3.1:8b-instruct-q4_K_M")
 LLM_UPSTREAM_URL = os.getenv("LLM_UPSTREAM_URL", "http://labserver.sense-campus.gr:7080/chat")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "studentpassword")
