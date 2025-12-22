@@ -14,12 +14,19 @@
  */
 export function initGrafana() {
   const btn = document.getElementById('refreshGrafana');
-  const iframes = document.querySelectorAll('.grafana-embed');
   
   btn?.addEventListener('click', () => { 
-    iframes.forEach(iframe => {
-      iframe.src = iframe.src; 
-    });
+    reloadGrafana();
+  });
+}
+
+/**
+ * Reloads all Grafana iframes by resetting their src attribute.
+ */
+export function reloadGrafana() {
+  const iframes = document.querySelectorAll('.grafana-embed');
+  iframes.forEach(iframe => {
+    iframe.src = iframe.src; 
   });
 }
 

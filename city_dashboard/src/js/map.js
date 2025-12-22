@@ -7,7 +7,7 @@
 
 import { CONFIG, COLORS } from './config.js';
 import { makeAccidentMarker, makeViolationMarker, trafficStyle, parkingStyle, getLegendHTML } from './map_helpers.js';
-import { updateGrafanaTime, updateGrafanaLocation, resetGrafanaFilters, clearGrafanaLocation } from './grafana.js';
+import { updateGrafanaTime, updateGrafanaLocation, resetGrafanaFilters, clearGrafanaLocation, reloadGrafana } from './grafana.js';
 
 // Initialize the Leaflet map, live accident overlay, and polling logic.
 // Exposes a small API on window.MapAPI for future adapters (MQTT, SSE).
@@ -319,6 +319,7 @@ export function initMap() {
       fetchRecentAccidents();
       fetchRecentTraffic();
       fetchRecentViolations();
+      reloadGrafana();
       nextRefreshAt = Date.now() + CONFIG.REFRESH_MS;
     }, CONFIG.REFRESH_MS);
     if (countdownTimer) clearInterval(countdownTimer);
@@ -341,6 +342,7 @@ export function initMap() {
       fetchRecentTraffic();
       fetchRecentParking();
       fetchRecentViolations();
+      reloadGrafana();
       if (!filterStart && !filterBounds) startAutoRefresh(); // reset cadence and countdown only if not filtering
     });
   }
