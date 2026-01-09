@@ -9,6 +9,6 @@ Currently, two official plugins are available:
 
 ## Driver map traffic API
 
-- Start the dedicated frontend API: `python api/frontend_map_api.py` (exposes `/pwa/traffic/recent` on port 8010 by default).
+- Start the dedicated frontend API: `python backend/frontend_map_api.py` (exposes `/pwa/traffic/recent` on port 8010 by default).
 - Point the PWA to it by setting `VITE_API_BASE=http://localhost:8010` in `.env` (or leave blank if you reverse-proxy).
 - Run the app: `cd drivers_side_pwa && npm install && npm run dev`.

@@ -36,6 +36,7 @@ function MapView({ active }) {
 
   // configure Leaflet default marker assets once
   useEffect(() => {
+    delete L.Icon.Default.prototype._getIconUrl
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: markerIcon2x,
       iconUrl: markerIcon,

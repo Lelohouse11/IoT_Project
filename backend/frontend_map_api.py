@@ -19,15 +19,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from api import config  # noqa: E402  # isort: skip
-from data_faker import geo_helpers  # noqa: E402  # isort: skip
+from backend import config  # noqa: E402  # isort: skip
+from simulation import geo_helpers  # noqa: E402  # isort: skip
 
 influxdb_url = config.INFLUX_URL
 bucket = config.INFLUX_BUCKET
 org = config.INFLUX_ORG
 token = config.INFLUX_TOKEN
 
-ROADS_PATH = PROJECT_ROOT / "data_faker" / "patras_roads.geojson"
+ROADS_PATH = PROJECT_ROOT / "db_init" / "seed_data" / "patras_roads.geojson"
 
 client = InfluxDBClient(url=influxdb_url, token=token, org=org)
 query_api = client.query_api()

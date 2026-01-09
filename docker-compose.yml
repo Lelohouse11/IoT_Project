@@ -57,6 +57,8 @@ services:
       - mysql_db
     ports:
       - "8000:8000" # Map API
+      - "8002:8002" # Auth API
+      - "8010:8010" # Frontend Map API
       - "9090:9090" # LLM API
     environment:
       MYSQL_HOST: mysql_db

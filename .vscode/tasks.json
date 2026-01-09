@@ -132,6 +132,19 @@
 			"problemMatcher": []
 		},
 		{
+			"label": "frontend-map-api",
+			"type": "shell",
+			"command": "${command:python.interpreterPath} backend/frontend_map_api.py",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"presentation": {
+				"reveal": "always",
+				"panel": "new"
+			},
+			"problemMatcher": []
+		},
+		{
 			"label": "start-iot-stack-local",
 			"dependsOn": [
 				"docker-db-only",
@@ -143,6 +156,7 @@
 				"orion-bridge",
 				"map-api",
 				"auth-api",
+				"frontend-map-api",
 				"llm-proxy",
 				"city-dashboard",
 				"driver-pwa"
@@ -215,6 +229,15 @@
 				"db_init/migrate_to_db.py"
 			],
 			"isBackground": false,
+			"group": "none"
+		},
+		{
+			"label": "frontend-map-api",
+			"type": "shell",
+			"command": "${command:python.interpreterPath} backend/frontend_map_api.py",
+			"args": [],
+			"isBackground": true,
+			"problemMatcher": [],
 			"group": "none"
 		}
 	]

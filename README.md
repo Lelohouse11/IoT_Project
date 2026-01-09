@@ -4,7 +4,8 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 
 ## Modules & Tech
 - **City Dashboard** (`city_dashboard`) – Vanilla JS + Leaflet frontend. Renders live accidents, parking, and traffic data. Features a modular architecture (`config.js`, `layout.js`) and embeds Grafana widgets.
-- **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and report incidents.
+- **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and report incidents. Connects to `backend/frontend_map_api.py` for optimized traffic data.
+- **Computer Vision** (`yolov8_tests/`) – Vehicle detection pipeline using YOLOv8n. Analyzes video/images for traffic counting and parking occupancy events.
 - **Simulation** (`simulation/`) – Python scripts simulating smart city entities:
   - `accident_generator.py`: Synthesizes `TrafficAccident` entities.
   - `traffic_violation_generator.py`: Emits `TrafficViolation` detections (red light, illegal parking).
@@ -13,6 +14,7 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 - **Backend Services** (`backend/`) – Python services bridging data and serving the frontend:
   - `map_service.py` (FastAPI): Serves geo-snapped data for the map.
   - `auth_service.py` (FastAPI): Dedicated authentication server for login/register.
+  - `frontend_map_api.py` (FastAPI): Dedicated PWA-facing API (Port 8010) for serving traffic overlays.
   - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
   - `llm_service.py` (Flask): Proxy for the LLM chat assistant.
   - `orion_subscription_server.py`: Helper to manage Orion subscriptions.
@@ -84,18 +86,39 @@ Runs the entire system (Fakers, APIs, Frontends, Database) inside containers. No
 - **Driver App**: [http://localhost:5173](http://localhost:5173)
 - **Auth API**: [http://localhost:8002](http://localhost:8002)
 - **Map API**: [http://localhost:8000](http://localhost:8000)
+- **Frontend Map API**: [http://localhost:8010](http://localhost:8010)
 - **LLM API**: [http://localhost:9090](http://localhost:9090)
 - **phpMyAdmin**: [http://localhost:8081](http://localhost:8081)
+
+## Computer Vision (YOLOv8)
+Vehicles are detected using a pretrained YOLOv8 nano model. The pipeline supports counting and parking occupancy detection.
+
+**Setup**:
+```bash
+python -m pip install -r yolov8_tests/requirements.txt
+```
+
+**Running Tests**:
+Place media in `yolov8_tests/inputs/` (images or videos).
+```bash
+python yolov8_tests/run_detection.py [options]
+# Options: --images, --videos, --device cuda:0, --conf 0.15
+```
+
+**Outputs**:
+- Annotated media in `yolov8_tests/outputs/`
+- Metadata JSONs for counts and events.
 
 ## Project Structure
 ```
 IoT_Project/
-├── backend/             # Backend APIs & Bridges
+├── backend/             # Core Backend Services & Bridges
 ├── city_dashboard/      # Admin Dashboard (JS/HTML)
 ├── simulation/          # Simulation Scripts
 ├── db_init/             # SQL Schema & Migration Scripts
 │   └── seed_data/       # Raw JSON/GeoJSON Data Files
 ├── drivers_side_pwa/    # Driver App (React)
+├── yolov8_tests/        # Computer Vision/YOLO Experiments
 ├── docs/                # Documentation & Ideas
 └── .vscode/             # Task & Launch Configs
 ```
