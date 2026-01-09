@@ -34,8 +34,11 @@ query_api = client.query_api()
 _road_segments: list = []
 _traffic_cache: List[Dict[str, Any]] = []
 _traffic_task: Optional[asyncio.Task] = None
+_parking_cache: List[Dict[str, Any]] = []
+_parking_task: Optional[asyncio.Task] = None
 
 MEASUREMENT_TRAFFIC = config.MEASUREMENT_TRAFFIC
+MEASUREMENT_PARKING = config.MEASUREMENT_PARKING
 
 
 def _load_roads() -> None:
@@ -131,6 +134,72 @@ def _fetch_recent_traffic_sync(window: str = "15m") -> List[Dict[str, Any]]:
     return items
 
 
+def _flux_recent_parking(window: str = "15m") -> str:
+    """Flux to retrieve the latest parking observations within a window."""
+    return f'''
+from(bucket: "{bucket}")
+  |> range(start: -{window})
+  |> filter(fn: (r) => r._measurement == "{MEASUREMENT_PARKING}")
+  |> filter(fn: (r) => r._field == "entity_id" or r._field == "total_spots" or r._field == "occupied_spots" or r._field == "available_spots" or r._field == "status" or r._field == "lat" or r._field == "lng" or r._field == "street")
+  |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  |> group(columns: ["entity_id"])
+  |> sort(columns: ["_time"], desc: true)
+  |> unique(column: "entity_id")
+  |> keep(columns: ["_time", "entity_id", "total_spots", "occupied_spots", "available_spots", "status", "lat", "lng", "street"])
+'''
+
+
+def _fetch_recent_parking_sync(window: str = "15m") -> List[Dict[str, Any]]:
+    flux = _flux_recent_parking(window)
+    tables = query_api.query(org=org, query=flux)
+
+    items: List[Dict[str, Any]] = []
+    processed = skipped = 0
+    for table in tables:
+        for record in table.records:
+            v = record.values
+            try:
+                entity_id = v.get("entity_id")
+                if not entity_id:
+                    continue
+                entity_id = str(entity_id)
+                total = int(v.get("total_spots"))
+                occupied = int(v.get("occupied_spots"))
+                available_raw = v.get("available_spots")
+                try:
+                    available = int(available_raw) if available_raw is not None else max(0, total - occupied)
+                except (TypeError, ValueError):
+                    available = max(0, total - occupied)
+                lat = float(v.get("lat"))
+                lng = float(v.get("lng"))
+                geometry = None
+                snapped = _nearest_road_segment(lat, lng)
+                if snapped:
+                    geometry = {"type": "LineString", "coordinates": snapped}
+                else:
+                    geometry = {"type": "Point", "coordinates": [lng, lat]}
+                items.append({
+                    "id": entity_id.split(":")[-1],
+                    "entity_id": entity_id,
+                    "lat": lat,
+                    "lng": lng,
+                    "total_spots": total,
+                    "occupied_spots": max(0, min(occupied, total)),
+                    "available_spots": available,
+                    "status": str(v.get("status")) if v.get("status") is not None else "",
+                    "street": str(v.get("street")) if v.get("street") is not None else "",
+                    "ts": str(v.get("_time")),
+                    "geometry": geometry,
+                })
+                processed += 1
+            except (TypeError, ValueError) as exc:
+                skipped += 1
+                print(f"[frontend_map_api] Skipped parking record due to parse error: {exc} values={v}")
+                continue
+    print(f"[frontend_map_api] Parking fetch window={window}: processed={processed}, skipped={skipped}")
+    return items
+
+
 async def _refresh_traffic_cache(loop_window: str = "15m", interval_seconds: int = 15) -> None:
     """Poll Influx every interval and keep a fresh cache so the endpoint responds immediately."""
     global _traffic_cache
@@ -144,11 +213,25 @@ async def _refresh_traffic_cache(loop_window: str = "15m", interval_seconds: int
         await asyncio.sleep(interval_seconds)
 
 
+async def _refresh_parking_cache(loop_window: str = "6h", interval_seconds: int = 30) -> None:
+    """Poll Influx to keep parking cache fresh."""
+    global _parking_cache
+    while True:
+        try:
+            data = await asyncio.to_thread(_fetch_recent_parking_sync, loop_window)
+            _parking_cache = data
+            print(f"[frontend_map_api] Cache refresh -> {len(data)} parking items (window={loop_window})")
+        except Exception as exc:  # noqa: BLE001
+            print(f"[frontend_map_api] Parking cache refresh error: {exc}")
+        await asyncio.sleep(interval_seconds)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _traffic_task
+    global _traffic_task, _parking_task
     print(f"[frontend_map_api] startup: influx={influxdb_url} bucket={bucket} org={org}")
     _traffic_task = asyncio.create_task(_refresh_traffic_cache())
+    _parking_task = asyncio.create_task(_refresh_parking_cache())
     try:
         yield
     finally:
@@ -156,6 +239,12 @@ async def lifespan(app: FastAPI):
             _traffic_task.cancel()
             try:
                 await _traffic_task
+            except asyncio.CancelledError:
+                pass
+        if _parking_task:
+            _parking_task.cancel()
+            try:
+                await _parking_task
             except asyncio.CancelledError:
                 pass
         print("[frontend_map_api] shutdown")
@@ -181,6 +270,15 @@ def recent_traffic(window: str = "15m") -> List[Dict[str, Any]]:
     print(f"[frontend_map_api] Traffic request received (window={window})")
     data = _traffic_cache if _traffic_cache else _fetch_recent_traffic_sync(window)
     print(f"[frontend_map_api] Traffic response window={window} -> {len(data)} items")
+    return data
+
+
+@app.get("/pwa/parking/recent")
+def recent_parking(window: str = "15m") -> List[Dict[str, Any]]:
+    """Return latest parking observations within the given time window for the PWA."""
+    print(f"[frontend_map_api] Parking request received (window={window})")
+    data = _parking_cache if _parking_cache else _fetch_recent_parking_sync(window)
+    print(f"[frontend_map_api] Parking response window={window} -> {len(data)} items")
     return data
 
 
