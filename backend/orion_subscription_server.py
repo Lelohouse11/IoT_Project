@@ -79,7 +79,7 @@ def _create_subscription(
             "entities": [{"idPattern": ".*", "type": entity_type}],
         },
         "notification": {
-            "http": {"url": DEFAULT_ORION_URL},
+            "http": {"url": callback_url},
             "attrs": ["severity", "status", "location", "dateObserved"],
             "metadata": ["dateCreated", "dateModified"],
         },

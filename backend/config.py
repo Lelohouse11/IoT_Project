@@ -28,7 +28,13 @@ FIWARE_SERVICE = os.getenv("FIWARE_SERVICE", "default")
 # FIWARE Service Path header (scope)
 FIWARE_SERVICE_PATH = os.getenv("FIWARE_SERVICE_PATH", "/week4_up1125093")
 # Callback URL for subscriptions (used by orion_subscription_server.py)
-SUBSCRIPTION_CALLBACK_URL = os.getenv("SUBSCRIPTION_CALLBACK_URL", "http://localhost:8080/orion")
+# Cygnus Settings
+CYGNUS_URL = os.getenv("CYGNUS_URL", "http://localhost:5050")
+CYGNUS_NOTIFY_PATH = os.getenv("CYGNUS_NOTIFY_PATH", "/notify")
+
+# Callback URL for subscriptions (used by orion_subscription_server.py)
+# Default to Cygnus notify endpoint so Orion notifications go to Cygnus -> MySQL
+SUBSCRIPTION_CALLBACK_URL = os.getenv("SUBSCRIPTION_CALLBACK_URL", f"{CYGNUS_URL}{CYGNUS_NOTIFY_PATH}")
 
 # Auth Settings
 # Secret key for signing JWT tokens
