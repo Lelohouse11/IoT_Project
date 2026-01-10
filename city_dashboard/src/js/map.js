@@ -319,7 +319,6 @@ export function initMap() {
       fetchRecentAccidents();
       fetchRecentTraffic();
       fetchRecentViolations();
-      reloadGrafana();
       nextRefreshAt = Date.now() + CONFIG.REFRESH_MS;
     }, CONFIG.REFRESH_MS);
     if (countdownTimer) clearInterval(countdownTimer);
