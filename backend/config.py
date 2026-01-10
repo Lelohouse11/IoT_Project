@@ -47,7 +47,7 @@ WHITELISTED_EMAILS = [
 
 # LLM Settings
 LLM_API_URL = os.getenv("LLM_API_URL", "http://localhost:5001/ask")
-LLM_MODEL = os.getenv("MODEL", "llama3.1:8b-instruct-q4_K_M")
+LLM_MODEL = os.getenv("MODEL", "mistral:7b-instruct-q4_K_M")
 LLM_UPSTREAM_URL = os.getenv("LLM_UPSTREAM_URL", "http://labserver.sense-campus.gr:7080/chat")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "studentpassword")
 LLM_BIND_HOST = os.getenv("LLM_BIND_HOST", "0.0.0.0")
