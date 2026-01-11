@@ -18,28 +18,19 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from simulation.orion_helpers import OrionClient
 from simulation.geo_helpers import load_road_segments, sample_point_on_road
+from simulation.generator_config import (
+    ORION_BASE_URL,
+    FIWARE_SERVICE_PATH,
+    REQUEST_TIMEOUT,
+    AccidentGeneratorConfig,
+)
 
 FIWARE_TYPE = "TrafficAccident"
-ORION_BASE_URL = "http://150.140.186.118:1026"
-FIWARE_SERVICE_PATH = "/week4_up1125093"
-FIWARE_OWNER = "week4_up1125093"
-REQUEST_TIMEOUT = 5
 ORION = OrionClient(
     base_url=ORION_BASE_URL,
     service_path=FIWARE_SERVICE_PATH,
     request_timeout=REQUEST_TIMEOUT,
 )
-
-
-@dataclass
-class GeneratorConfig:
-    center_lat: float = 38.2464
-    center_lng: float = 21.7346
-    max_offset_deg: float = 0.02
-    interval_sec: float = 3.0
-    prob_new: float = 0.6
-    prob_update: float = 0.25
-    prob_clear: float = 0.15
 
 
 @dataclass
@@ -89,10 +80,10 @@ def _build_fiware_entity(aid: str, accident: Accident, event: str, status: str, 
     }
 
 
-def generate_accident_data(config: Optional[GeneratorConfig] = None):
+def generate_accident_data(config: Optional[AccidentGeneratorConfig] = None):
     """Continuously emit fake accident events to the Orion Context Broker."""
     if config is None:
-        config = GeneratorConfig()
+        config = AccidentGeneratorConfig()
 
     road_segments, segment_weights = load_road_segments()
 
@@ -179,16 +170,16 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
 def main():
     """CLI wrapper for the accident faker with helpful defaults."""
     parser = argparse.ArgumentParser(description="Accident data faker (Orion Context Broker)")
-    parser.add_argument("--center-lat", type=float, default=GeneratorConfig.center_lat, help="Center latitude")
-    parser.add_argument("--center-lng", type=float, default=GeneratorConfig.center_lng, help="Center longitude")
-    parser.add_argument("--offset", type=float, default=GeneratorConfig.max_offset_deg, help="Max random offset in degrees")
-    parser.add_argument("--interval", type=float, default=GeneratorConfig.interval_sec, help="Interval between events (seconds)")
-    parser.add_argument("--new", type=float, default=GeneratorConfig.prob_new, help="Probability of a new accident per tick")
-    parser.add_argument("--update", type=float, default=GeneratorConfig.prob_update, help="Probability of an update per tick")
-    parser.add_argument("--clear", type=float, default=GeneratorConfig.prob_clear, help="Probability of a clear per tick")
+    parser.add_argument("--center-lat", type=float, default=AccidentGeneratorConfig.center_lat, help="Center latitude")
+    parser.add_argument("--center-lng", type=float, default=AccidentGeneratorConfig.center_lng, help="Center longitude")
+    parser.add_argument("--offset", type=float, default=AccidentGeneratorConfig.max_offset_deg, help="Max random offset in degrees")
+    parser.add_argument("--interval", type=float, default=AccidentGeneratorConfig.interval_sec, help="Interval between events (seconds)")
+    parser.add_argument("--new", type=float, default=AccidentGeneratorConfig.prob_new, help="Probability of a new accident per tick")
+    parser.add_argument("--update", type=float, default=AccidentGeneratorConfig.prob_update, help="Probability of an update per tick")
+    parser.add_argument("--clear", type=float, default=AccidentGeneratorConfig.prob_clear, help="Probability of a clear per tick")
     args = parser.parse_args()
 
-    config = GeneratorConfig(
+    config = AccidentGeneratorConfig(
         center_lat=args.center_lat,
         center_lng=args.center_lng,
         max_offset_deg=args.offset,

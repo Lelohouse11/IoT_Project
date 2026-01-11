@@ -1,35 +1,38 @@
-"""MQTT bridge service that consumes Orion updates and persists them to InfluxDB."""
+"""HTTP bridge service that receives Orion notifications and persists them to InfluxDB."""
 
-import argparse
 import json
-import random
+import logging
 import sys
 import time
 from collections import defaultdict
-from datetime import datetime
-from dateutil.parser import isoparse
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+
+import httpx
+from fastapi import FastAPI, HTTPException
+from dateutil.parser import isoparse
+from influxdb_client import InfluxDBClient, Point, WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-from debug import print_context  # noqa: F401
-
-import paho.mqtt.client as mqtt
-from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS
 
 from backend import config
 
-# MQTT setup (mirrors the admin-made subscription visible in subscriptions.json)
-MQTT_BROKER = config.MQTT_BROKER
-MQTT_PORT = config.MQTT_PORT
-MQTT_TOPIC = config.MQTT_TOPIC
-FILTER_ATTRIBUTE = "owner"
-FILTER_VALUE = "week4_up1125093"
+# Logging setup
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# InfluxDB configuration reused from mqtt_to_influx_connector.py
+# Configuration
+ORION_URL = config.ORION_URL
+FIWARE_SERVICE = config.FIWARE_SERVICE
+FIWARE_SERVICE_PATH = config.FIWARE_SERVICE_PATH
+ORION_CALLBACK_URL = config.ORION_CALLBACK_URL
+SUBSCRIPTION_ID = "orion-bridge-notifications"
+SUBSCRIPTION_ENDPOINT = f"{ORION_CALLBACK_URL}/notify"
+
+# InfluxDB configuration
 INFLUX_URL = config.INFLUX_URL
 INFLUX_BUCKET = config.INFLUX_BUCKET
 INFLUX_ORG = config.INFLUX_ORG
@@ -39,8 +42,17 @@ MEASUREMENT_PARKING = config.MEASUREMENT_PARKING
 MEASUREMENT_TRAFFIC = config.MEASUREMENT_TRAFFIC
 MEASUREMENT_VIOLATIONS = config.MEASUREMENT_VIOLATIONS
 
-client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
-write_api = client.write_api(write_options=SYNCHRONOUS)
+# FastAPI app setup
+app = FastAPI(title="Orion Bridge API", description="HTTP bridge for Orion notifications")
+
+# InfluxDB client
+influx_client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
+write_api = influx_client.write_api(write_options=SYNCHRONOUS)
+
+# Statistics tracking
+_STATS = defaultdict(int)
+_LAST_PRINT_TIME = time.time()
+_PRINT_INTERVAL = 5.0
 
 
 def _attr_value(entity: Dict[str, Any], key: str, default: Optional[Any] = None) -> Optional[Any]:
@@ -108,7 +120,7 @@ def _accident_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     lat, lng = _extract_coords(entity)
 
     if lat is None or lng is None:
-        print(f"[skip] accident {entity_id} missing coordinates")
+        logger.debug(f"[skip] accident {entity_id} missing coordinates")
         return None
 
     accident_id = entity_id.split(":")[-1]
@@ -141,7 +153,7 @@ def _parking_to_point(entity: Dict[str, Any]) -> Optional[Point]:
         total = int(total)
         occupied = int(occupied)
     except (TypeError, ValueError):
-        print(f"[skip] parking {entity_id} invalid counts")
+        logger.debug(f"[skip] parking {entity_id} invalid counts")
         return None
     if available is None:
         available = max(0, total - occupied)
@@ -156,7 +168,7 @@ def _parking_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     lat, lng = _extract_coords(entity)
 
     if lat is None or lng is None:
-        print(f"[skip] parking {entity_id} missing coordinates")
+        logger.debug(f"[skip] parking {entity_id} missing coordinates")
         return None
 
     point = (
@@ -196,11 +208,11 @@ def _traffic_to_point(entity: Dict[str, Any]) -> Optional[Point]:
         density = float(density)
         occupancy = float(occupancy)
     except (TypeError, ValueError):
-        print(f"[skip] traffic {entity_id} invalid numeric values")
+        logger.debug(f"[skip] traffic {entity_id} invalid numeric values")
         return None
 
     if lat is None or lng is None:
-        print(f"[skip] traffic {entity_id} missing coordinates")
+        logger.debug(f"[skip] traffic {entity_id} missing coordinates")
         return None
 
     point = (
@@ -235,7 +247,7 @@ def _violation_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     lat, lng = _extract_coords(entity)
 
     if lat is None or lng is None:
-        print(f"[skip] violation {entity_id} missing coordinates")
+        logger.debug(f"[skip] violation {entity_id} missing coordinates")
         return None
 
     point = (
@@ -266,101 +278,135 @@ def _entity_to_point(entity: Dict[str, Any]) -> Optional[Point]:
     return _accident_to_point(entity)
 
 
-def _is_allowed_entity(entity: Dict[str, Any]) -> bool:
-    """Return True if the entity belongs to our faker (owner attribute)."""
-    owner = _attr_value(entity, FILTER_ATTRIBUTE)
-    if owner is None:
-        print(f"[skip] {entity.get('id')} missing '{FILTER_ATTRIBUTE}' attribute")
-        return False
-    if owner != FILTER_VALUE:
-        print(f"[skip] {entity.get('id')} owner '{owner}' != '{FILTER_VALUE}'")
-        return False
-    return True
-
-
-
-_STATS = defaultdict(int)
-_LAST_PRINT_TIME = time.time()
-_PRINT_INTERVAL = 5.0
-
-
-def _process_notification(message: str) -> None:
-    """Handle a single MQTT payload (JSON with `data` array)."""
+def _process_notification(payload: Dict[str, Any]) -> None:
+    """Handle a notification payload (JSON with `data` array)."""
     global _LAST_PRINT_TIME
-    try:
-        payload = json.loads(message)
-    except json.JSONDecodeError:
-        print(f"[error] process_notification Invalid JSON: {message[:80]}")
-        return
-
+    
     entities = payload.get("data")
     if not isinstance(entities, list):
-        print("[error] process_notification Notification missing 'data' array")
+        logger.warning("Notification missing 'data' array")
         return
 
-    # print(f"[notify]  {len(entities)} entities from MQTT")
     stored = 0
     for entity in entities:
         if not isinstance(entity, dict):
-            print("[warn] process_notification Skipping non-dict entity")
+            logger.warning("Skipping non-dict entity")
             continue
-        if not _is_allowed_entity(entity):
-            continue
+        
         point = _entity_to_point(entity)
         if point is None:
             continue
+        
         try:
             write_api.write(bucket=INFLUX_BUCKET, org=INFLUX_ORG, record=point)
             stored += 1
-            # print(f"[store] {entity.get('id')} written to Influx")
             entity_type = entity.get("type", "Unknown")
             _STATS[entity_type] += 1
-        except Exception as exc:  # pragma: no cover - log and continue
-            print(f"[error] Failed to write {entity.get('id')}: {exc}")
-    
-    # if stored == 0:
-    #     print("[warn] No entities stored for this notification")
+            logger.debug(f"[store] {entity.get('id')} written to Influx")
+        except Exception as exc:
+            logger.error(f"Failed to write {entity.get('id')}: {exc}")
 
     now = time.time()
     if now - _LAST_PRINT_TIME > _PRINT_INTERVAL:
         if _STATS:
             summary = ", ".join(f"{count} {etype}" for etype, count in _STATS.items())
-            print(f"[summary] Stored in last {int(_PRINT_INTERVAL)}s: {summary}")
+            logger.info(f"Stored in last {int(_PRINT_INTERVAL)}s: {summary}")
             _STATS.clear()
         _LAST_PRINT_TIME = now
 
 
-def _on_connect(mqtt_client: mqtt.Client, userdata, flags, rc):
-    if rc == 0:
-        print(f"[mqtt] Connected to {userdata['host']}:{userdata['port']}, subscribing to {userdata['topic']}")
-        mqtt_client.subscribe(userdata["topic"])
-    else:
-        print(f"[mqtt] Connection failed with code {rc}")
+async def _ensure_subscription_exists() -> None:
+    """Check if the subscription exists; create it if not."""
+    async with httpx.AsyncClient() as client:
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
+        # List all subscriptions to check if ours exists
+        list_url = f"{ORION_URL}/v2/subscriptions"
+        try:
+            response = await client.get(list_url, headers=headers, timeout=10.0)
+            if response.status_code == 200:
+                subscriptions = response.json()
+                # Check if our subscription already exists
+                for sub in subscriptions:
+                    if sub.get("description") == "Automatic notifications to Orion bridge service":
+                        logger.info(f"[subscription] Found existing subscription: {sub.get('id')}")
+                        return
+        except Exception as e:
+            logger.warning(f"[subscription] Error checking subscriptions: {e}")
+
+        # Create subscription if it doesn't exist
+        logger.info(f"[subscription] Creating subscription with callback URL: {SUBSCRIPTION_ENDPOINT}")
+        subscription_payload = {
+            "description": "Automatic notifications to Orion bridge service",
+            "subject": {
+                "entities": [{"idPattern": ".*"}]
+            },
+            "notification": {
+                "http": {
+                    "url": SUBSCRIPTION_ENDPOINT
+                }
+            }
+        }
+        
+        post_url = f"{ORION_URL}/v2/subscriptions"
+        try:
+            response = await client.post(
+                post_url,
+                json=subscription_payload,
+                headers=headers,
+                timeout=10.0
+            )
+            if response.status_code in (201, 200):
+                logger.info(f"[subscription] Created subscription successfully")
+            else:
+                logger.error(
+                    f"[subscription] Failed to create subscription. "
+                    f"Status: {response.status_code}, Response: {response.text}"
+                )
+                logger.error(f"[subscription] Payload sent: {subscription_payload}")
+        except Exception as e:
+            logger.error(f"[subscription] Error creating subscription: {e}")
 
 
-def _on_message(_client, _userdata, msg: mqtt.MQTTMessage):
-    payload = msg.payload.decode("utf-8", errors="ignore")
-    _process_notification(payload)
+@app.on_event("startup")
+async def startup_event():
+    """Initialize subscription on startup."""
+    logger.info("[startup] Ensuring Orion subscription exists...")
+    await _ensure_subscription_exists()
+    logger.info("[startup] Orion bridge service ready")
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Orion MQTT -> Influx bridge")
-    parser.add_argument("--mqtt-host", default=MQTT_BROKER, help="MQTT broker hostname")
-    parser.add_argument("--mqtt-port", type=int, default=MQTT_PORT, help="MQTT broker port")
-    parser.add_argument("--mqtt-topic", default=MQTT_TOPIC, help="MQTT topic carrying Orion notifications")
-    parser.add_argument("--client-id", help="Custom MQTT client id")
-    args = parser.parse_args()
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown."""
+    logger.info("[shutdown] Orion bridge service shutting down")
+    influx_client.close()
 
-    userdata = {"host": args.mqtt_host, "port": args.mqtt_port, "topic": args.mqtt_topic}
-    client_id = args.client_id or f"orion-bridge-{random.randint(0, 9999)}"
-    mqtt_client = mqtt.Client(client_id=client_id, userdata=userdata)
-    mqtt_client.on_connect = _on_connect
-    mqtt_client.on_message = _on_message
 
-    print(f"[mqtt] Connecting as {client_id} to {args.mqtt_host}:{args.mqtt_port}, topic {args.mqtt_topic}")
-    mqtt_client.connect(args.mqtt_host, args.mqtt_port)
-    mqtt_client.loop_forever()
+@app.post("/notify")
+async def receive_notification(payload: Dict[str, Any]):
+    """Receive HTTP POST notifications from Orion Context Broker."""
+    try:
+        _process_notification(payload)
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Error processing notification: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint."""
+    return {"status": "healthy"}
 
 
 if __name__ == "__main__":
-    main()
+    import uvicorn
+    
+    uvicorn.run(
+        app,
+        host=config.BRIDGE_BIND_HOST,
+        port=config.BRIDGE_BIND_PORT,
+    )

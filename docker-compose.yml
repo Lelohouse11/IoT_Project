@@ -28,23 +28,6 @@ services:
       PMA_HOST: mysql_db
       MYSQL_ROOT_PASSWORD: rootpassword
 
-  cygnus:
-    image: fiware/cygnus-ngsi:3.10.0
-    container_name: iot_cygnus
-    restart: unless-stopped
-    depends_on:
-      - mysql_db
-    ports:
-      - "5050:5050"    # Flume HTTP source (receives NGSI notifications)
-      - "8082:8082"    # Cygnus admin API
-    environment:
-      CYGNUS_LOG_LEVEL: INFO
-      CYGNUS_API_PORT: 8082
-    volumes:
-      - ./docker/cygnus-agent.conf:/opt/apache-flume/conf/agent.conf
-      - ./cygnus_logs:/var/log/cygnus
-    command: bin/flume-ng agent --conf ./conf -f conf/agent.conf -n CygnusAgent -Dflume.root.logger=INFO,LOGFILE
-
   iot_fakers:
     build:
       context: .
@@ -53,12 +36,12 @@ services:
     restart: unless-stopped
     depends_on:
       - mysql_db
+      - orion
     environment:
       MYSQL_HOST: mysql_db
       MYSQL_USER: iot_user
       MYSQL_PASSWORD: iot_password
       MYSQL_DB: iot_city_db
-      SUBSCRIPTION_CALLBACK_URL: "http://cygnus:5050/notify"
     volumes:
       - ./simulation:/app/simulation
       - ./backend:/app/backend
@@ -73,14 +56,23 @@ services:
     restart: unless-stopped
     depends_on:
       - mysql_db
+      - orion
     ports:
       - "8000:8000" # Map API
+      - "8001:8001" # Orion Bridge
+      - "8002:8002" # Auth API
       - "9090:9090" # LLM API
     environment:
       MYSQL_HOST: mysql_db
       MYSQL_USER: iot_user
       MYSQL_PASSWORD: iot_password
       MYSQL_DB: iot_city_db
+      ORION_CALLBACK_URL: http://iot-apis:8001
+      ORION_URL: http://orion:1026
+    networks:
+      default:
+        aliases:
+          - iot-apis
     volumes:
       - ./backend:/app/backend
       - ./simulation:/app/simulation
@@ -99,3 +91,23 @@ services:
     volumes:
       - ./city_dashboard:/app/city_dashboard
     command: ["bash", "docker/start_frontends.sh"]
+
+  mongo:
+    image: mongo:4.4
+    container_name: iot_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo_data:/data/db
+    command: --nojournal
+
+  orion:
+    image: fiware/orion:3.10.1
+    container_name: iot_orion
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - "1026:1026"
+    command: -dbhost mongo -logLevel DEBUG

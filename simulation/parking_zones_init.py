@@ -17,16 +17,17 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from simulation.orion_helpers import OrionClient
 from backend import database
+from simulation.generator_config import (
+    ORION_BASE_URL,
+    FIWARE_SERVICE_PATH,
+    REQUEST_TIMEOUT,
+)
 
-# Orion / FIWARE settings (reuse values from accident_generator.py)
+# Orion / FIWARE settings
 FIWARE_TYPE = "OnStreetParking"
 SMART_DATA_MODEL_SCHEMA = (
     "https://smart-data-models.github.io/dataModel.Parking/OnStreetParking/schema.json"
 )
-ORION_BASE_URL = "http://150.140.186.118:1026"
-FIWARE_SERVICE_PATH = "/week4_up1125093"
-FIWARE_OWNER = "week4_up1125093"
-REQUEST_TIMEOUT = 5
 
 ORION = OrionClient(
     base_url=ORION_BASE_URL,
@@ -65,7 +66,6 @@ def _build_entity(zone: ParkingZone, now_iso: str) -> Dict[str, Dict[str, Any]]:
     return {
         "id": f"urn:ngsi-ld:{FIWARE_TYPE}:{zone.pid}",
         "type": FIWARE_TYPE,
-        "owner": {"type": "Text", "value": FIWARE_OWNER},
         "name": {"type": "Text", "value": zone.name},
         "streetName": {"type": "Text", "value": zone.street_name or zone.name},
         "highwayType": {"type": "Text", "value": zone.highway_type},
