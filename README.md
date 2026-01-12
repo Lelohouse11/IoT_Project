@@ -11,18 +11,19 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
   - `traffic_violation_generator.py`: Emits `TrafficViolation` detections (red light, illegal parking).
   - `parking_generator.py`: Simulates `OnStreetParking` occupancy.
   - `traffic_generator.py`: Drives `TrafficFlowObserved` entities.
+  - All generators are configured via `generator_config.py` with dataclass defaults (AccidentGeneratorConfig, ParkingGeneratorConfig, TrafficGeneratorConfig, TrafficViolationGeneratorConfig).
 - **Backend Services** (`backend/`) – Python services bridging data and serving the frontend:
   - `map_service.py` (FastAPI): Serves geo-snapped data for the map and reward endpoints.
   - `reward_service.py`: Calculates driver streaks and reward data.
   - `reward_router.py`: FastAPI router for `/api/rewards/*` endpoints.
   - `auth_service.py` (FastAPI): Dedicated authentication server for login/register.
+  - `orion_bridge_service.py`: HTTP bridge that receives Orion notifications and persists them to InfluxDB.
   - `frontend_map_api.py` (FastAPI): Dedicated PWA-facing API (Port 8010) for serving traffic overlays.
-  - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
   - `llm_service.py` (Flask): Proxy for the LLM chat assistant.
-  - `orion_subscription_server.py`: Helper to manage Orion subscriptions.
 
 ## Data & Infra
 - **FIWARE Orion Context Broker** – Central NGSI v2 endpoint for simulated entities.
+- **MongoDB** – Persistent store for Orion Context Broker entities. Runs in Docker.
 - **MySQL 8.0** – Relational database for static city data (road network, parking entities), user management, and driver profiles for rewards. Runs in Docker.
 - **InfluxDB 2.x** – Stores time-series data (accidents, traffic flow) for historical analysis.
 - **Grafana** – Visualizes KPIs and is embedded inside the City Dashboard.
@@ -33,11 +34,10 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 - **Leaflet** – Open-source JavaScript library for interactive maps.
 
 ## Configuration
-The project uses environment variables for configuration. 
-1. Copy `.env.example` to `.env` in the root directory.
-2. Update the values in `.env` with your specific credentials (InfluxDB token, API keys, etc.).
+The project uses environment variables and centralized dataclass configurations:
+1. **Backend Configuration**: Copy `.env.example` to `.env` in the root directory and update credentials (InfluxDB token, API keys, etc.). The `backend/config.py` module loads these settings automatically.
    - Add `SECRET_KEY` for JWT signing (optional, defaults to a dev key).
-3. The `backend/config.py` module loads these settings automatically.
+2. **Simulation Configuration**: `simulation/generator_config.py` provides centralized dataclass configurations for all simulators (AccidentGeneratorConfig, ParkingGeneratorConfig, etc.). CLI arguments override defaults at runtime.
 
 ## Authentication
 The system implements a secure, standard-library based JWT authentication mechanism.

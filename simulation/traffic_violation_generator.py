@@ -18,12 +18,17 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from simulation.orion_helpers import OrionClient
 from simulation.geo_helpers import load_road_segments, sample_point_on_road
+from simulation.generator_config import (
+    ORION_BASE_URL,
+    FIWARE_SERVICE_PATH,
+    REQUEST_TIMEOUT,
+    TrafficViolationGeneratorConfig,
+    VIOLATION_TYPES,
+    EQUIPMENT_IDS,
+    EQUIPMENT_TYPES,
+)
 
 FIWARE_TYPE = "TrafficViolation"
-ORION_BASE_URL = "http://150.140.186.118:1026"
-FIWARE_SERVICE_PATH = "/week4_up1125093"
-FIWARE_OWNER = "week4_up1125093"
-REQUEST_TIMEOUT = 5
 ORION = OrionClient(
     base_url=ORION_BASE_URL,
     service_path=FIWARE_SERVICE_PATH,
@@ -61,7 +66,6 @@ def _build_entity(
     return {
         "id": f"urn:ngsi-ld:{FIWARE_TYPE}:{vid}",
         "type": FIWARE_TYPE,
-        "owner": {"type": "Text", "value": FIWARE_OWNER},
         "titleCode": {"type": "Text", "value": violation["code"]},
         "description": {"type": "Text", "value": violation["desc"]},
         "observationDateTime": {"type": "DateTime", "value": now_iso},
@@ -75,10 +79,10 @@ def _build_entity(
     }
 
 
-def generate_violation_data(config: Optional[GeneratorConfig] = None) -> None:
+def generate_violation_data(config: Optional[TrafficViolationGeneratorConfig] = None) -> None:
     """Continuously emit synthetic traffic violations to Orion."""
     if config is None:
-        config = GeneratorConfig()
+        config = TrafficViolationGeneratorConfig()
 
     road_segments, segment_weights = load_road_segments()
     next_id = 1
@@ -106,13 +110,13 @@ def generate_violation_data(config: Optional[GeneratorConfig] = None) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="TrafficViolation faker (Orion Context Broker)")
-    parser.add_argument("--center-lat", type=float, default=GeneratorConfig.center_lat, help="Center latitude")
-    parser.add_argument("--center-lng", type=float, default=GeneratorConfig.center_lng, help="Center longitude")
-    parser.add_argument("--offset", type=float, default=GeneratorConfig.max_offset_deg, help="Max random offset in degrees")
-    parser.add_argument("--interval", type=float, default=GeneratorConfig.interval_sec, help="Interval between events (seconds)")
+    parser.add_argument("--center-lat", type=float, default=TrafficViolationGeneratorConfig.center_lat, help="Center latitude")
+    parser.add_argument("--center-lng", type=float, default=TrafficViolationGeneratorConfig.center_lng, help="Center longitude")
+    parser.add_argument("--offset", type=float, default=TrafficViolationGeneratorConfig.max_offset_deg, help="Max random offset in degrees")
+    parser.add_argument("--interval", type=float, default=TrafficViolationGeneratorConfig.interval_sec, help="Interval between events (seconds)")
     args = parser.parse_args()
 
-    config = GeneratorConfig(
+    config = TrafficViolationGeneratorConfig(
         center_lat=args.center_lat,
         center_lng=args.center_lng,
         max_offset_deg=args.offset,

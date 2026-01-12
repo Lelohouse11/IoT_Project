@@ -36,6 +36,7 @@ services:
     restart: unless-stopped
     depends_on:
       - mysql_db
+      - orion
     environment:
       MYSQL_HOST: mysql_db
       MYSQL_USER: iot_user
@@ -55,16 +56,24 @@ services:
     restart: unless-stopped
     depends_on:
       - mysql_db
+      - orion
     ports:
-      - "8000:8000" # Map API
+      - "8000:8000" # Map API (possible problem because of merge)
+      - "8001:8001" # Orion Bridge
       - "8002:8002" # Auth API
-      - "8010:8010" # Frontend Map API
+      - "8010:8010" # Frontend Map API (possible problem because of merge)
       - "9090:9090" # LLM API
     environment:
       MYSQL_HOST: mysql_db
       MYSQL_USER: iot_user
       MYSQL_PASSWORD: iot_password
       MYSQL_DB: iot_city_db
+      ORION_CALLBACK_URL: http://iot-apis:8001
+      ORION_URL: http://orion:1026
+    networks:
+      default:
+        aliases:
+          - iot-apis
     volumes:
       - ./backend:/app/backend
       - ./simulation:/app/simulation
@@ -83,3 +92,23 @@ services:
     volumes:
       - ./city_dashboard:/app/city_dashboard
     command: ["bash", "docker/start_frontends.sh"]
+
+  mongo:
+    image: mongo:4.4
+    container_name: iot_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./mongo_data:/data/db
+    command: --nojournal
+
+  orion:
+    image: fiware/orion:3.10.1
+    container_name: iot_orion
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    ports:
+      - "1026:1026"
+    command: -dbhost mongo -logLevel DEBUG
