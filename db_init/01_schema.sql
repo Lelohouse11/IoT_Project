@@ -40,3 +40,23 @@ CREATE TABLE IF NOT EXISTS traffic_entities (
     lng DOUBLE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Driver profiles for the rewards system
+-- Independent from the users table (which is for the other frontend)
+CREATE TABLE IF NOT EXISTS driver_profiles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    license_plate VARCHAR(20),
+    last_traffic_violation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_parking_violation TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    current_points INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed test driver profile
+-- TODO: This will be replaced with proper user management in the future
+INSERT INTO driver_profiles (username, email, password_hash, license_plate, current_points)
+VALUES ('test_driver', 'test@example.com', 'hashed_password_placeholder', 'ABC-1234', 150)
+ON DUPLICATE KEY UPDATE username=VALUES(username);

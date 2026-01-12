@@ -12,7 +12,9 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
   - `parking_generator.py`: Simulates `OnStreetParking` occupancy.
   - `traffic_generator.py`: Drives `TrafficFlowObserved` entities.
 - **Backend Services** (`backend/`) – Python services bridging data and serving the frontend:
-  - `map_service.py` (FastAPI): Serves geo-snapped data for the map.
+  - `map_service.py` (FastAPI): Serves geo-snapped data for the map and reward endpoints.
+  - `reward_service.py`: Calculates driver streaks and reward data.
+  - `reward_router.py`: FastAPI router for `/api/rewards/*` endpoints.
   - `auth_service.py` (FastAPI): Dedicated authentication server for login/register.
   - `frontend_map_api.py` (FastAPI): Dedicated PWA-facing API (Port 8010) for serving traffic overlays.
   - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
@@ -21,7 +23,7 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 
 ## Data & Infra
 - **FIWARE Orion Context Broker** – Central NGSI v2 endpoint for simulated entities.
-- **MySQL 8.0** – Relational database for static city data (road network, parking entities) and user management. Runs in Docker.
+- **MySQL 8.0** – Relational database for static city data (road network, parking entities), user management, and driver profiles for rewards. Runs in Docker.
 - **InfluxDB 2.x** – Stores time-series data (accidents, traffic flow) for historical analysis.
 - **Grafana** – Visualizes KPIs and is embedded inside the City Dashboard.
 
