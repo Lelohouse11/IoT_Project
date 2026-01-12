@@ -58,5 +58,39 @@ CREATE TABLE IF NOT EXISTS driver_profiles (
 -- Seed test driver profile
 -- TODO: This will be replaced with proper user management in the future
 INSERT INTO driver_profiles (username, email, password_hash, license_plate, current_points)
-VALUES ('test_driver', 'test@example.com', 'hashed_password_placeholder', 'ABC-1234', 150)
+VALUES ('test_driver', 'test@example.com', 'hashed_password_placeholder', 'ABC-1234', 1100)
 ON DUPLICATE KEY UPDATE username=VALUES(username);
+
+-- Milestone awards tracking table
+-- Tracks which milestones have been awarded to prevent double-awarding
+CREATE TABLE IF NOT EXISTS milestone_awards (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    driver_id INT NOT NULL,
+    streak_type ENUM('traffic', 'parking') NOT NULL,
+    milestone_days INT NOT NULL,
+    points_awarded INT NOT NULL,
+    awarded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (driver_id) REFERENCES driver_profiles(id) ON DELETE CASCADE,
+    UNIQUE KEY unique_milestone (driver_id, streak_type, milestone_days)
+);
+
+-- Rewards catalog table
+-- Stores available rewards that drivers can redeem with their points
+CREATE TABLE IF NOT EXISTS rewards_catalog (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    points_cost INT NOT NULL,
+    category VARCHAR(50),
+    available BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed rewards catalog with predefined rewards
+INSERT INTO rewards_catalog (name, description, points_cost, category, available)
+VALUES 
+    ('Bus Ticket', 'Single ride bus ticket valid for 90 minutes', 150, 'transport', TRUE),
+    ('CityBike 24h Pass', '24-hour unlimited access to city bike sharing', 300, 'transport', TRUE),
+    ('Morning Espresso', 'Free espresso at participating cafes', 450, 'food', TRUE),
+    ('Groceries Discount', '10% discount voucher at local supermarkets', 600, 'shopping', TRUE)
+ON DUPLICATE KEY UPDATE name=VALUES(name);

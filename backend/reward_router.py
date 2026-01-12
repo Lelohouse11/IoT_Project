@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
+from typing import List
 from backend import reward_service
 
 router = APIRouter(prefix="/api/rewards", tags=["rewards"])
@@ -14,6 +15,28 @@ class RewardResponse(BaseModel):
     parking_streak_days: int
     traffic_progress_pct: int  # 0-100% progress toward 30-day milestone
     parking_progress_pct: int  # 0-100% progress toward 30-day milestone
+
+
+class RewardCatalogItem(BaseModel):
+    """Response model for reward catalog items."""
+    id: int
+    name: str
+    description: str
+    points_cost: int
+    category: str
+    available: bool
+
+
+@router.get("/catalog", response_model=List[RewardCatalogItem])
+def get_rewards_catalog():
+    """
+    Get all available rewards from the catalog.
+    
+    Returns:
+        List[RewardCatalogItem]: List of available rewards
+    """
+    catalog = reward_service.fetch_rewards_catalog()
+    return catalog
 
 
 @router.get("/{driver_id}", response_model=RewardResponse)
@@ -45,58 +68,40 @@ def get_driver_rewards(driver_id: int):
 
 
 class RedeemRequest(BaseModel):
-    """Request model for redeeming rewards."""
-    points_to_redeem: int
+    """Request model for redeeming a specific reward."""
+    reward_id: int
 
 
 @router.post("/{driver_id}/redeem")
 def redeem_rewards(driver_id: int, request: RedeemRequest):
     """
-    Redeem rewards for a driver (deduct points).
+    Redeem a specific reward for a driver.
     
     TODO: Add @auth_required decorator when user management is implemented.
-    TODO: Add validation to ensure driver has enough points.
-    TODO: Add reward history tracking when implementing full reward catalog.
     
     Args:
         driver_id (int): The ID of the driver
-        request (RedeemRequest): Contains points_to_redeem
+        request (RedeemRequest): Contains reward_id to redeem
         
     Returns:
-        dict: Updated reward data and confirmation
+        dict: Result with success status, message, and remaining points
         
     Raises:
-        HTTPException: If driver not found (404) or invalid points (400)
+        HTTPException: If driver not found (404), reward not found (404), or insufficient points (400)
     """
     if driver_id <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid driver_id")
     
-    if request.points_to_redeem <= 0:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Points to redeem must be positive")
+    if request.reward_id <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reward_id")
     
-    # Get current reward data
-    rewards = reward_service.get_driver_rewards(driver_id)
-    if "error" in rewards:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=rewards["error"])
+    # Process the redemption
+    result = reward_service.redeem_reward(driver_id, request.reward_id)
     
-    # Check if driver has enough points
-    if rewards["current_points"] < request.points_to_redeem:
+    if not result["success"]:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Insufficient points. Current: {rewards['current_points']}, Required: {request.points_to_redeem}"
+            detail=result["message"]
         )
     
-    # Deduct points (negative delta)
-    success = reward_service.update_driver_points(driver_id, -request.points_to_redeem)
-    
-    if not success:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to redeem points")
-    
-    # Fetch updated reward data
-    updated_rewards = reward_service.get_driver_rewards(driver_id)
-    
-    return {
-        "success": True,
-        "message": f"Successfully redeemed {request.points_to_redeem} points",
-        "rewards": RewardResponse(**updated_rewards)
-    }
+    return result

@@ -32,16 +32,32 @@ export async function fetchUserRewards(driverId) {
 }
 
 /**
- * Redeem rewards for a driver.
+ * Fetch available rewards from the catalog.
  * 
- * TODO: Add proper error handling and user feedback when redemption is implemented.
+ * @returns {Promise<Array>} List of available rewards with id, name, description, points_cost, category
+ * @throws {Error} If the API request fails
+ */
+export async function fetchRewardsCatalog() {
+  const url = `${REWARD_API_BASE}/api/rewards/catalog`.replace(/^\/+api/, '/api')
+  const res = await fetch(url, { headers: { Accept: 'application/json' } })
+  
+  if (!res.ok) {
+    throw new Error(`Failed to fetch rewards catalog (${res.status})`)
+  }
+
+  const data = await res.json()
+  return data
+}
+
+/**
+ * Redeem a specific reward for a driver.
  * 
  * @param {number} driverId - The driver ID
- * @param {number} pointsToRedeem - Number of points to redeem
- * @returns {Promise<Object>} Updated reward data after redemption
+ * @param {number} rewardId - The ID of the reward to redeem
+ * @returns {Promise<Object>} Result with success status, message, and remaining points
  * @throws {Error} If the API request fails or user has insufficient points
  */
-export async function redeemRewards(driverId, pointsToRedeem) {
+export async function redeemRewards(driverId, rewardId) {
   const url = `${REWARD_API_BASE}/api/rewards/${driverId}/redeem`.replace(/^\/+api/, '/api')
   
   const res = await fetch(url, {
@@ -50,7 +66,7 @@ export async function redeemRewards(driverId, pointsToRedeem) {
       'Content-Type': 'application/json',
       Accept: 'application/json'
     },
-    body: JSON.stringify({ points_to_redeem: pointsToRedeem })
+    body: JSON.stringify({ reward_id: rewardId })
   })
 
   if (!res.ok) {
@@ -59,14 +75,5 @@ export async function redeemRewards(driverId, pointsToRedeem) {
   }
 
   const data = await res.json()
-  
-  // Extract and parse the updated rewards from the response
-  const rewards = data.rewards || {}
-  return {
-    current_points: parseInt(rewards.current_points, 10) || 0,
-    traffic_streak_days: parseInt(rewards.traffic_streak_days, 10) || 0,
-    parking_streak_days: parseInt(rewards.parking_streak_days, 10) || 0,
-    traffic_progress_pct: parseInt(rewards.traffic_progress_pct, 10) || 0,
-    parking_progress_pct: parseInt(rewards.parking_progress_pct, 10) || 0
-  }
+  return data
 }
