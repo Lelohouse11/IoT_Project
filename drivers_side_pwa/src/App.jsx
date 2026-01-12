@@ -11,7 +11,6 @@ function App() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [signedIn, setSignedIn] = useState(false)
   const [activeTab, setActiveTab] = useState('map')
-  const [points, setPoints] = useState(1250)
   const [reportType, setReportType] = useState('accident')
   const [reportMsg, setReportMsg] = useState('Help improve the map by reporting issues.')
 
@@ -38,7 +37,6 @@ function App() {
     }
   }, [profileOpen])
 
-  const handleRedeem = () => setPoints((p) => Math.max(0, p - 250))
   const handleReport = () => setReportMsg(`Report sent: ${reportType.replace(/^\w/, (c) => c.toUpperCase())}. Thank you!`)
   const toggleProfile = () => setProfileOpen((v) => !v)
 
@@ -53,7 +51,7 @@ function App() {
       />
       <main className="wrap">
         <MapView active={activeTab === 'map'} />
-        <RewardsPanel active={activeTab === 'rewards'} points={points} onRedeem={handleRedeem} />
+        <RewardsPanel active={activeTab === 'rewards'} />
         <ReportPanel
           active={activeTab === 'report'}
           reportType={reportType}
