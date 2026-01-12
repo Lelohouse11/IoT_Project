@@ -12,18 +12,23 @@ INFLUX_ORG = os.getenv("INFLUX_ORG", "students")
 # Authentication token for InfluxDB
 INFLUX_TOKEN = os.getenv("INFLUX_TOKEN", "8fyeafMyUOuvA5sKqGO4YSRFJX5SjdLvbJKqE2jfQ3PFY9cWkeQxQgpiMXV4J_BAWqSzAnI2eckYOsbYQqICeA==")
 
+# MQTT Settings
+# Public MQTT broker address
+MQTT_BROKER = os.getenv("MQTT_BROKER", "150.140.186.118")
+# MQTT broker port (default 1883)
+MQTT_PORT = int(os.getenv("MQTT_PORT", "1883"))
+# Topic to subscribe to for Orion updates
+MQTT_TOPIC = os.getenv("MQTT_TOPIC", "orion_updates")
+
 # Orion Settings
 # Base URL for the Orion Context Broker
-ORION_URL = os.getenv("ORION_URL", "http://orion:1026")
+ORION_URL = os.getenv("ORION_URL", "http://150.140.186.118:1026")
 # FIWARE Service header (tenant)
 FIWARE_SERVICE = os.getenv("FIWARE_SERVICE", "default")
 # FIWARE Service Path header (scope)
-FIWARE_SERVICE_PATH = os.getenv("FIWARE_SERVICE_PATH", "/")
-# Callback URL for Orion subscription notifications
-ORION_CALLBACK_URL = os.getenv("ORION_CALLBACK_URL", "http://backend:8001")
-# Port for the Orion bridge service
-BRIDGE_BIND_HOST = os.getenv("BRIDGE_BIND_HOST", "0.0.0.0")
-BRIDGE_BIND_PORT = int(os.getenv("BRIDGE_BIND_PORT", "8001"))
+FIWARE_SERVICE_PATH = os.getenv("FIWARE_SERVICE_PATH", "/week4_up1125093")
+# Callback URL for subscriptions (used by orion_subscription_server.py)
+SUBSCRIPTION_CALLBACK_URL = os.getenv("SUBSCRIPTION_CALLBACK_URL", "http://localhost:8080/orion")
 
 # Auth Settings
 # Secret key for signing JWT tokens

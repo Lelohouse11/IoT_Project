@@ -16,14 +16,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 from simulation.orion_helpers import OrionClient
 from backend import database
-from simulation.generator_config import (
-    ORION_BASE_URL,
-    FIWARE_SERVICE_PATH,
-    REQUEST_TIMEOUT,
-    TrafficGeneratorConfig,
-)
 
 FIWARE_TYPE = "TrafficFlowObserved"
+ORION_BASE_URL = "http://150.140.186.118:1026"
+FIWARE_SERVICE_PATH = "/week4_up1125093"
+FIWARE_OWNER = "week4_up1125093"
+REQUEST_TIMEOUT = 5
 ORION = OrionClient(
     base_url=ORION_BASE_URL,
     service_path=FIWARE_SERVICE_PATH,
@@ -162,8 +160,8 @@ def simulate_traffic(cfg: TrafficSimConfig) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="TrafficFlowObserved data faker (Orion Context Broker)")
-    parser.add_argument("--interval", type=float, default=TrafficGeneratorConfig.interval_sec, help="Interval between updates (seconds)")
-    parser.add_argument("--congestion", type=float, default=TrafficGeneratorConfig.congestion_chance, help="Probability of congestion per segment per tick (0-1)")
+    parser.add_argument("--interval", type=float, default=TrafficSimConfig.interval_sec, help="Interval between updates (seconds)")
+    parser.add_argument("--congestion", type=float, default=TrafficSimConfig.congestion_chance, help="Probability of congestion per segment per tick (0-1)")
     args = parser.parse_args()
 
     cfg = TrafficSimConfig(

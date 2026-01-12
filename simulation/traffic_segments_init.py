@@ -16,17 +16,16 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from simulation.orion_helpers import OrionClient
 from backend import database
-from simulation.generator_config import (
-    ORION_BASE_URL,
-    FIWARE_SERVICE_PATH,
-    REQUEST_TIMEOUT,
-)
 
 # Orion / FIWARE settings
 FIWARE_TYPE = "TrafficFlowObserved"
 SMART_DATA_MODEL_SCHEMA = (
     "https://smart-data-models.github.io/dataModel.Transportation/TrafficFlowObserved/schema.json"
 )
+ORION_BASE_URL = "http://150.140.186.118:1026"
+FIWARE_SERVICE_PATH = "/week4_up1125093"
+FIWARE_OWNER = "week4_up1125093"
+REQUEST_TIMEOUT = 5
 
 ORION = OrionClient(
     base_url=ORION_BASE_URL,
@@ -58,6 +57,7 @@ def _build_entity(segment: TrafficSegment, now_iso: str) -> Dict[str, Dict[str, 
     return {
         "id": f"urn:ngsi-ld:{FIWARE_TYPE}:{segment.pid}",
         "type": FIWARE_TYPE,
+        "owner": {"type": "Text", "value": FIWARE_OWNER},
         "name": {"type": "Text", "value": segment.name},
         "streetName": {"type": "Text", "value": segment.street_name or segment.name},
         "dateObserved": {"type": "DateTime", "value": now_iso},

@@ -3,7 +3,6 @@ uvicorn
 flask
 flask-cors
 requests
-httpx
+paho-mqtt
 influxdb-client
 mysql-connector-python
-python-dateutil

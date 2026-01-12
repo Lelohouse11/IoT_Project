@@ -20,13 +20,13 @@ echo "Starting Auth API..."
 # Handles user authentication and profile management
 python -m uvicorn backend.auth_service:app --host 0.0.0.0 --port 8002 &
 
-echo "Starting Orion Bridge Service..."
-# Receives HTTP notifications from Orion Context Broker and persists to InfluxDB
-python -m uvicorn backend.orion_bridge_service:app --host 0.0.0.0 --port 8001 &
-
 echo "Starting Frontend Map API..."
 # Dedicated PWA-facing API
 python backend/frontend_map_api.py &
+
+echo "Starting Orion Notification Server..."
+# Bridges Orion Context Broker updates to the system
+python backend/orion_bridge_service.py &
 
 echo "Starting LLM Server..."
 # Provides AI analysis capabilities

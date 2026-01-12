@@ -60,7 +60,6 @@ Lab_ex/
 *.sqlite3
 *.db
 mysql_data/
-mongo_data/
 
 ### OS files
 .DS_Store
