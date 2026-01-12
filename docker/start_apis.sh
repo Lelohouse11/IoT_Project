@@ -24,6 +24,10 @@ echo "Starting Orion Bridge Service..."
 # Receives HTTP notifications from Orion Context Broker and persists to InfluxDB
 python -m uvicorn backend.orion_bridge_service:app --host 0.0.0.0 --port 8001 &
 
+echo "Starting Frontend Map API..."
+# Dedicated PWA-facing API
+python backend/frontend_map_api.py &
+
 echo "Starting LLM Server..."
 # Provides AI analysis capabilities
 python backend/llm_service.py &

@@ -58,9 +58,10 @@ services:
       - mysql_db
       - orion
     ports:
-      - "8000:8000" # Map API
+      - "8000:8000" # Map API (possible problem because of merge)
       - "8001:8001" # Orion Bridge
       - "8002:8002" # Auth API
+      - "8010:8010" # Frontend Map API (possible problem because of merge)
       - "9090:9090" # LLM API
     environment:
       MYSQL_HOST: mysql_db

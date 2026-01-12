@@ -4,24 +4,28 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 
 ## Modules & Tech
 - **City Dashboard** (`city_dashboard`) – Vanilla JS + Leaflet frontend. Renders live accidents, parking, and traffic data. Features a modular architecture (`config.js`, `layout.js`) and embeds Grafana widgets.
-- **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and report incidents.
-- **Simulation** (`simulation/`) – Python scripts simulating smart city entities using centralized configuration:
+- **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and report incidents. Connects to `backend/frontend_map_api.py` for optimized traffic data.
+- **Computer Vision** (`yolov8_tests/`) – Vehicle detection pipeline using YOLOv8n. Analyzes video/images for traffic counting and parking occupancy events.
+- **Simulation** (`simulation/`) – Python scripts simulating smart city entities:
   - `accident_generator.py`: Synthesizes `TrafficAccident` entities.
   - `traffic_violation_generator.py`: Emits `TrafficViolation` detections (red light, illegal parking).
   - `parking_generator.py`: Simulates `OnStreetParking` occupancy.
   - `traffic_generator.py`: Drives `TrafficFlowObserved` entities.
   - All generators are configured via `generator_config.py` with dataclass defaults (AccidentGeneratorConfig, ParkingGeneratorConfig, TrafficGeneratorConfig, TrafficViolationGeneratorConfig).
 - **Backend Services** (`backend/`) – Python services bridging data and serving the frontend:
-  - `map_service.py` (FastAPI): Serves geo-snapped data for the map.
+  - `map_service.py` (FastAPI): Serves geo-snapped data for the map and reward endpoints.
+  - `reward_service.py`: Calculates driver streaks and reward data.
+  - `reward_router.py`: FastAPI router for `/api/rewards/*` endpoints.
   - `auth_service.py` (FastAPI): Dedicated authentication server for login/register.
   - `orion_bridge_service.py`: HTTP bridge that receives Orion notifications and persists them to InfluxDB.
+  - `frontend_map_api.py` (FastAPI): Dedicated PWA-facing API (Port 8010) for serving traffic overlays.
   - `llm_service.py` (Flask): Proxy for the LLM chat assistant.
 
 ## Data & Infra
 - **FIWARE Orion Context Broker** – Central NGSI v2 endpoint for simulated entities.
 - **MongoDB** – Persistent store for Orion Context Broker entities. Runs in Docker.
-- **MySQL 8.0** – Relational database for static city data (road network, parking entities) and user management. Runs in Docker.
-- **InfluxDB 2.x** – Stores time-series data persisted from Orion notifications (accidents, traffic flow) for historical analysis.
+- **MySQL 8.0** – Relational database for static city data (road network, parking entities), user management, and driver profiles for rewards. Runs in Docker.
+- **InfluxDB 2.x** – Stores time-series data (accidents, traffic flow) for historical analysis.
 - **Grafana** – Visualizes KPIs and is embedded inside the City Dashboard.
 
 ### External Services & APIs
@@ -84,18 +88,39 @@ Runs the entire system (Fakers, APIs, Frontends, Database) inside containers. No
 - **Driver App**: [http://localhost:5173](http://localhost:5173)
 - **Auth API**: [http://localhost:8002](http://localhost:8002)
 - **Map API**: [http://localhost:8000](http://localhost:8000)
+- **Frontend Map API**: [http://localhost:8010](http://localhost:8010)
 - **LLM API**: [http://localhost:9090](http://localhost:9090)
 - **phpMyAdmin**: [http://localhost:8081](http://localhost:8081)
+
+## Computer Vision (YOLOv8)
+Vehicles are detected using a pretrained YOLOv8 nano model. The pipeline supports counting and parking occupancy detection.
+
+**Setup**:
+```bash
+python -m pip install -r yolov8_tests/requirements.txt
+```
+
+**Running Tests**:
+Place media in `yolov8_tests/inputs/` (images or videos).
+```bash
+python yolov8_tests/run_detection.py [options]
+# Options: --images, --videos, --device cuda:0, --conf 0.15
+```
+
+**Outputs**:
+- Annotated media in `yolov8_tests/outputs/`
+- Metadata JSONs for counts and events.
 
 ## Project Structure
 ```
 IoT_Project/
-├── backend/             # Backend APIs & Bridges
+├── backend/             # Core Backend Services & Bridges
 ├── city_dashboard/      # Admin Dashboard (JS/HTML)
 ├── simulation/          # Simulation Scripts
 ├── db_init/             # SQL Schema & Migration Scripts
 │   └── seed_data/       # Raw JSON/GeoJSON Data Files
 ├── drivers_side_pwa/    # Driver App (React)
+├── yolov8_tests/        # Computer Vision/YOLO Experiments
 ├── docs/                # Documentation & Ideas
 └── .vscode/             # Task & Launch Configs
 ```

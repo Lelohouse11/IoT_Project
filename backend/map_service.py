@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from influxdb_client import InfluxDBClient
 
 from backend import config
+from backend import reward_router
 from simulation import geo_helpers
 
 influxdb_url = config.INFLUX_URL
@@ -29,6 +30,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include reward router for driver reward endpoints
+app.include_router(reward_router.router)
 
 client = InfluxDBClient(url=influxdb_url, token=token, org=org)
 query_api = client.query_api()
