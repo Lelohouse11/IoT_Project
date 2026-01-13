@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
@@ -18,6 +18,11 @@ function MapView({ active }) {
   const userMarkerRef = useRef(null)
   const parkingLayerRef = useRef(null)
   const nearestParkingMarkerRef = useRef(null)
+  const [followUser, setFollowUser] = useState(true)
+  const [hasCenteredInitially, setHasCenteredInitially] = useState(false)
+  const [showCenterButton, setShowCenterButton] = useState(false)
+  const latestUserLatLngRef = useRef(null)
+  const suppressMoveEventRef = useRef(false)
 
   const trafficColor = (props = {}) => {
     if (props.congested) return '#dc2626'
@@ -52,11 +57,28 @@ function MapView({ active }) {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map)
+    
+    // Create a custom pane for routes with lower z-index (below overlays but above tiles)
+    map.createPane('routePane')
+    map.getPane('routePane').style.zIndex = 350 // default overlayPane is 400
+    
     setTimeout(() => map.invalidateSize(), 0)
 
     mapRef.current = map
     let cancelled = false
     let trafficIntervalId
+    let geoWatchId
+
+    // If user manually moves the map, stop following and show the center button
+    map.on('movestart', () => {
+      // Ignore programmatic moves triggered by our own setView
+      if (suppressMoveEventRef.current) {
+        suppressMoveEventRef.current = false
+        return
+      }
+      setFollowUser(false)
+      setShowCenterButton(true)
+    })
 
     const renderTraffic = async () => {
       try {
@@ -118,9 +140,46 @@ function MapView({ active }) {
     renderTraffic()
     trafficIntervalId = window.setInterval(renderTraffic, 60000)
 
+    // Always show user's location using geolocation watch
+    if (navigator.geolocation) {
+      geoWatchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const latlng = [pos.coords.latitude, pos.coords.longitude]
+          latestUserLatLngRef.current = latlng
+          placeUserMarker(latlng)
+          const m = mapRef.current
+          if (!m) return
+          if (!hasCenteredInitially) {
+            // Center once by default on the first location fix, without showing the button yet
+            suppressMoveEventRef.current = true
+            m.setView(latlng, m.getZoom(), { animate: true })
+            setHasCenteredInitially(true)
+            // After initial center, stop following until the user asks
+            setFollowUser(false)
+            setShowCenterButton(false)
+          } else if (followUser) {
+            // Follow user when enabled
+            suppressMoveEventRef.current = true
+            m.setView(latlng, m.getZoom(), { animate: true })
+          } else {
+            // Not following: keep marker updated, offer re-center button
+            setShowCenterButton(true)
+          }
+        },
+        (err) => {
+          console.error('Geolocation error', err)
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 },
+      )
+    }
+
     return () => {
       cancelled = true
       if (trafficIntervalId) clearInterval(trafficIntervalId)
+      if (geoWatchId != null && navigator.geolocation) {
+        navigator.geolocation.clearWatch(geoWatchId)
+        geoWatchId = null
+      }
       if (trafficLayerRef.current) {
         map.removeLayer(trafficLayerRef.current)
         trafficLayerRef.current = null
@@ -169,9 +228,17 @@ function MapView({ active }) {
       if (!coords || !coords.length) throw new Error('Keine Route erhalten')
 
       const latlngs = coords.map(([lng, lat]) => [lat, lng])
-      const poly = L.polyline(latlngs, { color: '#4fd1c5', weight: 5, opacity: 0.9 }).addTo(map)
+      const poly = L.polyline(latlngs, { 
+        color: '#4fd1c5', 
+        weight: 5, 
+        opacity: 0.9,
+        pane: 'routePane'
+      }).addTo(map)
       routeRef.current = poly
       map.fitBounds(poly.getBounds(), { padding: [30, 30] })
+      // Ensure center button appears after route moves the map
+      setShowCenterButton(true)
+      setFollowUser(false)
     } catch (err) {
       console.error(err)
     }
@@ -184,7 +251,14 @@ function MapView({ active }) {
       map.removeLayer(userMarkerRef.current)
       userMarkerRef.current = null
     }
-    const marker = L.marker(latlng, { title: 'You are here' }).addTo(map)
+    const marker = L.circleMarker(latlng, {
+      radius: 7,
+      color: '#0ea5e9',
+      weight: 2,
+      fillColor: '#38bdf8',
+      fillOpacity: 1,
+      title: 'Your location',
+    }).addTo(map)
     userMarkerRef.current = marker
   }
 
@@ -197,6 +271,16 @@ function MapView({ active }) {
     }
     const marker = L.marker(latlng, { title: street || 'Nearest parking' }).addTo(map)
     nearestParkingMarkerRef.current = marker
+  }
+
+  const centerOnUser = () => {
+    const map = mapRef.current
+    const latlng = latestUserLatLngRef.current
+    if (!map || !latlng) return
+    setFollowUser(true)
+    setShowCenterButton(false)
+    suppressMoveEventRef.current = true
+    map.setView(latlng, map.getZoom(), { animate: true })
   }
 
   const haversineDistanceKm = (a, b) => {
@@ -271,6 +355,35 @@ function MapView({ active }) {
     }
   }
 
+  // Render only a single selected parking zone
+  const showSelectedParking = async (p) => {
+    const map = mapRef.current
+    if (!map || !p) return
+    try {
+      if (parkingLayerRef.current) {
+        map.removeLayer(parkingLayerRef.current)
+        parkingLayerRef.current = null
+      }
+
+      const popup = `<strong>Parking</strong><br/>Street: ${p.street || 'n/a'}<br/>Available: ${p.available_spots ?? 'n/a'}/${p.total_spots ?? 'n/a'}`
+
+      let layer
+      if (p.geometry?.type === 'LineString' && p.geometry.coordinates?.length >= 2) {
+        const coords = p.geometry.coordinates.map(([lng, lat]) => [lat, lng])
+        layer = L.layerGroup([
+          L.polyline(coords, { color: '#2563eb', weight: 4, opacity: 0.9 }).bindPopup(popup),
+        ]).addTo(map)
+      } else {
+        layer = L.layerGroup([
+          L.circleMarker([p.lat, p.lng], { radius: 6, color: '#2563eb', weight: 2, fillColor: '#3b82f6', fillOpacity: 0.8 }).bindPopup(popup),
+        ]).addTo(map)
+      }
+      parkingLayerRef.current = layer
+    } catch (err) {
+      console.error('Failed to render selected parking', err)
+    }
+  }
+
   const routeToNearestParking = async () => {
     if (!navigator.geolocation) {
       console.error('Geolocation not supported')
@@ -286,8 +399,8 @@ function MapView({ active }) {
           return
         }
         const to = [nearest.lat, nearest.lng]
-        placeNearestParkingMarker(to, nearest.street)
-        await showParkingLayer()
+        // Destination parking entity is rendered as geometry; no extra marker
+        await showSelectedParking(nearest)
         await makeRoute(from, to)
       },
       (err) => {
@@ -305,6 +418,18 @@ function MapView({ active }) {
           <button className="map-fab" type="button" onClick={routeToNearestParking} aria-label="Route to nearest parking">
             P
           </button>
+          {showCenterButton && latestUserLatLngRef.current && (
+            <button
+              className="map-fab"
+              type="button"
+              onClick={centerOnUser}
+              aria-label="Center on my location"
+              title="Center on my location"
+              style={{ bottom: '72px' }}
+            >
+              ⊙
+            </button>
+          )}
         </div>
       </article>
     </section>
