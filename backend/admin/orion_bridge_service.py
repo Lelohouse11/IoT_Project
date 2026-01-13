@@ -11,16 +11,15 @@ from dateutil.parser import isoparse
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-from debug import print_context  # noqa: F401
 
 import paho.mqtt.client as mqtt
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
-from backend import config
+from backend.shared import config
 
 # MQTT setup (mirrors the admin-made subscription visible in subscriptions.json)
 MQTT_BROKER = config.MQTT_BROKER

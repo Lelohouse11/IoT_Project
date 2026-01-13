@@ -13,11 +13,11 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import requests
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-from simulation.orion_helpers import OrionClient
-from simulation.geo_helpers import load_road_segments, sample_point_on_road
+from backend.simulation.orion_helpers import OrionClient
+from backend.simulation.geo_helpers import load_road_segments, sample_point_on_road
 
 FIWARE_TYPE = "TrafficAccident"
 ORION_BASE_URL = "http://150.140.186.118:1026"

@@ -15,8 +15,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend import database
-from simulation import geo_helpers, parking_zones_init, traffic_segments_init
+from backend.shared import database
+from backend.simulation import geo_helpers, parking_zones_init, traffic_segments_init
 
 def wait_for_db(timeout=30, interval=2):
     """

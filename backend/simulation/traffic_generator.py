@@ -11,11 +11,11 @@ from typing import Dict, List, Tuple
 
 import requests
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-from simulation.orion_helpers import OrionClient
-from backend import database
+from backend.simulation.orion_helpers import OrionClient
+from backend.shared import database
 
 FIWARE_TYPE = "TrafficFlowObserved"
 ORION_BASE_URL = "http://150.140.186.118:1026"

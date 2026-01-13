@@ -1,0 +1,32 @@
+# ---------------------------------------------------------------------------
+# Dockerfile: Dockerfile.public_api
+# Description: Builds the public-facing API for driver PWA.
+#              Only serves limited traffic/parking data via frontend_map_api.
+#              This is the ONLY backend service accessible to driver PWA.
+# ---------------------------------------------------------------------------
+
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y default-libmysqlclient-dev build-essential && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy only necessary code for public API
+COPY backend/public/ ./backend/public/
+COPY backend/shared/ ./backend/shared/
+COPY backend/simulation/ ./backend/simulation/
+COPY docker/start_public_apis.sh ./docker/start_public_apis.sh
+COPY .env.example .env.example
+
+# Make scripts executable
+RUN chmod +x docker/*.sh
+
+# Set python path
+ENV PYTHONPATH=/app
+
+CMD ["bash", "docker/start_public_apis.sh"]

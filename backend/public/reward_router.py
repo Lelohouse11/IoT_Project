@@ -3,7 +3,7 @@
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 from typing import List
-from backend import reward_service
+from backend.public import reward_service
 
 router = APIRouter(prefix="/api/rewards", tags=["rewards"])
 

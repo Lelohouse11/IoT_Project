@@ -1,7 +1,8 @@
 services:
-  mysql_db:
+  # Database Service
+  iot_database:
     image: mysql:8.0
-    container_name: iot_mysql
+    container_name: iot_database
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
@@ -13,73 +14,105 @@ services:
     volumes:
       - ./mysql_data:/var/lib/mysql
       - ./db_init:/docker-entrypoint-initdb.d
+    networks:
+      - iot_network
 
-  phpmyadmin:
+  # phpMyAdmin Service
+  iot_phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: iot_phpmyadmin
     restart: always
-    links:
-      - mysql_db
     depends_on:
-      - mysql_db
+      - iot_database
     ports:
       - "8081:80"
     environment:
-      PMA_HOST: mysql_db
+      PMA_HOST: iot_database
       MYSQL_ROOT_PASSWORD: rootpassword
+    networks:
+      - iot_network
 
+  # Admin APIs (NOT accessible to driver PWA)
+  iot_admin_apis:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.admin_api
+    container_name: iot_admin_apis
+    restart: unless-stopped
+    depends_on:
+      - iot_database
+    ports:
+      - "8000:8000" # Map API (admin)
+      - "8002:8002" # Auth API
+      - "9090:9090" # LLM API
+    environment:
+      MYSQL_HOST: iot_database
+      MYSQL_USER: iot_user
+      MYSQL_PASSWORD: iot_password
+      MYSQL_DB: iot_city_db
+    networks:
+      - iot_network
+
+  # Public APIs (accessible to driver PWA)
+  iot_public_apis:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.public_api
+    container_name: iot_public_apis
+    restart: unless-stopped
+    depends_on:
+      - iot_database
+    ports:
+      - "8010:8010" # Frontend Map API (PWA-only)
+    environment:
+      MYSQL_HOST: iot_database
+      MYSQL_USER: iot_user
+      MYSQL_PASSWORD: iot_password
+      MYSQL_DB: iot_city_db
+    networks:
+      - iot_network
+
+  # Simulation Data Generators
   iot_fakers:
     build:
       context: .
-      dockerfile: docker/Dockerfile.backend
+      dockerfile: docker/Dockerfile.fakers
     container_name: iot_fakers
     restart: unless-stopped
     depends_on:
-      - mysql_db
+      - iot_database
     environment:
-      MYSQL_HOST: mysql_db
+      MYSQL_HOST: iot_database
       MYSQL_USER: iot_user
       MYSQL_PASSWORD: iot_password
       MYSQL_DB: iot_city_db
-    volumes:
-      - ./simulation:/app/simulation
-      - ./backend:/app/backend
-      - ./db_init:/app/db_init
-    command: ["bash", "docker/start_fakers.sh"]
+    networks:
+      - iot_network
 
-  iot_apis:
+  # City Dashboard Frontend
+  iot_city_dashboard:
     build:
       context: .
-      dockerfile: docker/Dockerfile.backend
-    container_name: iot_apis
+      dockerfile: docker/Dockerfile.city_dashboard
+    container_name: iot_city_dashboard
     restart: unless-stopped
-    depends_on:
-      - mysql_db
     ports:
-      - "8000:8000" # Map API
-      - "8002:8002" # Auth API
-      - "8010:8010" # Frontend Map API
-      - "9090:9090" # LLM API
-    environment:
-      MYSQL_HOST: mysql_db
-      MYSQL_USER: iot_user
-      MYSQL_PASSWORD: iot_password
-      MYSQL_DB: iot_city_db
-    volumes:
-      - ./backend:/app/backend
-      - ./simulation:/app/simulation
-      - ./db_init:/app/db_init
-    command: ["bash", "docker/start_apis.sh"]
+      - "5000:5000"
+    networks:
+      - iot_network
 
-  iot_frontends:
+  # Driver PWA Frontend
+  iot_drivers_pwa:
     build:
       context: .
-      dockerfile: docker/Dockerfile.frontend
-    container_name: iot_frontends
+      dockerfile: docker/Dockerfile.drivers_pwa
+    container_name: iot_drivers_pwa
     restart: unless-stopped
     ports:
-      - "5000:5000" # City Dashboard
-      - "5173:5173" # Driver PWA
-    volumes:
-      - ./city_dashboard:/app/city_dashboard
-    command: ["bash", "docker/start_frontends.sh"]
+      - "5173:5173"
+    networks:
+      - iot_network
+
+networks:
+  iot_network:
+    driver: bridge

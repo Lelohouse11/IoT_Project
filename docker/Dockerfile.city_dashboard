@@ -1,0 +1,28 @@
+# ---------------------------------------------------------------------------
+# Dockerfile: Dockerfile.city_dashboard
+# Description: Builds the City Dashboard frontend.
+#              Serves the admin-facing dashboard for monitoring city data.
+# ---------------------------------------------------------------------------
+
+FROM node:18-slim
+
+WORKDIR /app
+
+# Copy city dashboard files
+COPY city_dashboard/ ./city_dashboard/
+COPY docker/start_frontends.sh ./docker/start_frontends.sh
+COPY docker/start_city_dashboard.sh ./docker/start_city_dashboard.sh
+
+# Install http-server globally for serving static files
+RUN npm install -g http-server
+
+# Make scripts executable
+RUN chmod +x docker/*.sh
+
+# Set city_dashboard as working directory for serving
+WORKDIR /app/city_dashboard
+
+# Expose port
+EXPOSE 5000
+
+CMD ["bash", "/app/docker/start_city_dashboard.sh"]

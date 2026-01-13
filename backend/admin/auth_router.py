@@ -9,7 +9,7 @@ import hmac
 import json
 import base64
 import os
-from backend import config, database
+from backend.shared import config, database
 
 router = APIRouter()
 

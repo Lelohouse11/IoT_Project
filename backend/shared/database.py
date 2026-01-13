@@ -2,7 +2,7 @@
 
 import mysql.connector
 from mysql.connector import Error
-from backend import config
+from backend.shared import config
 
 def get_db_connection():
     """Create and return a database connection."""

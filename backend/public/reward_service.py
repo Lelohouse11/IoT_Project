@@ -1,7 +1,7 @@
 """Reward service for calculating streaks and points for drivers."""
 
 from datetime import datetime
-from backend import database
+from backend.shared import database
 
 
 def get_driver_rewards(driver_id: int):

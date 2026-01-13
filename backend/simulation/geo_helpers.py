@@ -7,11 +7,11 @@ import sys
 from pathlib import Path
 from typing import List, Optional, Sequence, Tuple
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend import database
+from backend.shared import database
 
 def haversine_distance_m(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     """Approximate distance in meters between two lat/lng pairs."""
