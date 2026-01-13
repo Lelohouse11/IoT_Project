@@ -12,6 +12,14 @@ echo "Waiting for DB..."
 # Ensure database schema is up to date
 python db_init/migrate_to_db.py
 
+echo "Initializing Traffic Segments..."
+# Create initial traffic entities in Orion
+python simulation/traffic_segments_init.py
+
+echo "Initializing Parking Zones..."
+# Create initial parking entities in Orion
+python simulation/parking_zones_init.py
+
 echo "Starting Accident Faker..."
 # Simulates random traffic accidents
 python simulation/accident_generator.py &

@@ -80,7 +80,13 @@ def generate_violation_data(config: Optional[GeneratorConfig] = None) -> None:
     if config is None:
         config = GeneratorConfig()
 
+    # Wait for road segments to be loaded
     road_segments, segment_weights = load_road_segments()
+    while not road_segments:
+        print("[warn] No road segments loaded; retrying in 5 seconds...")
+        time.sleep(5)
+        road_segments, segment_weights = load_road_segments()
+    
     next_id = 1
 
     def rnd_coord() -> Tuple[float, float]:

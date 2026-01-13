@@ -15,6 +15,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from simulation.orion_helpers import OrionClient
+from simulation.geo_helpers import load_road_segments, sample_point_on_road
 from backend import database
 
 # Orion / FIWARE settings
@@ -73,16 +74,38 @@ def _build_entity(segment: TrafficSegment, now_iso: str) -> Dict[str, Dict[str, 
 
 
 def _default_segments() -> List[TrafficSegment]:
-    """Return a handful of sample traffic segments around Patras."""
-    # Center around Patras: 38.2464, 21.7346
-    center_lat = 38.2464
-    center_lng = 21.7346
-    max_offset = 0.02
-    
+    """Return a generated set of 100 sample traffic segments along the road network."""
     segments = []
+    road_segs, weights = load_road_segments()
+    
+    if not road_segs:
+        print("[warn] no road segments loaded; using random locations as fallback")
+        center_lat = 38.2464
+        center_lng = 21.7346
+        max_offset = 0.02
+        for i in range(100):
+            lat = center_lat + random.uniform(-max_offset, max_offset)
+            lng = center_lng + random.uniform(-max_offset, max_offset)
+            pid = f"SEG{i + 1:03d}"
+            segments.append(
+                TrafficSegment(
+                    pid=pid,
+                    name=f"Traffic Camera {pid}",
+                    lat=lat,
+                    lng=lng,
+                    street_name=f"Street {pid}"
+                )
+            )
+        return segments
+    
+    # Generate segments along road network
     for i in range(100):
-        lat = center_lat + random.uniform(-max_offset, max_offset)
-        lng = center_lng + random.uniform(-max_offset, max_offset)
+        point = sample_point_on_road(road_segs, weights)
+        if not point:
+            print(f"[warn] failed to sample point for segment {i}")
+            continue
+            
+        lat, lng = point
         pid = f"SEG{i + 1:03d}"
         segments.append(
             TrafficSegment(

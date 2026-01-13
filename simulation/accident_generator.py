@@ -94,7 +94,12 @@ def generate_accident_data(config: Optional[GeneratorConfig] = None):
     if config is None:
         config = GeneratorConfig()
 
+    # Wait for road segments to be loaded
     road_segments, segment_weights = load_road_segments()
+    while not road_segments:
+        print("[warn] No road segments loaded; retrying in 5 seconds...")
+        time.sleep(5)
+        road_segments, segment_weights = load_road_segments()
 
     actions = ("create", "update", "clear")
     weights = (config.prob_new, config.prob_update, config.prob_clear)

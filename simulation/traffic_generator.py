@@ -95,10 +95,11 @@ def _traffic_payload(seg: SegmentState, cfg: TrafficSimConfig, now_iso: str) -> 
         level = "freeFlow"
     congested = level != "freeFlow"
 
-    # We only send the dynamic attributes + id/type
+    # Include id/type and dynamic attributes for updates
     return {
         "id": seg.entity_id,
         "type": FIWARE_TYPE,
+        "owner": {"type": "Text", "value": FIWARE_OWNER},
         "dateObserved": {"type": "DateTime", "value": now_iso},
         "intensity": {"type": "Number", "value": int(round(seg.current_intensity))},
         "averageVehicleSpeed": {"type": "Number", "value": round(seg.current_speed, 1)},

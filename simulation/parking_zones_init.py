@@ -16,6 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from simulation.orion_helpers import OrionClient
+from simulation.geo_helpers import load_road_segments, sample_point_on_road
 from backend import database
 
 # Orion / FIWARE settings (reuse values from accident_generator.py)
@@ -85,26 +86,68 @@ def _build_entity(zone: ParkingZone, now_iso: str) -> Dict[str, Dict[str, Any]]:
 
 
 def _default_zones() -> List[ParkingZone]:
-    """Return a generated set of 100 sample on-street segments around Patras."""
+    """Return generated on-street parking zones along the road network."""
     zones = []
-    center_lat = 38.2464
-    center_lng = 21.7346
-    max_offset = 0.02
-
+    road_segs, weights = load_road_segments()
+    
+    if not road_segs:
+        print("[warn] no road segments loaded; using random locations as fallback")
+        # Fallback to random locations
+        center_lat = 38.2464
+        center_lng = 21.7346
+        max_offset = 0.02
+        street_names = ["Maizonos", "Korinthou", "Agiou Andreou", "Gounari", "Agiou Nikolaou", "Ermou", "Patreos", "Votsi", "Kanari", "Miaouli"]
+        categories = [("public", "free"), ("public", "feeCharged"), ("public", "shortTerm"), ("public", "forDisabled")]
+        
+        for i in range(100):
+            pid = f"P-{i+1:03d}"
+            lat1 = center_lat + random.uniform(-max_offset, max_offset)
+            lng1 = center_lng + random.uniform(-max_offset, max_offset)
+            lat2 = lat1 + random.uniform(-0.001, 0.001)
+            lng2 = lng1 + random.uniform(-0.001, 0.001)
+            total_spots = random.randint(10, 100)
+            occupied_spots = random.randint(0, total_spots)
+            zones.append(
+                ParkingZone(
+                    pid=pid,
+                    name=f"Parking Zone {pid}",
+                    street_name=random.choice(street_names),
+                    highway_type="residential",
+                    category=random.choice(categories),
+                    allowed_vehicle_types=("car",),
+                    total_spots=total_spots,
+                    occupied_spots=occupied_spots,
+                    coords=[(lat1, lng1), (lat2, lng2)],
+                )
+            )
+        return zones
+    
+    # Generate zones along road network
     street_names = ["Maizonos", "Korinthou", "Agiou Andreou", "Gounari", "Agiou Nikolaou", "Ermou", "Patreos", "Votsi", "Kanari", "Miaouli"]
     categories = [("public", "free"), ("public", "feeCharged"), ("public", "shortTerm"), ("public", "forDisabled")]
     
     for i in range(100):
+        # Sample a road segment for this parking zone
+        if not road_segs:
+            continue
+            
+        segment = random.choices(road_segs, weights=weights, k=1)[0]
+        start_lat, start_lng = segment[0]
+        end_lat, end_lng = segment[1]
+        
+        # Create parking zone along a portion of this road segment
+        # Use 20-80% of the segment to avoid placing at intersections
+        t1 = random.uniform(0.1, 0.4)  # Start somewhere in first 40%
+        t2 = t1 + random.uniform(0.1, 0.3)  # Extend 10-30% further
+        t2 = min(t2, 0.9)  # Don't go past 90% of segment
+        
+        # Interpolate positions along the segment
+        lat1 = start_lat + (end_lat - start_lat) * t1
+        lng1 = start_lng + (end_lng - start_lng) * t1
+        lat2 = start_lat + (end_lat - start_lat) * t2
+        lng2 = start_lng + (end_lng - start_lng) * t2
+        
         pid = f"P-{i+1:03d}"
-        
-        # Random start point
-        lat1 = center_lat + random.uniform(-max_offset, max_offset)
-        lng1 = center_lng + random.uniform(-max_offset, max_offset)
-        
-        # Random end point (short segment)
-        lat2 = lat1 + random.uniform(-0.001, 0.001)
-        lng2 = lng1 + random.uniform(-0.001, 0.001)
-        
         total_spots = random.randint(10, 100)
         occupied_spots = random.randint(0, total_spots)
         

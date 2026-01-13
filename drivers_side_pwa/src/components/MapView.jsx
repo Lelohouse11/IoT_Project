@@ -242,15 +242,28 @@ function MapView({ active }) {
       }
       if (!parking.length) return
       const layer = L.layerGroup(
-        parking.map((p) =>
-          L.circleMarker([p.lat, p.lng], {
+        parking.map((p) => {
+          const popup = `<strong>Parking</strong><br/>Street: ${p.street || 'n/a'}<br/>Available: ${p.available_spots ?? 'n/a'}/${p.total_spots ?? 'n/a'}`
+          
+          // If geometry is a LineString, render as a polyline
+          if (p.geometry?.type === 'LineString' && p.geometry.coordinates?.length >= 2) {
+            const coords = p.geometry.coordinates.map(([lng, lat]) => [lat, lng])
+            return L.polyline(coords, {
+              color: '#2563eb',
+              weight: 4,
+              opacity: 0.8,
+            }).bindPopup(popup)
+          }
+          
+          // Otherwise, render as a circle marker at centroid
+          return L.circleMarker([p.lat, p.lng], {
             radius: 6,
             color: '#2563eb',
             weight: 2,
             fillColor: '#3b82f6',
             fillOpacity: 0.8,
-          }).bindPopup(`<strong>Parking</strong><br/>Street: ${p.street || 'n/a'}<br/>Available: ${p.available_spots ?? 'n/a'}`),
-        ),
+          }).bindPopup(popup)
+        }),
       ).addTo(map)
       parkingLayerRef.current = layer
     } catch (err) {

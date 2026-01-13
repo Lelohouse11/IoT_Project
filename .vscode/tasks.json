@@ -145,25 +145,6 @@
 			"problemMatcher": []
 		},
 		{
-			"label": "start-iot-stack-local",
-			"dependsOn": [
-				"docker-db-only",
-				"db-migration",
-				"accident-faker",
-				"parking-faker",
-				"traffic-faker",
-				"traffic-violation-faker",
-				"orion-bridge",
-				"map-api",
-				"auth-api",
-				"frontend-map-api",
-				"llm-proxy",
-				"city-dashboard",
-				"driver-pwa"
-			],
-			"problemMatcher": []
-		},
-		{
 			"label": "start-iot-stack-docker",
 			"type": "shell",
 			"command": "docker",
