@@ -101,6 +101,17 @@ a { color: inherit; text-decoration: none; }
 select.btn {
   text-align: center;
   text-align-last: center;
+  background: var(--panel);
+  color: var(--text);
+}
+.btn select option,
+select.btn option {
+  background: var(--panel);
+  color: var(--text);
+}
+input.btn {
+  background: var(--panel);
+  color: var(--text);
 }
 .btn:hover { background: rgba(79,209,197,.08); }
 .btn.ghost { border-color: rgba(79,209,197,.18); color: var(--muted); }

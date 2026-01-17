@@ -11,8 +11,6 @@ function App() {
   const [profileOpen, setProfileOpen] = useState(false)
   const [signedIn, setSignedIn] = useState(false)
   const [activeTab, setActiveTab] = useState('map')
-  const [reportType, setReportType] = useState('accident')
-  const [reportMsg, setReportMsg] = useState('Help improve the map by reporting issues.')
 
   useEffect(() => {
     const onClick = (e) => {
@@ -37,7 +35,6 @@ function App() {
     }
   }, [profileOpen])
 
-  const handleReport = () => setReportMsg(`Report sent: ${reportType.replace(/^\w/, (c) => c.toUpperCase())}. Thank you!`)
   const toggleProfile = () => setProfileOpen((v) => !v)
 
   return (
@@ -52,13 +49,7 @@ function App() {
       <main className="wrap">
         <MapView active={activeTab === 'map'} />
         <RewardsPanel active={activeTab === 'rewards'} />
-        <ReportPanel
-          active={activeTab === 'report'}
-          reportType={reportType}
-          onReportTypeChange={setReportType}
-          onSendReport={handleReport}
-          reportMsg={reportMsg}
-        />
+        <ReportPanel active={activeTab === 'report'} />
       </main>
       <BottomNav activeTab={activeTab} onNavigate={setActiveTab} />
     </>
