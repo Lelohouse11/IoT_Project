@@ -260,6 +260,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include report router for driver accident report submissions
+from backend.public import report_router
+app.include_router(report_router.router)
 
 @app.get("/pwa/traffic/recent")
 def recent_traffic(window: str = "15m") -> List[Dict[str, Any]]:
