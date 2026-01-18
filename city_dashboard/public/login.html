@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="./iot_icon.ico" />
+  <title>Login - Smart City Admin</title>
+  <link rel="stylesheet" href="/src/styles/base.css" />
+  <link rel="stylesheet" href="/src/styles/components.css" />
+  <link rel="stylesheet" href="/src/styles/auth.css" />
+</head>
+<body class="auth-wrap">
+  <form class="auth-card" id="loginForm">
+    <h1>Welcome back</h1>
+    <p>Sign in to access the Smart City dashboard.</p>
+    <div class="form-stack">
+      <label>
+        Email
+        <input type="email" name="email" id="email" autocomplete="username" required />
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" id="password" autocomplete="current-password" required />
+      </label>
+      <div class="auth-actions">
+        <button type="submit" class="btn btn-primary">Login</button>
+      </div>
+      <div style="text-align: center; margin-top: 1rem;">
+        <a href="register.html" style="color: #007bff; text-decoration: none;">Don't have an account? Register</a>
+      </div>
+      <div id="errorMessage" style="color: #dc3545; text-align: center; margin-top: 1rem; display: none;"></div>
+    </div>
+  </form>
+
+  <script type="module">
+    import { CONFIG } from '/src/js/config.js';
+    const SIGNED_IN_KEY = 'city_side_signed_in';
+    const TOKEN_KEY = 'access_token';
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const errorMessage = document.getElementById('errorMessage');
+
+      try {
+        const response = await fetch('http://localhost:8002/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, password }),
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            localStorage.setItem(SIGNED_IN_KEY, 'true');
+            localStorage.setItem(TOKEN_KEY, data.access_token);
+            localStorage.setItem('user_name', data.username);
+            localStorage.setItem('user_email', data.email);
+            window.location.href = CONFIG.AUTH_DASHBOARD_URL;
+        } else {
+            const data = await response.json();
+            errorMessage.textContent = data.detail || 'Login failed';
+            errorMessage.style.display = 'block';
+        }
+      } catch (error) {
+        errorMessage.textContent = 'An error occurred. Please try again.';
+        errorMessage.style.display = 'block';
+        console.error('Error:', error);
+      }
+    });
+  </script>
+</body>
+</html>

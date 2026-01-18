@@ -1,0 +1,47 @@
+/* =========================================================
+   Smart City Admin – Base Styles
+   ========================================================= */
+
+/* -------- Colors & Variables -------- */
+:root {
+  --bg: #0f1116;                /* base page background */
+  --panel: rgb(17, 18, 23);     /* card and panel background */
+  --accent: #6bd4c8;            /* teal accent */
+  --text: #e9eef7;              /* light text */
+  --muted: #95a0b6;             /* muted text */
+}
+
+/* -------- Global Reset & Typography -------- */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Ubuntu, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* -------- Utilities -------- */
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(107, 212, 200, 0.3);
+  border-radius: 50%;
+  border-top-color: var(--accent);
+  animation: spin 1s ease-in-out infinite;
+  vertical-align: middle;
+  margin-right: 0.5rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}

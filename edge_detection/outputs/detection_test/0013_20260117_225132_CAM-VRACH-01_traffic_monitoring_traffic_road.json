@@ -1,0 +1,14 @@
+{
+  "id": "9e4f0dda-30cb-4a23-9428-d0482a2bbbd3",
+  "event_number": 13,
+  "timestamp": "2026-01-17T22:51:32.933583",
+  "camera_id": "CAM-VRACH-01",
+  "event_type": "traffic_monitoring",
+  "zone_name": "traffic_road",
+  "metadata": {
+    "vehicle_count": 0,
+    "frame_number": 9000
+  },
+  "detections": [],
+  "image_file": "0013_20260117_225132_CAM-VRACH-01_traffic_monitoring_traffic_road.jpg"
+}

@@ -1,0 +1,21 @@
+# ---------------------------------------------------------------------------
+# Dockerfile: Dockerfile.drivers_pwa
+# Description: Builds the Driver PWA frontend.
+#              Serves the driver-facing progressive web app.
+# ---------------------------------------------------------------------------
+
+FROM node:18-slim
+
+WORKDIR /app
+
+# Copy driver PWA files
+COPY drivers_side_pwa/ ./drivers_side_pwa/
+
+# Install dependencies
+RUN cd drivers_side_pwa && npm install
+
+# Expose port
+EXPOSE 5173
+
+# Start Vite dev server
+CMD ["bash", "-c", "cd drivers_side_pwa && npm run dev -- --host 0.0.0.0"]
