@@ -4,7 +4,7 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 
 ## Modules & Tech
 - **City Dashboard** (`city_dashboard`) – Vanilla JS + Leaflet frontend. Renders live accidents, parking, and traffic data. Features a modular architecture (`config.js`, `layout.js`) and embeds Grafana widgets. Includes user authentication with JWT-based login/registration restricted to a whitelist of email addresses (defined in `backend/shared/config.py`).
-- **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and report incidents. Connects to `backend/public/frontend_map_api.py` for optimized traffic data.
+- **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and report incidents. Features JWT-based authentication with login/registration (no whitelist required). Connects to `backend/public/frontend_map_api.py` for optimized traffic data and authentication endpoints.
 - **Computer Vision** (`yolov8_tests/`) – Vehicle detection pipeline using YOLOv8n. Analyzes video/images for traffic counting and parking occupancy events.
 - **Simulation** (`backend/simulation/`) – Python scripts simulating smart city entities:
   - `accident_generator.py`: Synthesizes `TrafficAccident` entities.
@@ -18,16 +18,17 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
     - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
     - `llm_service.py` (Flask): Proxy for the LLM chat assistant.
   - **Public Services** (`backend/public/`) – Accessible to driver PWA:
-    - `frontend_map_api.py` (FastAPI): PWA-facing API (Port 8010) for serving traffic overlays.
+    - `frontend_map_api.py` (FastAPI): PWA-facing API (Port 8010) for serving traffic overlays, authentication, and rewards.
+    - `auth_router.py` (FastAPI): Driver authentication endpoints for login, registration, and token refresh.
     - `reward_service.py`: Calculates driver streaks and reward data.
-    - `reward_router.py`: FastAPI router for `/api/rewards/*` endpoints.
+    - `reward_router.py`: FastAPI router for `/api/rewards/*` endpoints (requires authentication).
   - **Shared Utilities** (`backend/shared/`) – Common configuration and database access:
     - `config.py`: Environment variable management.
     - `database.py`: MySQL connection utilities.
 
 ## Data & Infra
 - **FIWARE Orion Context Broker** – Central NGSI v2 endpoint for simulated entities.
-- **MySQL 8.0** – Relational database for static city data (road network, parking entities), user management, and driver profiles for rewards. Runs in Docker.
+- **MySQL 8.0** – Relational database for static city data (road network, parking entities), user management (admin dashboard with whitelist), and driver profiles (driver PWA authentication and rewards). Runs in Docker.
 - **InfluxDB 2.x** – Stores time-series data (accidents, traffic flow) for historical analysis.
 - **Grafana** – Visualizes KPIs and is embedded inside the City Dashboard.
 
@@ -78,6 +79,37 @@ The Docker stack includes separate containers:
   - Frontend Map API: [http://localhost:8010](http://localhost:8010)
 - **Database**:
   - phpMyAdmin: [http://localhost:8081](http://localhost:8081)
+
+## Authentication
+
+The project implements two separate authentication systems for different user types:
+
+### City Dashboard (Admin)
+- **Access**: Restricted to whitelisted email addresses
+- **Whitelist**: Configured in `backend/shared/config.py` (`WHITELISTED_EMAILS`)
+- **Endpoints**: `http://localhost:8002/login`, `http://localhost:8002/register`
+- **Features**: JWT-based authentication, password hashing (PBKDF2), 30-minute token expiration
+- **User Table**: `users` table in MySQL
+
+### Driver PWA
+- **Access**: Open registration (no whitelist)
+- **Endpoints**: `http://localhost:8010/public/login`, `http://localhost:8010/public/register`, `http://localhost:8010/public/refresh`
+- **Features**: JWT-based authentication, password hashing (PBKDF2), 30-minute token expiration with automatic 15-minute refresh
+- **User Table**: `driver_profiles` table in MySQL (includes reward points, streaks, and license plate)
+- **Session Persistence**: Tokens stored in localStorage, users remain logged in until sign-out or app closure
+- **Protected Endpoints**: All reward endpoints require authentication and extract driver ID from token
+
+**Creating Test Accounts**:
+
+*City Dashboard (Admin)*:
+1. Add your email to `WHITELISTED_EMAILS` in `backend/shared/config.py`
+2. Navigate to [http://localhost:5000](http://localhost:5000)
+3. Click "Register" and create an account
+
+*Driver PWA*:
+1. Navigate to [http://localhost:5173](http://localhost:5173)
+2. Click "Register" and create an account (no whitelist required)
+3. Optionally provide your license plate during registration
 
 ## Computer Vision (YOLOv8)
 Vehicles are detected using a pretrained YOLOv8 nano model. The pipeline supports counting and parking occupancy detection.

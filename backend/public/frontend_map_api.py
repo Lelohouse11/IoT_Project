@@ -21,6 +21,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from backend.shared import config  # noqa: E402  # isort: skip
 from backend.simulation import geo_helpers  # noqa: E402  # isort: skip
+from backend.public import auth_router, reward_router  # noqa: E402  # isort: skip
 
 influxdb_url = config.INFLUX_URL
 bucket = config.INFLUX_BUCKET
@@ -259,6 +260,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(auth_router.router, prefix="/public", tags=["auth"])
+app.include_router(reward_router.router, tags=["rewards"])
 
 
 @app.get("/pwa/traffic/recent")
