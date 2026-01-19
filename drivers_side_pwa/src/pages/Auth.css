@@ -1,0 +1,233 @@
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 1rem;
+}
+
+.auth-card {
+  background: var(--panel);
+  border: 1px solid rgba(79,209,197,.25);
+  border-radius: 14px;
+  box-shadow: 0 10px 40px rgba(2,8,23,.5);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 420px;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-header h1 {
+  font-size: 1.75rem;
+  color: var(--text);
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+.auth-header p {
+  color: var(--muted);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.form-group .optional {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.form-group input {
+  padding: 0.75rem;
+  border: 1px solid rgba(79,209,197,.3);
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: all 0.2s;
+  background: rgba(11,18,32,.6);
+  color: var(--text);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79,209,197,.1);
+}
+
+.form-group input:disabled {
+  background: rgba(11,18,32,.8);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background: rgba(239,68,68,.15);
+  color: #fca5a5;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  border: 1px solid rgba(239,68,68,.3);
+}
+
+.auth-button {
+  padding: 0.875rem;
+  background: linear-gradient(180deg, rgba(79,209,197,.25), rgba(79,209,197,.15));
+  border: 1px solid var(--accent);
+  color: var(--text);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(79,209,197,.15);
+}
+
+.auth-button:hover:not(:disabled) {
+  background: linear-gradient(180deg, rgba(79,209,197,.35), rgba(79,209,197,.2));
+  box-shadow: 0 6px 20px rgba(79,209,197,.25);
+}
+
+.auth-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.auth-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(79,209,197,.3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(79,209,197,.2);
+}
+
+.auth-footer p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.link-button:hover:not(:disabled) {
+  color: #6ee7dc;
+  text-decoration: underline;
+}
+
+.link-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, rgba(79,209,197,.35), rgba(79,209,197,.2));
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  color: var(--accent);
+  margin: 0 auto 1.5rem;
+  animation: scaleIn 0.4s ease-out;
+  box-shadow: 0 8px 24px rgba(79,209,197,.25);
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.auth-card h2 {
+  text-align: center;
+  color: var(--text);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.auth-card > p {
+  text-align: center;
+  color: var(--muted);
+  margin: 0 0 1.5rem 0;
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .auth-header h1 {
+    font-size: 1.5rem;
+  }
+}
