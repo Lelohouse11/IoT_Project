@@ -1,4 +1,4 @@
-const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '')
+const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
 
 const toNumberOrNull = (value) => {
   const num = Number(value)

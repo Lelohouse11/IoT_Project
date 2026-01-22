@@ -28,8 +28,8 @@ export const CONFIG = {
   LLM_MODEL: window.LLM_MODEL || 'deepseek-r1:8b',
   
   // Auth settings
-  AUTH_LOGIN_URL: '/public/login.html',
-  AUTH_DASHBOARD_URL: '/public/index.html',
+  AUTH_LOGIN_URL: '/login.html',
+  AUTH_DASHBOARD_URL: '/index.html',
 };
 
 export const COLORS = {

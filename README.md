@@ -36,11 +36,15 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
   - `camera_event_service.py` (FastAPI): Processes camera events with VLM and updates Fiware (port 8003).
   - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
   - `llm_service.py` (Flask): Proxy for the LLM chat assistant (port 9090).
+  - `report_expiration_service.py`: Background scheduler that auto-clears driver reports after 30 minutes.
 
 - **Public Services** (`backend/public/`) – Accessible to driver PWA:
-  - `frontend_map_api.py` (FastAPI): PWA-facing API (Port 8010) for serving traffic overlays.
+  - `frontend_map_api.py` (FastAPI): PWA-facing API (Port 8010) for serving traffic overlays, authentication, and rewards.
+  - `auth_router.py` (FastAPI): Driver authentication endpoints for login, registration, and token refresh.
   - `reward_service.py`: Calculates driver streaks and reward data.
   - `reward_router.py`: FastAPI router for `/api/rewards/*` endpoints.
+  - `report_service.py`: Handles driver-submitted accident reports with UUID-based IDs.
+  - `report_router.py`: FastAPI router for `/pwa/reports` endpoint (POST accident reports).
 
 - **Shared Utilities** (`backend/shared/`) – Common configuration and database access:
   - `config.py`: Environment variable management (includes VLM settings).
@@ -48,23 +52,9 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 
 ## Data & Infrastructure
 
-### Core Systems
-- **FIWARE Orion Context Broker** – Central NGSI v2 endpoint for smart city entities (TrafficFlowObserved, Traffic, TrafficViolation, OnStreetParking, etc.).
-- **MySQL 8.0** – Relational database for:
-  - Road network geometry (Patras road network)
-  - Parking entities and occupancy
-  - Traffic entities and observations
-  - Camera device registration and configuration
-  - Driver profiles and violation tracking
-  - User management and authentication
-  - Reward catalog and milestone tracking
-
-- **InfluxDB 2.x** – Time-series database stores:
-  - Traffic flow metrics and history
-  - Parking occupancy changes
-  - Traffic violations and accidents
-  - Event analytics and trends
-
+- **FIWARE Orion Context Broker** – Central NGSI v2 endpoint for simulated entities.
+- **MySQL 8.0** – Relational database for static city data (road network, parking entities), user management (admin dashboard with whitelist), and driver profiles (driver PWA authentication and rewards). Runs in Docker.
+- **InfluxDB 2.x** – Stores time-series data (accidents, traffic flow) for historical analysis.
 - **Grafana** – Visualizes KPIs and is embedded inside the City Dashboard.
 
 ### External Services & APIs
@@ -173,10 +163,10 @@ docker compose down -v
 
 4. **Data Generators** (`iot_fakers`) - starts after database
    - Continuously generates simulated events:
-     - Traffic observations (every 5 seconds)
-     - Parking occupancy updates (every 10 seconds)
-     - Random accidents (every 60 seconds)
-     - Traffic violations (on generated events)
+   - Traffic observations (every 5 seconds)
+   - Parking occupancy updates (every 10 seconds)
+   - Random accidents (every 60 seconds)
+   - Traffic violations (on generated events)
 
 5. **Edge Detection** (`iot_edge_detection`) - starts after admin backend
    - Processes video files from `edge_detection/videos/` folder
@@ -241,7 +231,43 @@ All Fiware entities are automatically created on startup and follow the [FIWARE 
 
 **Important**: Camera parking entities (P-002, P-095) are excluded from the `parking_entities` table to prevent data simulators from overwriting real camera observations. These entities exist only in Fiware and are updated exclusively by camera VLM analysis.
 
-### API Endpoint
+## Authentication
+
+The project implements two separate authentication systems for different user types:
+
+### City Dashboard (Admin)
+- **Access**: Restricted to whitelisted email addresses
+- **Whitelist**: Configured in `backend/shared/config.py` (`WHITELISTED_EMAILS`)
+- **Endpoints**: `http://localhost:8002/login`, `http://localhost:8002/register`
+- **Features**: JWT-based authentication, password hashing (PBKDF2), 30-minute token expiration
+- **User Table**: `users` table in MySQL
+
+### Driver PWA
+- **Access**: Open registration (no whitelist)
+- **Endpoints**: `http://localhost:8010/public/login`, `http://localhost:8010/public/register`, `http://localhost:8010/public/refresh`
+- **Features**: JWT-based authentication, password hashing (PBKDF2), 30-minute token expiration with automatic 15-minute refresh
+- **User Table**: `driver_profiles` table in MySQL (includes reward points, streaks, and license plate)
+- **Session Persistence**: Tokens stored in localStorage, users remain logged in until sign-out or app closure
+- **Protected Endpoints**: All reward endpoints require authentication and extract driver ID from token
+
+**Creating Test Accounts**:
+
+*City Dashboard (Admin)*:
+1. Add your email to `WHITELISTED_EMAILS` in `backend/shared/config.py`
+2. Navigate to [http://localhost:5000](http://localhost:5000)
+3. Click "Register" and create an account
+
+*Driver PWA*:
+1. Navigate to [http://localhost:5173](http://localhost:5173)
+2. Click "Register" and create an account (no whitelist required)
+3. Optionally provide your license plate during registration
+
+## Computer Vision (YOLOv8)
+Vehicles are detected using a pretrained YOLOv8 nano model. The pipeline supports counting and parking occupancy detection.
+
+**Setup**:
+```bash
+python -m pip install -r yolov8_tests/requirements.txt
 ```
 POST /api/camera/event
 Content-Type: application/json

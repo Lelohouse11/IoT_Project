@@ -6,13 +6,42 @@ import MapView from './components/MapView'
 import ProfileMenu from './components/ProfileMenu'
 import ReportPanel from './components/ReportPanel'
 import RewardsPanel from './components/RewardsPanel'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import { isAuthenticated, refreshToken } from './utils/auth'
 
 function App() {
+  const [authView, setAuthView] = useState('login') // 'login' | 'register' | 'authenticated'
   const [profileOpen, setProfileOpen] = useState(false)
-  const [signedIn, setSignedIn] = useState(false)
   const [activeTab, setActiveTab] = useState('map')
-  const [reportType, setReportType] = useState('accident')
-  const [reportMsg, setReportMsg] = useState('Help improve the map by reporting issues.')
+  const [reportType, setReportType] = useState('issue')
+  const [reportMsg, setReportMsg] = useState('')
+
+  // Check authentication on mount
+  useEffect(() => {
+    if (isAuthenticated()) {
+      setAuthView('authenticated')
+    } else {
+      setAuthView('login')
+    }
+  }, [])
+
+  // Set up token refresh interval (every 15 minutes)
+  useEffect(() => {
+    if (authView !== 'authenticated') {
+      return
+    }
+
+    const refreshInterval = setInterval(async () => {
+      const refreshed = await refreshToken()
+      if (!refreshed) {
+        // Token refresh failed, logout
+        setAuthView('login')
+      }
+    }, 15 * 60 * 1000) // 15 minutes
+
+    return () => clearInterval(refreshInterval)
+  }, [authView])
 
   useEffect(() => {
     const onClick = (e) => {
@@ -37,21 +66,44 @@ function App() {
     }
   }, [profileOpen])
 
-  const handleReport = () => setReportMsg(`Report sent: ${reportType.replace(/^\w/, (c) => c.toUpperCase())}. Thank you!`)
   const toggleProfile = () => setProfileOpen((v) => !v)
 
+  const handleLoginSuccess = () => {
+    setAuthView('authenticated')
+  }
+
+  const handleLogout = () => {
+    setAuthView('login')
+    setProfileOpen(false)
+  }
+
+  const handleReport = async () => {
+    // Handle report submission - can be implemented later
+    console.log('Report submitted:', { reportType, reportMsg })
+    setReportMsg('')
+  }
+
+  // Show login or register page if not authenticated
+  if (authView === 'login') {
+    return <Login onLoginSuccess={handleLoginSuccess} onSwitchToRegister={() => setAuthView('register')} />
+  }
+
+  if (authView === 'register') {
+    return <Register onRegisterSuccess={handleLoginSuccess} onSwitchToLogin={() => setAuthView('login')} />
+  }
+
+  // Show main app if authenticated
   return (
     <>
       <Header profileOpen={profileOpen} onToggleProfile={toggleProfile} />
       <ProfileMenu
-        signedIn={signedIn}
         open={profileOpen}
-        onToggleSignIn={() => setSignedIn((v) => !v)}
+        onLogout={handleLogout}
         onClose={() => setProfileOpen(false)}
       />
       <main className="wrap">
         <MapView active={activeTab === 'map'} />
-        <RewardsPanel active={activeTab === 'rewards'} />
+        <RewardsPanel active={activeTab === 'rewards'} onSessionExpired={handleLogout} />
         <ReportPanel
           active={activeTab === 'report'}
           reportType={reportType}

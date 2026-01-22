@@ -32,12 +32,7 @@ function StreakProgressBar({ streakDays, streakType, progressPct }) {
   )
 }
 
-function RewardsPanel({ active }) {
-  // TODO: Replace hardcoded driver_id=1 with user ID extracted from auth token
-  // when user management is implemented:
-  // const driverId = getUserIdFromToken() or similar
-  const driverId = 1
-
+function RewardsPanel({ active, onSessionExpired }) {
   const [rewards, setRewards] = useState({
     current_points: 0,
     traffic_streak_days: 0,
@@ -58,14 +53,21 @@ function RewardsPanel({ active }) {
         setLoading(true)
         setError(null)
         const [rewardsData, catalogData] = await Promise.all([
-          fetchUserRewards(driverId),
+          fetchUserRewards(),
           fetchRewardsCatalog()
         ])
         setRewards(rewardsData)
         setCatalog(catalogData)
       } catch (err) {
-        setError(err.message || 'Failed to load rewards')
-        console.error('Error fetching rewards:', err)
+        if (err.message === 'Session expired' || err.message === 'Not authenticated') {
+          // Handle session expiration
+          if (onSessionExpired) {
+            onSessionExpired()
+          }
+        } else {
+          setError(err.message || 'Failed to load rewards')
+          console.error('Error fetching rewards:', err)
+        }
       } finally {
         setLoading(false)
       }
@@ -74,7 +76,7 @@ function RewardsPanel({ active }) {
     if (active) {
       loadData()
     }
-  }, [active, driverId])
+  }, [active, onSessionExpired])
 
   const handleRedeemReward = async (rewardId, rewardName, pointsCost) => {
     if (rewards.current_points < pointsCost) {
@@ -85,7 +87,7 @@ function RewardsPanel({ active }) {
 
     try {
       setRedeeming(rewardId)
-      const result = await redeemRewards(driverId, rewardId)
+      const result = await redeemRewards(rewardId)
       
       // Update points locally
       setRewards(prev => ({
@@ -98,9 +100,13 @@ function RewardsPanel({ active }) {
       // Clear message after 3 seconds
       setTimeout(() => setRedeemMessage(''), 3000)
     } catch (err) {
-      setRedeemMessage(`Error: ${err.message}`)
-      console.error('Error redeeming reward:', err)
-      setTimeout(() => setRedeemMessage(''), 3000)
+      if (err.message === 'Session expired' && onSessionExpired) {
+        onSessionExpired()
+      } else {
+        setRedeemMessage(`Error: ${err.message}`)
+        console.error('Error redeeming reward:', err)
+        setTimeout(() => setRedeemMessage(''), 3000)
+      }
     } finally {
       setRedeeming(null)
     }
