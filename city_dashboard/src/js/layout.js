@@ -17,11 +17,11 @@ export function initLayout() {
   <header class="topbar" role="banner">
     <div class="brand" aria-label="Smart City Admin">
       <span class="brand-dot" aria-hidden="true"></span>
-      <a href="/public/index.html" aria-label="Back to dashboard" style="color: inherit; text-decoration: none;">Smart City - Admin</a>
+      <a href="/index.html" aria-label="Back to dashboard" style="color: inherit; text-decoration: none;">Smart City - Admin</a>
     </div>
     <nav class="topnav" aria-label="Utility links">
-      <a href="/public/index.html" id="nav-dashboard">Dashboard</a>
-      <a href="/public/help.html" id="nav-help">Help</a>
+      <a href="/index.html" id="nav-dashboard">Dashboard</a>
+      <a href="/help.html" id="nav-help">Help</a>
     </nav>
     <div class="spacer"></div>
     <button

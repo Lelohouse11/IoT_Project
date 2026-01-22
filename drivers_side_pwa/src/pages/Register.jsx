@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import './Auth.css';
 
-const API_BASE = 'http://localhost:8010';
+const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 
 export default function Register({ onRegisterSuccess, onSwitchToLogin }) {
   const [username, setUsername] = useState('');

@@ -3,7 +3,8 @@
  * Handles token management, login, logout, and token refresh
  */
 
-const API_BASE = 'http://localhost:8010';
+// Use environment variable or relative URL for flexibility
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 /**
  * Check if user is authenticated

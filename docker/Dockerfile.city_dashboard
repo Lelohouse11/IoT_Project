@@ -22,6 +22,9 @@ RUN chmod +x docker/*.sh
 # Set city_dashboard as working directory for serving
 WORKDIR /app/city_dashboard
 
+# Create symlink so /src is accessible from /public directory
+RUN ln -s /app/city_dashboard/src /app/city_dashboard/public/src
+
 # Expose port
 EXPOSE 5000
 

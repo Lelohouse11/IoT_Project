@@ -14,6 +14,8 @@ function App() {
   const [authView, setAuthView] = useState('login') // 'login' | 'register' | 'authenticated'
   const [profileOpen, setProfileOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('map')
+  const [reportType, setReportType] = useState('issue')
+  const [reportMsg, setReportMsg] = useState('')
 
   // Check authentication on mount
   useEffect(() => {
@@ -73,6 +75,12 @@ function App() {
   const handleLogout = () => {
     setAuthView('login')
     setProfileOpen(false)
+  }
+
+  const handleReport = async () => {
+    // Handle report submission - can be implemented later
+    console.log('Report submitted:', { reportType, reportMsg })
+    setReportMsg('')
   }
 
   // Show login or register page if not authenticated

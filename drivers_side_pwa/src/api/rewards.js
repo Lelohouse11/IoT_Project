@@ -1,7 +1,6 @@
 import { authenticatedFetch, getDriverId } from '../utils/auth'
 
-const API_BASE = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '')
-const REWARD_API_BASE = 'http://localhost:8010' // Reward endpoints run on port 8010 (frontend_map_api.py)
+const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
 
 /**
  * Fetch reward data for the authenticated driver from the backend.
@@ -16,7 +15,7 @@ export async function fetchUserRewards() {
     throw new Error('Not authenticated')
   }
 
-  const url = `${REWARD_API_BASE}/api/rewards/${driverId}`.replace(/^\/+api/, '/api')
+  const url = `${API_BASE}/api/rewards/${driverId}`.replace(/^\/+api/, '/api')
   const res = await authenticatedFetch(url, { headers: { Accept: 'application/json' } })
   
   if (!res.ok) {
@@ -42,7 +41,7 @@ export async function fetchUserRewards() {
  * @throws {Error} If the API request fails
  */
 export async function fetchRewardsCatalog() {
-  const url = `${REWARD_API_BASE}/api/rewards/catalog`.replace(/^\/+api/, '/api')
+  const url = `${API_BASE}/api/rewards/catalog`.replace(/^\/+api/, '/api')
   const res = await authenticatedFetch(url, { headers: { Accept: 'application/json' } })
   
   if (!res.ok) {
@@ -67,7 +66,7 @@ export async function redeemRewards(rewardId) {
     throw new Error('Not authenticated')
   }
 
-  const url = `${REWARD_API_BASE}/api/rewards/${driverId}/redeem`.replace(/^\/+api/, '/api')
+  const url = `${API_BASE}/api/rewards/${driverId}/redeem`.replace(/^\/+api/, '/api')
   
   const res = await authenticatedFetch(url, {
     method: 'POST',
