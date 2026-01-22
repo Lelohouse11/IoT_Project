@@ -21,9 +21,10 @@ def get_db_connection():
         return None
 
 def execute_query(query, params=None):
-    """Execute a query (INSERT, UPDATE, DELETE) and return the cursor."""
+    """Execute a query (INSERT, UPDATE, DELETE) and return lastrowid."""
     conn = get_db_connection()
     if conn is None:
+        print("[DB] Error: Could not connect to database")
         return None
     
     cursor = conn.cursor()
@@ -33,15 +34,25 @@ def execute_query(query, params=None):
         else:
             cursor.execute(query)
         conn.commit()
-        return cursor
+        lastrowid = cursor.lastrowid
+        print(f"[DB] Query executed successfully. Rows affected: {cursor.rowcount}, Last ID: {lastrowid}")
+        
+        # Return a simple object with lastrowid attribute
+        class Result:
+            pass
+        result = Result()
+        result.lastrowid = lastrowid
+        result.rowcount = cursor.rowcount
+        return result
     except Error as e:
-        print(f"Error executing query: {e}")
+        print(f"[DB ERROR] Error executing query: {e}")
+        conn.rollback()
         return None
     finally:
-        # Note: We don't close the cursor here to allow fetching lastrowid if needed,
-        # but ideally the caller should handle closing or we use a context manager.
-        # For simple scripts, this is okay, but for production, use a pool.
-        pass
+        # Close cursor and connection after the query
+        cursor.close()
+        if conn.is_connected():
+            conn.close()
 
 def execute_batch(query, data_list):
     """Execute a batch insert (executemany) efficiently."""

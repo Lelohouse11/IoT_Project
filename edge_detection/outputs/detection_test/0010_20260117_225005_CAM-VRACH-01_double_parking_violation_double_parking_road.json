@@ -1,0 +1,33 @@
+{
+  "id": "c461a310-f5cc-4aa9-9958-bbd911c0ed40",
+  "event_number": 10,
+  "timestamp": "2026-01-17T22:50:05.918959",
+  "camera_id": "CAM-VRACH-01",
+  "event_type": "double_parking_violation",
+  "zone_name": "double_parking_road",
+  "metadata": {
+    "track_id": 110,
+    "stationary_seconds": 60.0,
+    "frame_number": 6114
+  },
+  "detections": [
+    {
+      "track_id": 110,
+      "class_name": "car",
+      "confidence": 0.5419403314590454,
+      "bbox": [
+        570,
+        520,
+        647,
+        600
+      ],
+      "bbox_normalized": [
+        0.44547309875488283,
+        0.7231502956814236,
+        0.5060137271881103,
+        0.8333671569824219
+      ]
+    }
+  ],
+  "image_file": "0010_20260117_225005_CAM-VRACH-01_double_parking_violation_double_parking_road.jpg"
+}

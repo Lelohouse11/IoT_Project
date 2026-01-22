@@ -1,0 +1,68 @@
+{
+  "CAM-VRACH-01": {
+    "zones": [
+      {
+        "name": "parking_zone_1",
+        "type": "parking",
+        "coordinates": [
+          [0.4, 0.66],
+          [0.42, 0.95],
+          [0.34, 0.85],
+          [0.36, 0.65]
+        ]
+      },
+      {
+        "name": "parking_zone_2",
+        "type": "parking",
+        "coordinates": [
+          [0.63, 0.61],
+          [0.82, 0.78],
+          [0.81, 0.85],
+          [0.59, 0.64]
+        ]
+      },
+      {
+        "name": "traffic_road",
+        "type": "traffic",
+        "coordinates": [
+          [0.47, 0.99],
+          [0.39, 0.58],
+          [0.52, 0.58],
+          [0.92, 1]
+        ]
+      },
+      {
+        "name": "double_parking_road",
+        "type": "double_parking",
+        "coordinates": [
+          [0.47, 0.99],
+          [0.39, 0.58],
+          [0.52, 0.58],
+          [0.92, 1]
+        ]
+      }
+    ]
+  },
+  "CAM-VRACH-02": {
+    "zones": [
+      {
+        "name": "traffic_light",
+        "type": "traffic_light",
+        "coordinates": [
+          [0.62, 0.01],
+          [0.61, 0.36],
+          [0.68, 0.36],
+          [0.69, 0.01]
+        ]
+      },
+      {
+        "name": "stop_line",
+        "type": "stop_line",
+        "coordinates": [
+          [0.01, 0.47],
+          [0.96, 0.47]
+        ]
+      }
+    ]
+  }
+}

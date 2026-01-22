@@ -257,6 +257,12 @@ def _load_geojson(path: Path) -> List[ParkingZone]:
 
 def _persist_zone_to_db(zone: ParkingZone, entity_id: str) -> None:
     """Persist created entity to the MySQL database."""
+    # Skip camera-managed parking entities (managed by real cameras, not simulators)
+    camera_parking_ids = ['P-002', 'P-095']
+    if zone.pid in camera_parking_ids:
+        print(f"[skip] {entity_id} is camera-managed, not adding to parking_entities table")
+        return
+    
     try:
         # Calculate centroid for simple lat/lng storage
         lats = [p[0] for p in zone.coords]
@@ -285,9 +291,17 @@ def seed_parking_zones(zones: Sequence[ParkingZone]) -> None:
         print("[warn] no parking zones to seed")
         return
 
+    # Camera-managed parking entities (not managed by simulators)
+    camera_parking_ids = ['P-002', 'P-095']
+    
     now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     with requests.Session() as session:
         for zone in zones:
+            # Skip camera-managed parking zones
+            if zone.pid in camera_parking_ids:
+                print(f"[skip] {zone.pid} is camera-managed, skipping creation")
+                continue
+                
             entity = _build_entity(zone, now_iso)
             if ORION.send_entity(session, entity, "create"):
                 print(

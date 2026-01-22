@@ -1,5 +1,0 @@
-outputs/
-inputs/images/*
-inputs/videos/*
-!inputs/images/.gitkeep
-!inputs/videos/.gitkeep

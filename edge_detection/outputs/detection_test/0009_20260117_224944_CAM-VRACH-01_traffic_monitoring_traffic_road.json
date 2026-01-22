@@ -1,0 +1,32 @@
+{
+  "id": "343b006a-1677-413c-9328-660f4decad9b",
+  "event_number": 9,
+  "timestamp": "2026-01-17T22:49:44.380332",
+  "camera_id": "CAM-VRACH-01",
+  "event_type": "traffic_monitoring",
+  "zone_name": "traffic_road",
+  "metadata": {
+    "vehicle_count": 1,
+    "frame_number": 5400
+  },
+  "detections": [
+    {
+      "track_id": 110,
+      "class_name": "car",
+      "confidence": 0.5443845987319946,
+      "bbox": [
+        570,
+        520,
+        647,
+        600
+      ],
+      "bbox_normalized": [
+        0.44547276496887206,
+        0.7231402079264323,
+        0.5060189723968506,
+        0.8333653767903646
+      ]
+    }
+  ],
+  "image_file": "0009_20260117_224944_CAM-VRACH-01_traffic_monitoring_traffic_road.jpg"
+}

@@ -18,6 +18,37 @@ if str(PROJECT_ROOT) not in sys.path:
 from backend.shared import database
 from backend.simulation import geo_helpers, parking_zones_init, traffic_segments_init
 
+def init_camera_devices():
+    """
+    Initialize camera devices if table is empty.
+    Executes the cameras_init.sql seed script.
+    """
+    try:
+        print("Checking camera_devices table...")
+        # Check if cameras already exist
+        count = database.fetch_all("SELECT COUNT(*) as c FROM camera_devices")[0]["c"]
+        if count > 0:
+            print(f"Camera devices already populated ({count} rows). Skipping initialization.")
+            return
+
+        print("Initializing camera devices...")
+        # Execute the camera initialization SQL
+        sql_path = PROJECT_ROOT / "db_init" / "seed_data" / "cameras_init.sql"
+        if sql_path.exists():
+            sql_content = sql_path.read_text()
+            # Split by semicolon and execute each statement
+            statements = [s.strip() for s in sql_content.split(';') if s.strip()]
+            for stmt in statements:
+                if stmt and not stmt.startswith('--'):
+                    database.execute_query(stmt)
+            print(f"Camera devices initialized successfully ({len(statements)} statements executed).")
+        else:
+            print(f"WARNING: Camera initialization SQL file not found at {sql_path}")
+    except Exception as e:
+        print(f"Error initializing camera devices: {e}")
+        import traceback
+        traceback.print_exc()
+
 def wait_for_db(timeout=30, interval=2):
     """
     Wait for the database to become available.
@@ -143,9 +174,10 @@ def init_traffic_segments():
         print(f"Error initializing traffic segments: {e}")
 
 def migrate_roads():
+    """Migrate road segments from GeoJSON file to database."""
     geojson_path = PROJECT_ROOT / "db_init" / "seed_data" / "patras_roads.geojson"
     if not geojson_path.exists():
-        print("Roads GeoJSON file not found.")
+        print(f"WARNING: Roads GeoJSON file not found at {geojson_path}")
         return
 
     # Check if already populated
@@ -156,9 +188,11 @@ def migrate_roads():
             return
     except Exception as e:
         print(f"Error checking road segments: {e}")
+        import traceback
+        traceback.print_exc()
         return
 
-    print("Migrating road segments...")
+    print("Migrating road segments from GeoJSON...")
     try:
         data = json.loads(geojson_path.read_text())
         batch_data = []
@@ -209,13 +243,24 @@ def migrate_roads():
         print(f"Error migrating roads: {e}")
 
 if __name__ == "__main__":
-    print("Starting database setup...")
+    print("=" * 60)
+    print("Starting database migration and initialization...")
+    print("=" * 60)
     if wait_for_db():
+        print("\n[1/4] Migrating road segments...")
         migrate_roads()
+        print("\n[2/4] Initializing parking zones...")
         init_rich_parking()
+        print("\n[3/4] Initializing traffic segments...")
         init_traffic_segments()
+        print("\n[4/4] Initializing camera devices...")
+        init_camera_devices()
         # migrate_parking() # Legacy fallback
-        print("Database setup complete.")
+        print("\n" + "=" * 60)
+        print("Database setup complete successfully!")
+        print("=" * 60)
     else:
+        print("=" * 60)
         print("Database setup failed: Could not connect to database.")
+        print("=" * 60)
         sys.exit(1)

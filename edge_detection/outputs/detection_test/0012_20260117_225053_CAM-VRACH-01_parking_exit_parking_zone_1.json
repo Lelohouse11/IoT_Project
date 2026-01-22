@@ -1,0 +1,16 @@
+{
+  "id": "cdf8f2c6-c886-4c4b-8e13-be3f3846e84d",
+  "event_number": 12,
+  "timestamp": "2026-01-17T22:50:53.754007",
+  "camera_id": "CAM-VRACH-01",
+  "event_type": "parking_exit",
+  "zone_name": "parking_zone_1",
+  "metadata": {
+    "event_id": "cdf8f2c6-c886-4c4b-8e13-be3f3846e84d",
+    "parking_duration_seconds": 82.129093,
+    "track_id": 89,
+    "frame_number": 7695
+  },
+  "detections": [],
+  "image_file": "0012_20260117_225053_CAM-VRACH-01_parking_exit_parking_zone_1.jpg"
+}
