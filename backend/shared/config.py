@@ -48,6 +48,12 @@ WHITELISTED_EMAILS = [
 # LLM Settings
 LLM_API_URL = os.getenv("LLM_API_URL", "http://localhost:5001/ask")
 LLM_MODEL = os.getenv("MODEL", "mistral:7b-instruct-q4_K_M")
+
+# VLM Settings (Vision Language Model)
+VLM_API_URL = os.getenv("VLM_API_URL", "http://labserver.sense-campus.gr:7080/vision")
+VLM_API_KEY = os.getenv("VLM_API_KEY", "iot2025")
+VLM_MODEL = os.getenv("VLM_MODEL", "qwen2.5vl:3b-q4_K_M")
+VLM_TIMEOUT = int(os.getenv("VLM_TIMEOUT", "120"))
 LLM_UPSTREAM_URL = os.getenv("LLM_UPSTREAM_URL", "http://labserver.sense-campus.gr:7080/chat")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "studentpassword")
 LLM_BIND_HOST = os.getenv("LLM_BIND_HOST", "0.0.0.0")

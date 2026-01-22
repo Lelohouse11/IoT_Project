@@ -4,6 +4,7 @@ Loads and manages settings for YOLO processing, zone detection, and backend comm
 """
 
 import json
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 import logging
@@ -43,6 +44,7 @@ class Config:
         """
         self.config: Dict[str, Any] = self.DEFAULTS.copy()
 
+        # Load from config file if provided
         if config_file and config_file.exists():
             with open(config_file, "r") as f:
                 user_config = json.load(f)
@@ -50,6 +52,18 @@ class Config:
             logger.info(f"Loaded config from {config_file}")
         else:
             logger.info("Using default configuration")
+        
+        # Override with environment variables if present
+        env_overrides = {
+            "backend_url": os.getenv("BACKEND_URL"),
+            "model_path": os.getenv("YOLO_MODEL_PATH"),
+            "device": os.getenv("YOLO_DEVICE"),
+        }
+        
+        for key, value in env_overrides.items():
+            if value is not None:
+                self.config[key] = value
+                logger.info(f"Config override from env: {key} = {value}")
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get configuration value."""

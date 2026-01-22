@@ -23,7 +23,17 @@ class DetectionRunner:
     """Production detection pipeline runner."""
     
     def __init__(self):
+        print("\n" + "=" * 70)
+        print("Edge Detection Runner - Initializing")
+        print("=" * 70)
+        
         self.config = Config()
+        
+        print(f"\n[CONFIG] Backend URL: {self.config.get('backend_url')}")
+        print(f"[CONFIG] YOLO Model: {self.config.get('model_path')}")
+        print(f"[CONFIG] Device: {self.config.get('device')}")
+        print(f"[CONFIG] Max Retries: {self.config.get('max_retries')}")
+        print(f"[CONFIG] Request Timeout: {self.config.get('request_timeout')}s\n")
         
         self.yolo_processor = YOLOProcessor(
             model_path=self.config.get("model_path"),
@@ -36,11 +46,20 @@ class DetectionRunner:
             fps=self.config.get("fps")
         )
         
+        print("\n[INIT] Creating backend sender...")
         self.backend_sender = BackendSender(
             backend_url=self.config.get("backend_url"),
             max_retries=self.config.get("max_retries"),
             timeout=self.config.get("request_timeout")
         )
+        
+        # Perform initial health check
+        print("\n[INIT] Performing initial backend health check...")
+        if self.backend_sender.check_health():
+            print("[INIT] ✓ Backend is available and healthy\n")
+        else:
+            print("[INIT] ⚠️  WARNING: Backend is not available!")
+            print("[INIT]     Events will be queued and retried...\n")
         
         self.parking_threshold = self.config.get("parking_stationary_duration")
         self.double_parking_threshold = self.config.get("double_parking_stationary_duration")
@@ -153,7 +172,7 @@ class DetectionRunner:
                             track_id = det.get('track_id', -1)
                             
                             self.send_event(
-                                event_type="parking_entry",
+                                event_type="parking_status",
                                 camera_id=camera_id,
                                 zone_name=zone_name,
                                 frame=frame,
@@ -162,7 +181,8 @@ class DetectionRunner:
                                     "event_id": event_id,
                                     "track_ids": [track_id] if track_id >= 0 else [],
                                     "stationary_seconds": stationary_time,
-                                    "frame_number": frame_count
+                                    "frame_number": frame_count,
+                                    "parking_event_type": "entry"
                                 }
                             )
             
@@ -178,7 +198,7 @@ class DetectionRunner:
                 
                 for event_id, duration, track_id in exited_vehicles:
                     self.send_event(
-                        event_type="parking_exit",
+                        event_type="parking_status",
                         camera_id=camera_id,
                         zone_name=zone_name,
                         frame=frame,
@@ -187,7 +207,8 @@ class DetectionRunner:
                             "event_id": event_id,
                             "parking_duration_seconds": duration,
                             "track_id": track_id,
-                            "frame_number": frame_count
+                            "frame_number": frame_count,
+                            "parking_event_type": "exit"
                         }
                     )
             
@@ -264,7 +285,7 @@ class DetectionRunner:
                             double_parking_violations[track_id] = datetime.now()
                             
                             self.send_event(
-                                event_type="double_parking_violation",
+                                event_type="double_parking",
                                 camera_id=camera_id,
                                 zone_name=zone_name,
                                 frame=frame,
@@ -284,6 +305,10 @@ def main():
     print("=" * 70)
     print("🚗 EDGE DETECTION - PRODUCTION RUNNER (CONTINUOUS MODE)")
     print("=" * 70)
+    
+    # Wait for backend to be fully ready
+    print("\n[STARTUP] Waiting 10 seconds for backend services to initialize...")
+    time.sleep(10)
     
     video_dir = Path("videos")
     if not video_dir.exists():

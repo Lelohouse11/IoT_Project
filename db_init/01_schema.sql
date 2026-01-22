@@ -94,3 +94,53 @@ VALUES
     ('Morning Espresso', 'Free espresso at participating cafes', 450, 'food', TRUE),
     ('Groceries Discount', '10% discount voucher at local supermarkets', 600, 'shopping', TRUE)
 ON DUPLICATE KEY UPDATE name=VALUES(name);
+
+-- Camera devices table
+-- Stores camera registration information and links to Fiware entities
+CREATE TABLE IF NOT EXISTS camera_devices (
+    camera_id VARCHAR(50) PRIMARY KEY,
+    location_lat DECIMAL(10, 8) NOT NULL,
+    location_lng DECIMAL(11, 8) NOT NULL,
+    road_segment_id VARCHAR(100),
+    traffic_flow_entity_id VARCHAR(100),
+    onstreet_parking_entity_id VARCHAR(100),
+    status ENUM('active', 'inactive', 'maintenance') DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Seed camera devices for testing
+INSERT INTO camera_devices (
+    camera_id, 
+    location_lat, 
+    location_lng, 
+    road_segment_id,
+    traffic_flow_entity_id,
+    onstreet_parking_entity_id,
+    status
+) VALUES (
+    'CAM-VRACH-01',
+    38.271000,
+    21.782000,
+    'SEG-VRACH-01',
+    'urn:ngsi-ld:TrafficFlowObserved:VRACH-01',
+    'urn:ngsi-ld:OnStreetParking:P-095',
+    'active'
+) ON DUPLICATE KEY UPDATE camera_id=VALUES(camera_id);
+
+INSERT INTO camera_devices (
+    camera_id, 
+    location_lat, 
+    location_lng, 
+    road_segment_id,
+    traffic_flow_entity_id,
+    onstreet_parking_entity_id,
+    status
+) VALUES (
+    'CAM-VRACH-02',
+    38.268500,
+    21.779500,
+    'SEG-VRACH-02',
+    'urn:ngsi-ld:TrafficFlowObserved:VRACH-02',
+    'urn:ngsi-ld:OnStreetParking:P-002',
+    'active'
+) ON DUPLICATE KEY UPDATE camera_id=VALUES(camera_id);

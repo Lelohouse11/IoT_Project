@@ -1,41 +1,129 @@
 # IoT Project Overview
 
-Compact toolkit for simulating, collecting, and visualizing city traffic incidents.
+Compact toolkit for simulating, collecting, and visualizing city traffic incidents. Features real-time camera event processing with Vision Language Model integration, FIWARE smart city modeling, and driver reward system.
 
 ## Modules & Tech
+
+### Frontend Applications
 - **City Dashboard** (`city_dashboard`) – Vanilla JS + Leaflet frontend. Renders live accidents, parking, and traffic data. Features a modular architecture (`config.js`, `layout.js`) and embeds Grafana widgets. Includes user authentication with JWT-based login/registration restricted to a whitelist of email addresses (defined in `backend/shared/config.py`).
 - **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and report incidents. Connects to `backend/public/frontend_map_api.py` for optimized traffic data.
-- **Computer Vision** (`yolov8_tests/`) – Vehicle detection pipeline using YOLOv8n. Analyzes video/images for traffic counting and parking occupancy events.
+
+### Computer Vision & Edge Processing
+- **Edge Detection** (`edge_detection/`) – NEW: Real-time YOLOv8 inference on edge devices (cameras). Processes video streams with vehicle tracking, zone-based filtering, and event triggering:
+  - Parking zone monitoring (entry/exit after 30s stationary)
+  - Double-parking violation detection (1-minute stationary in no-parking zones)
+  - Traffic monitoring snapshots (every 60 seconds)
+  - Automatic retry logic (3–5 attempts) for backend submission
+  - Silent operation with no local output
+- **Camera Event System** - Server-side event processing using Vision Language Model (VLM) for:
+  - Traffic monitoring (vehicle counting, density calculation)
+  - Double parking violation detection (license plate OCR)
+  - Red-light violation detection (license plate OCR)
+  - Parking occupancy monitoring (free spot counting)
+
+### Data Simulation & Event Generation
 - **Simulation** (`backend/simulation/`) – Python scripts simulating smart city entities:
   - `accident_generator.py`: Synthesizes `TrafficAccident` entities.
   - `traffic_violation_generator.py`: Emits `TrafficViolation` detections (red light, illegal parking).
   - `parking_generator.py`: Simulates `OnStreetParking` occupancy.
   - `traffic_generator.py`: Drives `TrafficFlowObserved` entities.
-- **Backend Services** (`backend/`) – Python services organized by access level for security:
-  - **Admin Services** (`backend/admin/`) – Restricted access, not available to driver PWA:
-    - `map_service.py` (FastAPI): Serves geo-snapped data for the admin dashboard and reward endpoints.
-    - `auth_service.py` (FastAPI): Dedicated authentication server for login/register.
-    - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
-    - `llm_service.py` (Flask): Proxy for the LLM chat assistant.
-  - **Public Services** (`backend/public/`) – Accessible to driver PWA:
-    - `frontend_map_api.py` (FastAPI): PWA-facing API (Port 8010) for serving traffic overlays.
-    - `reward_service.py`: Calculates driver streaks and reward data.
-    - `reward_router.py`: FastAPI router for `/api/rewards/*` endpoints.
-  - **Shared Utilities** (`backend/shared/`) – Common configuration and database access:
-    - `config.py`: Environment variable management.
-    - `database.py`: MySQL connection utilities.
+  - `camera_entities_init.py`: Initializes camera-related Fiware entities on startup.
 
-## Data & Infra
-- **FIWARE Orion Context Broker** – Central NGSI v2 endpoint for simulated entities.
-- **MySQL 8.0** – Relational database for static city data (road network, parking entities), user management, and driver profiles for rewards. Runs in Docker.
-- **InfluxDB 2.x** – Stores time-series data (accidents, traffic flow) for historical analysis.
+### Backend Services
+- **Admin Services** (`backend/admin/`) – Restricted access, not available to driver PWA:
+  - `map_service.py` (FastAPI): Serves geo-snapped data for the admin dashboard and reward endpoints.
+  - `auth_service.py` (FastAPI): Dedicated authentication server for login/register (port 8002).
+  - `camera_event_service.py` (FastAPI): Processes camera events with VLM and updates Fiware (port 8003).
+  - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
+  - `llm_service.py` (Flask): Proxy for the LLM chat assistant (port 9090).
+
+- **Public Services** (`backend/public/`) – Accessible to driver PWA:
+  - `frontend_map_api.py` (FastAPI): PWA-facing API (Port 8010) for serving traffic overlays.
+  - `reward_service.py`: Calculates driver streaks and reward data.
+  - `reward_router.py`: FastAPI router for `/api/rewards/*` endpoints.
+
+- **Shared Utilities** (`backend/shared/`) – Common configuration and database access:
+  - `config.py`: Environment variable management (includes VLM settings).
+  - `database.py`: MySQL connection utilities.
+
+## Data & Infrastructure
+
+### Core Systems
+- **FIWARE Orion Context Broker** – Central NGSI v2 endpoint for smart city entities (TrafficFlowObserved, Traffic, TrafficViolation, OnStreetParking, etc.).
+- **MySQL 8.0** – Relational database for:
+  - Road network geometry (Patras road network)
+  - Parking entities and occupancy
+  - Traffic entities and observations
+  - Camera device registration and configuration
+  - Driver profiles and violation tracking
+  - User management and authentication
+  - Reward catalog and milestone tracking
+
+- **InfluxDB 2.x** – Time-series database stores:
+  - Traffic flow metrics and history
+  - Parking occupancy changes
+  - Traffic violations and accidents
+  - Event analytics and trends
+
 - **Grafana** – Visualizes KPIs and is embedded inside the City Dashboard.
 
 ### External Services & APIs
-- **OpenStreetMap (via Overpass API)** – Source of the Patras road network geometry used by the fakers (`db_init/seed_data/patras_roads.geojson`).
-- **GraphHopper API** – Provides routing and navigation for the Driver Companion App (requires API key).
-- **Geolocation API** – Browser-based geolocation service used by the Driver PWA for real-time location tracking.
+- **OpenStreetMap (via Overpass API)** – Source of the Patras road network geometry (`db_init/seed_data/patras_roads.geojson`).
+- **GraphHopper API** – Provides routing for the Driver Companion App.
+- **Vision Language Model (VLM) API** – External service for image analysis:
+  - Vehicle counting in traffic monitoring events
+  - License plate OCR for violation detection
+  - Parking spot counting
+  - Default: `http://labserver.sense-campus.gr:7080/vision`
+
 - **Leaflet** – Open-source JavaScript library for interactive maps.
+
+## Docker Architecture
+
+The project uses a multi-container architecture with 7 services organized in three layers:
+
+**Infrastructure Layer**:
+- `iot_database`: MySQL 8.0 database (port 3306)
+- `iot_phpmyadmin`: Database admin UI (port 8081)
+
+**Application Layer**:
+- `iot_admin_apis`: Admin backend services (ports 8000, 8002, 8003, 9090)
+  - Port 8000: Map API for dashboard data
+  - Port 8002: Authentication API
+  - Port 8003: Camera Event API (processes VLM events)
+  - Port 9090: LLM chat service
+  - Background: Orion bridge for MQTT → InfluxDB sync
+  
+- `iot_public_apis`: Driver-facing backend (port 8010)
+  - Frontend Map API for PWA with traffic overlays
+  - Reward calculations
+  
+- `iot_fakers`: Data generators
+  - Simulates traffic, parking, accidents, violations
+
+**Presentation Layer**:
+- `iot_city_dashboard`: Admin web interface (port 5000)
+  - Vanilla JS + Leaflet maps
+  - Grafana dashboards embedded
+  
+- `iot_drivers_pwa`: Driver mobile app (port 5173)
+  - React + Vite
+  - Geolocation and navigation
+
+**Network**: All containers connected via `iot_network` (Docker bridge) for service discovery.
+
+### Container Details
+
+| Container | Image | Purpose | Ports | Dependencies |
+|-----------|-------|---------|-------|--------------|
+| `iot_database` | mysql:8.0 | Database server | 3306 | - |
+| `iot_phpmyadmin` | phpmyadmin | DB admin UI | 8081 | iot_database |
+| `iot_admin_apis` | Custom (Dockerfile.admin_api) | Admin backend services | 8000, 8002, 8003, 9090 | iot_database |
+| `iot_public_apis` | Custom (Dockerfile.public_api) | Public backend services | 8010 | iot_database |
+| `iot_fakers` | Custom (Dockerfile.fakers) | Data generators/simulators | - | iot_database |
+| `iot_city_dashboard` | Custom (Dockerfile.city_dashboard) | Admin frontend | 5000 | - |
+| `iot_drivers_pwa` | Custom (Dockerfile.drivers_pwa) | Driver frontend | 5173 | - |
+| `iot_edge_detection` | Custom (Dockerfile.edge_detection) | Edge YOLOv8 processor | - | iot_admin_apis |
 
 ## Running the Stack
 
@@ -43,60 +131,154 @@ The project runs entirely in Docker containers for consistency and ease of deplo
 
 ### Prerequisites
 - Install [Docker Desktop](https://www.docker.com/products/docker-desktop)
-- Ensure ports 5000, 5173, 8000, 8002, 8010, 8081, 9090, 3306 are available
+- Ensure ports 5000, 5173, 8000, 8002, 8003, 8010, 8081, 9090, 3306 are available
 - Copy `.env.example` to `.env` in the root directory and update with your credentials (InfluxDB token, API keys)
 
 ### Starting the Stack
 
 ```bash
+# Build and start all containers
 docker compose up -d --build
+
+# Follow logs
+docker logs -f iot_admin_apis
+docker logs -f iot_database
 ```
 
 ### Stopping the Stack
 
 ```bash
 docker compose down
+
+# Remove volumes (reset database)
+docker compose down -v
 ```
 
 ### What Gets Started
-The Docker stack includes separate containers:
-- **Database Services**: MySQL database + phpMyAdmin admin UI
-- **Admin Backend** (`iot_admin_apis`): Auth API, Map API, LLM Service, Orion Bridge (ports 8000, 8002, 9090)
-- **Public Backend** (`iot_public_apis`): Frontend Map API accessible to driver PWA (port 8010)
-- **Data Generators** (`iot_fakers`): Accident, traffic, parking and violation simulators
-- **City Dashboard** (`iot_city_dashboard`): Admin frontend (port 5000)
-- **Driver PWA** (`iot_drivers_pwa`): Driver-facing frontend (port 5173)
 
-**Service Ports**:
+1. **Database Services** (startup order: first)
+   - MySQL database with auto-initialization from `db_init/`
+   - phpMyAdmin UI for database management
+
+2. **Admin Backend** (`iot_admin_apis`) - starts after database
+   - Map API (port 8000): Serves dashboard data
+   - Auth API (port 8002): User authentication
+   - Camera Event API (port 8003): Processes camera events with VLM
+   - LLM Service (port 9090): AI analysis proxy
+   - Orion Bridge: Subscribes to Orion updates via MQTT
+
+3. **Public Backend** (`iot_public_apis`) - starts after database
+   - Frontend Map API (port 8010): Driver PWA data access
+   - Reward API: Driver streak and reward calculations
+
+4. **Data Generators** (`iot_fakers`) - starts after database
+   - Continuously generates simulated events:
+     - Traffic observations (every 5 seconds)
+     - Parking occupancy updates (every 10 seconds)
+     - Random accidents (every 60 seconds)
+     - Traffic violations (on generated events)
+
+5. **Edge Detection** (`iot_edge_detection`) - starts after admin backend
+   - Processes video files from `edge_detection/videos/` folder
+   - YOLOv8 inference with vehicle tracking
+   - Sends detected events to backend Camera Event API (port 8003)
+   - Detects: parking violations, double-parking, traffic flow
+   - Automatic retry logic with silent failure handling
+
+6. **Frontend Applications** (no dependencies)
+   - City Dashboard (port 5000): Admin visualization
+   - Driver PWA (port 5173): Driver mobile app
+
+**Service Access**:
 - **City Dashboard**: [http://localhost:5000](http://localhost:5000)
 - **Driver App**: [http://localhost:5173](http://localhost:5173)
-- **Admin APIs**:
-  - Auth API: [http://localhost:8002](http://localhost:8002)
-  - Map API: [http://localhost:8000](http://localhost:8000)
-  - LLM API: [http://localhost:9090](http://localhost:9090)
-- **Public API** (Driver PWA only):
-  - Frontend Map API: [http://localhost:8010](http://localhost:8010)
-- **Database**:
-  - phpMyAdmin: [http://localhost:8081](http://localhost:8081)
+- **Database Admin**: [http://localhost:8081](http://localhost:8081)
 
-## Computer Vision (YOLOv8)
-Vehicles are detected using a pretrained YOLOv8 nano model. The pipeline supports counting and parking occupancy detection.
+**Admin APIs** (not accessible to drivers):
+- Map API: [http://localhost:8000/docs](http://localhost:8000/docs)
+- Auth API: [http://localhost:8002/docs](http://localhost:8002/docs)
+- Camera Event API: [http://localhost:8003/docs](http://localhost:8003/docs)
+- LLM Service: [http://localhost:9090](http://localhost:9090)
 
-**Setup**:
-```bash
-python -m pip install -r yolov8_tests/requirements.txt
+**Public API** (Driver PWA only):
+- Frontend Map API: [http://localhost:8010/docs](http://localhost:8010/docs)
+
+## Camera Event Processing System
+
+NEW: Real-time camera event processing using Vision Language Model (VLM) analysis.
+
+### Event Types
+1. **Traffic Monitoring** - Count vehicles, calculate traffic density
+   - VLM processes marked area in image
+   - Updates `TrafficFlowObserved` entity with density and congestion level
+
+2. **Double Parking** - Detect parking violations
+   - VLM extracts license plate via OCR
+   - Updates driver profile if plate matched
+   - Creates `TrafficViolation` entity in Fiware
+
+3. **Red Light Violation** - Detect traffic violations
+   - VLM extracts license plate via OCR
+   - Updates driver profile if plate matched
+   - Creates `TrafficViolation` entity in Fiware
+
+4. **Parking Status** - Monitor parking occupancy
+   - VLM counts free parking spots
+   - Updates `OnStreetParking` entity availability
+
+### Camera Setup
+Two pre-configured cameras in Vrachnaiika, Patras:
+- **CAM-VRACH-01**: Traffic & Parking monitoring (38.271°N, 21.782°E)
+  - Event Types: `traffic_monitoring`, `parking_status`, `double_parking`
+  - Linked Fiware Entities:
+    - Traffic Flow: `urn:ngsi-ld:TrafficFlowObserved:VRACH-01`
+    - Parking: `urn:ngsi-ld:OnStreetParking:P-095`
+- **CAM-VRACH-02**: Red light violation monitoring (38.2685°N, 21.7795°E)
+  - Event Types: `red_light_violation`
+  - No Fiware traffic/parking entities (violations only)
+
+All Fiware entities are automatically created on startup and follow the [FIWARE Smart Data Model](https://smart-data-models.github.io/) schema with the owner attribute set to `week4_up1125093`.
+
+**Important**: Camera parking entities (P-002, P-095) are excluded from the `parking_entities` table to prevent data simulators from overwriting real camera observations. These entities exist only in Fiware and are updated exclusively by camera VLM analysis.
+
+### API Endpoint
+```
+POST /api/camera/event
+Content-Type: application/json
+
+{
+  "camera_id": "CAM-VRACH-01",
+  "timestamp": "2026-01-16T10:30:00Z",
+  "event_type": "traffic_monitoring",
+  "image": "<base64_encoded_image>",
+  "metadata": {
+    "bbox": {"x": 100, "y": 100, "w": 500, "h": 300}
+  }
+}
 ```
 
-**Running Tests**:
-Place media in `yolov8_tests/inputs/` (images or videos).
-```bash
-python yolov8_tests/run_detection.py [options]
-# Options: --images, --videos, --device cuda:0, --conf 0.15
-```
+Response includes VLM analysis results and Fiware update status.
 
-**Outputs**:
-- Annotated media in `yolov8_tests/outputs/`
-- Metadata JSONs for counts and events.
+## Edge Detection System
+
+Real-time YOLOv8 inference engine for camera feeds. Detects parking violations, traffic flow, and double-parking violations by processing video streams in `edge_detection/videos/`. Events are sent via POST to the backend Camera Event API. Zone definitions and configuration are located in `edge_detection/zones/zones.json` and `edge_detection/config.json`.
+
+## Database Schema
+
+### Key Tables
+
+| Table | Purpose | Key Fields |
+|-------|---------|-----------|
+| `users` | Admin authentication | id, username, email, password_hash, role |
+| `driver_profiles` | Driver management & rewards | id, username, license_plate, last_traffic_violation, last_parking_violation, current_points |
+| `camera_devices` | Camera registration | camera_id, location_lat/lng, traffic_flow_entity_id, onstreet_parking_entity_id |
+| `parking_entities` | Parking zone data | id, entity_id, lat, lng, total_spots |
+| `traffic_entities` | Traffic segment data | id, entity_id, lat, lng |
+| `road_segments` | Road network geometry | id, lat1, lng1, lat2, lng2 |
+| `rewards_catalog` | Available rewards | id, name, description, points_cost |
+| `milestone_awards` | Reward tracking | id, driver_id, streak_type, milestone_days, points_awarded |
+
+See [db_init/01_schema.sql](db_init/01_schema.sql) for complete schema.
 
 ## Project Structure
 ```
@@ -110,7 +292,7 @@ IoT_Project/
 ├── db_init/             # SQL Schema & Migration Scripts
 │   └── seed_data/       # Raw JSON/GeoJSON Data Files
 ├── drivers_side_pwa/    # Driver App (React)
-├── yolov8_tests/        # Computer Vision/YOLO Experiments
+├── edge_detection/      # YOLOv8 Edge Processing (videos, zones, src)
 ├── docker/              # Dockerfiles and startup scripts
 ├── docs/                # Documentation & Ideas
 └── .vscode/             # Task & Launch Configs

@@ -44,6 +44,7 @@ services:
     ports:
       - "8000:8000" # Map API (admin)
       - "8002:8002" # Auth API
+      - "8003:8003" # Camera Event API
       - "9090:9090" # LLM API
     environment:
       MYSQL_HOST: iot_database
@@ -122,6 +123,7 @@ services:
     restart: unless-stopped
     depends_on:
       - iot_admin_apis
+      - iot_database
     volumes:
       - ./edge_detection/videos:/app/videos
       - ./edge_detection/zones:/app/zones

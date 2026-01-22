@@ -113,7 +113,7 @@ def _flux_recent_parking(window: str = "15m", start: Optional[str] = None, stop:
 from(bucket: "{bucket}")
   |> {range_clause}
   |> filter(fn: (r) => r._measurement == "{MEASUREMENT_PARKING}")
-  |> filter(fn: (r) => r._field == "entity_id" or r._field == "total_spots" or r._field == "occupied_spots" or r._field == "available_spots" or r._field == "status" or r._field == "lat" or r._field == "lng" or r._field == "street")
+  |> filter(fn: (r) => r._field == "entity_id" or r._field == "total_spots" or r._field == "occupied_spots" or r._field == "available_spots" or r._field == "status" or r._field == "lat" or r._field == "lng")
   |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
   {loc_filter}
   |> group(columns: ["entity_id"])
