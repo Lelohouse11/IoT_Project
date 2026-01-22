@@ -261,7 +261,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include report router for driver accident report submissions
+from backend.public import report_router
 # Include routers
+app.include_router(report_router.router)
 app.include_router(auth_router.router, prefix="/public", tags=["auth"])
 app.include_router(reward_router.router, tags=["rewards"])
 

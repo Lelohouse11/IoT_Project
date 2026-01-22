@@ -4,7 +4,12 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 
 ## Modules & Tech
 - **City Dashboard** (`city_dashboard`) – Vanilla JS + Leaflet frontend. Renders live accidents, parking, and traffic data. Features a modular architecture (`config.js`, `layout.js`) and embeds Grafana widgets. Includes user authentication with JWT-based login/registration restricted to a whitelist of email addresses (defined in `backend/shared/config.py`).
-- **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and report incidents. Features JWT-based authentication with login/registration (no whitelist required). Connects to `backend/public/frontend_map_api.py` for optimized traffic data and authentication endpoints.
+- **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and submit accident reports. Features include:
+  - Real-time traffic and parking data visualization
+  - Driver reward tracking with streak progress
+  - Accident reporting with automatic geolocation and 30-minute expiration
+  - Connects to `backend/public/frontend_map_api.py` for optimized traffic data, `/pwa/reports` for report submission and authentication endpoints
+  - Features JWT-based authentication with login/registration
 - **Computer Vision** (`yolov8_tests/`) – Vehicle detection pipeline using YOLOv8n. Analyzes video/images for traffic counting and parking occupancy events.
 - **Simulation** (`backend/simulation/`) – Python scripts simulating smart city entities:
   - `accident_generator.py`: Synthesizes `TrafficAccident` entities.
@@ -17,11 +22,14 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
     - `auth_service.py` (FastAPI): Dedicated authentication server for login/register.
     - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
     - `llm_service.py` (Flask): Proxy for the LLM chat assistant.
+    - `report_expiration_service.py`: Background scheduler that auto-clears driver reports after 30 minutes.
   - **Public Services** (`backend/public/`) – Accessible to driver PWA:
     - `frontend_map_api.py` (FastAPI): PWA-facing API (Port 8010) for serving traffic overlays, authentication, and rewards.
     - `auth_router.py` (FastAPI): Driver authentication endpoints for login, registration, and token refresh.
     - `reward_service.py`: Calculates driver streaks and reward data.
-    - `reward_router.py`: FastAPI router for `/api/rewards/*` endpoints (requires authentication).
+    - `reward_router.py`: FastAPI router for `/api/rewards/*` endpoints.
+    - `report_service.py`: Handles driver-submitted accident reports with UUID-based IDs.
+    - `report_router.py`: FastAPI router for `/pwa/reports` endpoint (POST accident reports).
   - **Shared Utilities** (`backend/shared/`) – Common configuration and database access:
     - `config.py`: Environment variable management.
     - `database.py`: MySQL connection utilities.

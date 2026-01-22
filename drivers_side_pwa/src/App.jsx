@@ -14,8 +14,6 @@ function App() {
   const [authView, setAuthView] = useState('login') // 'login' | 'register' | 'authenticated'
   const [profileOpen, setProfileOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('map')
-  const [reportType, setReportType] = useState('accident')
-  const [reportMsg, setReportMsg] = useState('Help improve the map by reporting issues.')
 
   // Check authentication on mount
   useEffect(() => {
@@ -66,7 +64,6 @@ function App() {
     }
   }, [profileOpen])
 
-  const handleReport = () => setReportMsg(`Report sent: ${reportType.replace(/^\w/, (c) => c.toUpperCase())}. Thank you!`)
   const toggleProfile = () => setProfileOpen((v) => !v)
 
   const handleLoginSuccess = () => {
