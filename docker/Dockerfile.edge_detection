@@ -1,32 +1,56 @@
+# syntax=docker/dockerfile:1
+
+# Builder stage: Install Python dependencies
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Set pip environment variables for faster installs
+ENV PIP_DEFAULT_TIMEOUT=100 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1
+
+# Copy requirements file
+COPY edge_detection/requirements.txt ./
+
+# Install Python dependencies using a cache mount for pip downloads
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
+
+# Final stage: Create lean runtime image
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# ---- pip hardening ----
+# Set pip and YOLO environment variables
 ENV PIP_DEFAULT_TIMEOUT=100 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_NO_CACHE_DIR=1
+    PYTHONUNBUFFERED=1 \
+    YOLO_CONFIG_DIR="/app/yolo_config"
 
-# Install system dependencies (required for OpenCV)
-RUN apt-get update && apt-get install -y \
+# Create the config directory explicitly to avoid permission issues
+RUN mkdir -p /app/yolo_config
+
+# Configure apt to allow package caching
+RUN rm -f /etc/apt/apt.conf.d/docker-clean; echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/keep-cache
+
+# Install system dependencies using cache mounts to speed up rebuilds
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
-    libxrender-dev \
-    && rm -rf /var/lib/apt/lists/*
+    libxrender-dev
 
-# Copy only requirements first for better caching
-COPY edge_detection/requirements.txt ./
+# Copy installed Python packages from builder stage
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of edge detection code (avoids cache invalidation from video/model changes)
+# Copy source code and resources
 COPY edge_detection/src ./src
 COPY edge_detection/detection_runner.py .
 COPY edge_detection/zones ./zones
 COPY edge_detection/yolov8n.pt .
 
-# Run edge detection with unbuffered output for real-time logs
+# Run the application
 CMD ["python", "-u", "detection_runner.py"]

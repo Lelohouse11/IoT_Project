@@ -112,7 +112,6 @@ services:
     ports:
       - "5173:5173"
     environment:
-      VITE_API_BASE: http://localhost:8010
       VITE_GRAPHHOPPER_KEY: ${VITE_GRAPHHOPPER_KEY:-05320f88-6120-4d9b-9f2d-68ad3228267e}
     networks:
       - iot_network

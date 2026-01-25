@@ -33,7 +33,7 @@ ORION = OrionClient(
 @dataclass
 class ParkingSimConfig:
     """Simulation knobs for interval, step size, and randomness."""
-    interval_sec: float = 8.0
+    interval_sec: float = 30.0
     max_step_change: int = 4
     jitter_prob: float = 0.45
 

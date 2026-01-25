@@ -2,6 +2,25 @@
 
 Compact toolkit for simulating, collecting, and visualizing city traffic incidents. Features real-time camera event processing with Vision Language Model integration, FIWARE smart city modeling, and driver reward system.
 
+## Project Structure
+
+```
+IoT_Project/
+├── backend/             # Core Backend Services & Bridges
+│   ├── admin/           # Admin-only services (not accessible to driver PWA)
+│   ├── public/          # Public services (accessible to driver PWA)
+│   ├── shared/          # Shared utilities (config, database)
+│   └── simulation/      # Simulation scripts (fakers)
+├── city_dashboard/      # Admin Dashboard (JS/HTML)
+├── db_init/             # SQL Schema & Migration Scripts
+│   └── seed_data/       # Raw JSON/GeoJSON Data Files
+├── docker/              # Dockerfiles and startup scripts
+├── drivers_side_pwa/    # Driver App (React)
+├── edge_detection/      # YOLOv8 Edge Processing (videos, zones, src)
+├── presentation/        # Project milestones (Concept, MVP, Final)
+└── .vscode/             # Task & Launch Configs
+```
+
 ## Modules & Tech
 
 ### Frontend Applications
@@ -9,17 +28,13 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 - **Driver Companion App** (`drivers_side_pwa`) – React + Vite PWA. Provides a mobile-first interface for drivers to view alerts and report incidents. Connects to `backend/public/frontend_map_api.py` for optimized traffic data.
 
 ### Computer Vision & Edge Processing
-- **Edge Detection** (`edge_detection/`) – NEW: Real-time YOLOv8 inference on edge devices (cameras). Processes video streams with vehicle tracking, zone-based filtering, and event triggering:
+- **Edge Detection** (`edge_detection/`) – Real-time YOLOv8 inference on edge devices (cameras). Processes video streams with vehicle tracking, zone-based filtering, and event triggering:
   - Parking zone monitoring (entry/exit after 30s stationary)
   - Double-parking violation detection (1-minute stationary in no-parking zones)
   - Traffic monitoring snapshots (every 60 seconds)
   - Automatic retry logic (3–5 attempts) for backend submission
   - Silent operation with no local output
-- **Camera Event System** - Server-side event processing using Vision Language Model (VLM) for:
-  - Traffic monitoring (vehicle counting, density calculation)
-  - Double parking violation detection (license plate OCR)
-  - Red-light violation detection (license plate OCR)
-  - Parking occupancy monitoring (free spot counting)
+- **Camera Event System** - Server-side event processing using Vision Language Model (VLM) for license plate OCR and free spot counting
 
 ### Data Simulation & Event Generation
 - **Simulation** (`backend/simulation/`) – Python scripts simulating smart city entities:
@@ -37,6 +52,10 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
   - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
   - `llm_service.py` (Flask): Proxy for the LLM chat assistant (port 9090).
   - `report_expiration_service.py`: Background scheduler that auto-clears driver reports after 30 minutes.
+
+  - `processing_service.py`: Handles data processing and analysis tasks.
+
+  - `camera_fiware_service.py`: Manages FIWARE camera entities and interactions.
 
 - **Public Services** (`backend/public/`) – Accessible to driver PWA:
   - `frontend_map_api.py` (FastAPI): PWA-facing API (Port 8010) for serving traffic overlays, authentication, and rewards.
@@ -70,7 +89,7 @@ Compact toolkit for simulating, collecting, and visualizing city traffic inciden
 
 ## Docker Architecture
 
-The project uses a multi-container architecture with 7 services organized in three layers:
+The project uses a multi-container architecture with 8 services organized in three layers:
 
 **Infrastructure Layer**:
 - `iot_database`: MySQL 8.0 database (port 3306)
@@ -132,10 +151,6 @@ The project runs entirely in Docker containers for consistency and ease of deplo
 ```bash
 # Build and start all containers
 docker compose up -d --build
-
-# Follow logs
-docker logs -f iot_admin_apis
-docker logs -f iot_database
 ```
 
 ### Stopping the Stack
@@ -198,11 +213,11 @@ docker compose down -v
 
 ## Camera Event Processing System
 
-NEW: Real-time camera event processing using Vision Language Model (VLM) analysis.
+Real-time camera event processing using Vision Language Model (VLM) analysis.
 
 ### Event Types
 1. **Traffic Monitoring** - Count vehicles, calculate traffic density
-   - VLM processes marked area in image
+   - Uses YOLO-detected vehicle data to count vehicles and calculate traffic density
    - Updates `TrafficFlowObserved` entity with density and congestion level
 
 2. **Double Parking** - Detect parking violations
@@ -265,30 +280,11 @@ The project implements two separate authentication systems for different user ty
 2. Click "Register" and create an account (no whitelist required)
 3. Optionally provide your license plate during registration
 
-## Computer Vision (YOLOv8)
-Vehicles are detected using a pretrained YOLOv8 nano model. The pipeline supports counting and parking occupancy detection.
 
-**Setup**:
-```bash
-python -m pip install -r yolov8_tests/requirements.txt
-```
-POST /api/camera/event
-Content-Type: application/json
 
-{
-  "camera_id": "CAM-VRACH-01",
-  "timestamp": "2026-01-16T10:30:00Z",
-  "event_type": "traffic_monitoring",
-  "image": "<base64_encoded_image>",
-  "metadata": {
-    "bbox": {"x": 100, "y": 100, "w": 500, "h": 300}
-  }
-}
-```
+## Edge Detection and Computer Vision
 
-Response includes VLM analysis results and Fiware update status.
-
-## Edge Detection System
+Vehicles are detected using a pretrained YOLOv8 nano model in the edge detection container. The pipeline supports counting and parking occupancy detection, with events processed via the Camera Event API.
 
 Real-time YOLOv8 inference engine for camera feeds. Detects parking violations, traffic flow, and double-parking violations by processing video streams in `edge_detection/videos/`. Events are sent via POST to the backend Camera Event API. Zone definitions and configuration are located in `edge_detection/zones/zones.json` and `edge_detection/config.json`.
 
@@ -308,24 +304,6 @@ Real-time YOLOv8 inference engine for camera feeds. Detects parking violations, 
 | `milestone_awards` | Reward tracking | id, driver_id, streak_type, milestone_days, points_awarded |
 
 See [db_init/01_schema.sql](db_init/01_schema.sql) for complete schema.
-
-## Project Structure
-```
-IoT_Project/
-├── backend/             # Core Backend Services & Bridges
-│   ├── admin/           # Admin-only services (not accessible to driver PWA)
-│   ├── public/          # Public services (accessible to driver PWA)
-│   ├── shared/          # Shared utilities (config, database)
-│   └── simulation/      # Simulation scripts (fakers)
-├── city_dashboard/      # Admin Dashboard (JS/HTML)
-├── db_init/             # SQL Schema & Migration Scripts
-│   └── seed_data/       # Raw JSON/GeoJSON Data Files
-├── drivers_side_pwa/    # Driver App (React)
-├── edge_detection/      # YOLOv8 Edge Processing (videos, zones, src)
-├── docker/              # Dockerfiles and startup scripts
-├── docs/                # Documentation & Ideas
-└── .vscode/             # Task & Launch Configs
-```
 
 ## Collaboration Rules
 To keep our workflow clean and consistent:

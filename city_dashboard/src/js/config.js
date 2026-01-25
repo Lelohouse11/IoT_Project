@@ -16,7 +16,7 @@ export const CONFIG = {
   API_BASE: window.APP_API_BASE || "http://localhost:8000", // e.g. "http://localhost:8000"
   
   // Polling & Data retention
-  REFRESH_MS: 15000,           // auto-refresh interval
+  REFRESH_MS: 30000,           // auto-refresh interval
   PRUNE_MS: 30000,             // prune cadence
   API_WINDOW: '10m',           // lookback for active accidents/traffic
   VIOLATION_WINDOW: '5m',      // lookback for traffic violations

@@ -17,6 +17,7 @@ dist
 .coverage
 mysql_data
 edge_detection/outputs
+edge_detection/videos
 edge_detection/__pycache__
 yolov8_tests
 debug_output.txt

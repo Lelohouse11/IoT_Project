@@ -32,7 +32,7 @@ ORION = OrionClient(
 @dataclass
 class TrafficSimConfig:
     """Simulation knobs for dynamics."""
-    interval_sec: float = 2.0
+    interval_sec: float = 30.0
     base_intensity_range: Tuple[int, int] = (300, 1100)  # vehicles/hour
     base_speed_range: Tuple[float, float] = (28.0, 55.0)  # km/h
     speed_jitter: float = 6.0
