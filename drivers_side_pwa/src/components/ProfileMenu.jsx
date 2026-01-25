@@ -1,4 +1,4 @@
-import { getDriverName, getDriverEmail, logout } from '../utils/auth'
+import { getDriverName, getDriverEmail, logout } from '../services/auth'
 
 function ProfileMenu({ open, onLogout, onClose }) {
   const driverName = getDriverName()

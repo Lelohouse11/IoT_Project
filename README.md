@@ -121,10 +121,13 @@ The project runs entirely in Docker containers for consistency and ease of deplo
 
 ### Prerequisites
 - Install [Docker Desktop](https://www.docker.com/products/docker-desktop)
+- **Minimum 15GB free disk space** (Docker images + dependencies)
 - Ensure ports 5000, 5173, 8000, 8002, 8003, 8010, 8081, 9090, 3306 are available
 - Copy `.env.example` to `.env` in the root directory and update with your credentials (InfluxDB token, API keys)
 
 ### Starting the Stack
+
+> ** First Build Warning**: The initial `docker compose up -d --build` can take 20-30 minutes due to edge detection dependencies (PyTorch, Ultralytics YOLOv8). If you want to skip edge detection for faster testing, comment out the `iot_edge_detection` service in `docker-compose.yml`.
 
 ```bash
 # Build and start all containers

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './Auth.css';
+import '../styles/Auth.css';
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '');
 

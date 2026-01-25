@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { fetchUserRewards, fetchRewardsCatalog, redeemRewards } from '../api/rewards'
+import { fetchUserRewards, fetchRewardsCatalog, redeemRewards } from '../services/rewards'
 
 function StreakProgressBar({ streakDays, streakType, progressPct }) {
   return (

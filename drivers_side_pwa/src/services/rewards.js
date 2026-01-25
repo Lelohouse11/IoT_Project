@@ -1,4 +1,4 @@
-import { authenticatedFetch, getDriverId } from '../utils/auth'
+import { authenticatedFetch, getDriverId } from './auth'
 
 const API_BASE = (import.meta.env.VITE_API_BASE || '/api').replace(/\/$/, '')
 

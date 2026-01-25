@@ -47,6 +47,7 @@ class CameraFiwareService:
             entity = {
                 "id": traffic_flow_id,
                 "type": "TrafficFlowObserved",
+                "owner": {"type": "Text", "value": FIWARE_OWNER},
                 "dateObserved": {"type": "DateTime", "value": timestamp},
                 "location": {
                     "type": "geo:json",

@@ -26,7 +26,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY edge_detection/src ./src
 COPY edge_detection/detection_runner.py .
 COPY edge_detection/zones ./zones
-COPY yolov8n.pt .
+COPY edge_detection/yolov8n.pt .
 
 # Run edge detection with unbuffered output for real-time logs
 CMD ["python", "-u", "detection_runner.py"]

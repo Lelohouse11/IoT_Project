@@ -4,8 +4,8 @@ import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
 import markerIcon from 'leaflet/dist/images/marker-icon.png'
 import markerShadow from 'leaflet/dist/images/marker-shadow.png'
-import { fetchRecentTraffic } from '../api/traffic'
-import { fetchRecentParking } from '../api/parking'
+import { fetchRecentTraffic } from '../services/traffic'
+import { fetchRecentParking } from '../services/parking'
 
 const cityCenter = [38.2464, 21.7346]
 const beach = [38.2588, 21.7347]

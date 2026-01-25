@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import './App.css'
+import './styles/App.css'
 import BottomNav from './components/BottomNav'
 import Header from './components/Header'
 import MapView from './components/MapView'
@@ -8,7 +8,7 @@ import ReportPanel from './components/ReportPanel'
 import RewardsPanel from './components/RewardsPanel'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import { isAuthenticated, refreshToken } from './utils/auth'
+import { isAuthenticated, refreshToken } from './services/auth'
 
 function App() {
   const [authView, setAuthView] = useState('login') // 'login' | 'register' | 'authenticated'
