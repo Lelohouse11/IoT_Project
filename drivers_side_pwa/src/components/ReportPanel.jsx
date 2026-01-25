@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { submitReport } from '../services/reports'
 
 const ACCIDENT_DESCRIPTIONS = [
   'Rear-end collision',
@@ -66,25 +67,12 @@ function ReportPanel({active}) {
       }
 
       // Submit to backend
-      const response = await fetch('http://localhost:8010/pwa/reports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          latitude,
-          longitude,
-          severity,
-          description: finalDescription
-        })
+      const data = await submitReport({
+        latitude,
+        longitude,
+        severity,
+        description: finalDescription
       })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.detail || `Server error: ${response.status}`)
-      }
-
-      const data = await response.json()
       
       // Success - reset form
       setReportMsg('Report submitted successfully. Thank you for helping keep our roads safe!')
