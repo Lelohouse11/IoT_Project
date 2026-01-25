@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 
 const ACCIDENT_DESCRIPTIONS = [
   'Rear-end collision',
@@ -22,16 +22,15 @@ function ReportPanel({active}) {
   const [severity, setSeverity] = useState('minor')
   const [reportMsg, setReportMsg] = useState('Help improve safety by reporting accidents.')
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const formRef = useRef(null)
 
   const resetForm = () => {
     setDescription(ACCIDENT_DESCRIPTIONS[0])
     setCustomDescription('')
     setSeverity('minor')
-    setReportMsg('Help improve safety by reporting accidents.')
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (event) => {
+    event.preventDefault()
     if (isSubmitting) return
 
     setIsSubmitting(true)
@@ -88,9 +87,8 @@ function ReportPanel({active}) {
       const data = await response.json()
       
       // Success - reset form
-      resetForm()
       setReportMsg('Report submitted successfully. Thank you for helping keep our roads safe!')
-      
+      resetForm()
       // Clear success message after 5 seconds
       setTimeout(() => {
         setReportMsg('Help improve safety by reporting accidents.')
@@ -117,7 +115,7 @@ function ReportPanel({active}) {
       <article className="card">
         <h2>Report Accident</h2>
         <div className="body">
-          <form ref={formRef} onSubmit={(e) => e.preventDefault()}>
+          <form onSubmit={handleSubmit}>
             <div className="controls" style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
               
               {/* Description dropdown */}
@@ -180,8 +178,8 @@ function ReportPanel({active}) {
 
               {/* Submit button */}
               <button 
+                type="submit"
                 className="btn" 
-                onClick={handleSubmit}
                 disabled={isSubmitting}
                 style={{ marginTop: '0.4rem' }}
               >
