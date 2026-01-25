@@ -53,7 +53,7 @@ def load_events_from_folder(folder: Path) -> List[Dict[str, Any]]:
             # skip unsupported types
             continue
         camera_id = data.get("camera_id")
-        timestamp = data.get("timestamp")
+        # Always use current backend-side timestamp; ignore file timestamp
         image_file = data.get("image_file")
         if not image_file:
             # derive from json name
@@ -72,7 +72,7 @@ def load_events_from_folder(folder: Path) -> List[Dict[str, Any]]:
                 "event_type": mapped_type,
                 "frame": str(image_path),
                 "metadata": metadata,
-                "timestamp": timestamp,
+                # Do not pass a timestamp so the sender uses 'now' in UTC
             }
         )
     return events

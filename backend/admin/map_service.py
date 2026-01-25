@@ -184,7 +184,7 @@ from(bucket: "{bucket}")
   |> {range_clause}
   |> filter(fn: (r) => r._measurement == "{MEASUREMENT_VIOLATIONS}")
   |> filter(fn: (r) => r._field == "entity_id" or r._field == "description" or r._field == "payment_status" or r._field == "equipment_id" or r._field == "equipment_type" or r._field == "lat" or r._field == "lng")
-  |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
+  |> pivot(rowKey: ["_time", "violation"], columnKey: ["_field"], valueColumn: "_value")
   {loc_filter}
   |> group(columns: ["entity_id"])
   |> sort(columns: ["_time"], desc: true)
