@@ -6,4 +6,3 @@ requests
 paho-mqtt
 influxdb-client
 mysql-connector-python
-apscheduler

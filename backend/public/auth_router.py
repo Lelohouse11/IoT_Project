@@ -106,6 +106,7 @@ class Token(BaseModel):
     username: str
     email: str
     driver_id: int
+    license_plate: Optional[str] = None
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 def register(driver: DriverRegister):
@@ -184,7 +185,8 @@ def login(driver: DriverLogin):
         "token_type": "bearer",
         "username": db_driver["username"],
         "email": db_driver["email"],
-        "driver_id": db_driver["id"]
+        "driver_id": db_driver["id"],
+        "license_plate": db_driver["license_plate"]
     }
 
 @router.post("/refresh", response_model=Token)
@@ -228,5 +230,33 @@ def refresh_token(authorization: str = Header(None)):
         "token_type": "bearer",
         "username": db_driver["username"],
         "email": db_driver["email"],
-        "driver_id": db_driver["id"]
+        "driver_id": db_driver["id"],
+        "license_plate": db_driver["license_plate"]
     }
+
+@router.delete("/account")
+def delete_account(authorization: str = Header(None)):
+    """Delete the authenticated driver's account."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid token")
+    
+    token = authorization.split(" ")[1]
+    payload = verify_token(token)
+    
+    conn = database.get_db_connection()
+    if not conn:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+    
+    cursor = conn.cursor()
+    try:
+        # Delete the driver profile
+        cursor.execute("DELETE FROM driver_profiles WHERE id = %s", (payload["driver_id"],))
+        conn.commit()
+        
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Driver not found")
+    finally:
+        cursor.close()
+        conn.close()
+    
+    return {"message": "Account deleted successfully"}

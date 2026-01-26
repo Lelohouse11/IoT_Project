@@ -30,6 +30,7 @@ export default function Login({ onLoginSuccess, onSwitchToRegister }) {
         localStorage.setItem('driver_name', data.username);
         localStorage.setItem('driver_email', data.email);
         localStorage.setItem('driver_id', data.driver_id);
+        localStorage.setItem('driver_license_plate', data.license_plate || '');
         
         // Notify parent component
         onLoginSuccess();

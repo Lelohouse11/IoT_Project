@@ -1,13 +1,44 @@
-import { getDriverName, getDriverEmail, logout } from '../services/auth'
+import { useState } from 'react'
+import { getDriverName, getDriverEmail, logout, deleteAccount } from '../services/auth'
 
 function ProfileMenu({ open, onLogout, onClose }) {
   const driverName = getDriverName()
   const driverEmail = getDriverEmail()
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   const handleLogout = () => {
     logout()
     onLogout()
     onClose()
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setIsDeleting(true)
+      setDeleteError('')
+      await deleteAccount()
+      // Account deleted successfully, logout and redirect
+      logout()
+      onLogout()
+      onClose()
+    } catch (err) {
+      // If session expired, still logout the user
+      if (err.message === 'Session expired') {
+        logout()
+        onLogout()
+        onClose()
+      } else {
+        setDeleteError(err.message || 'Failed to delete account')
+        console.error('Error deleting account:', err)
+      }
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -26,6 +57,19 @@ function ProfileMenu({ open, onLogout, onClose }) {
         >
           Sign out
         </button>
+        <button
+          className="btn btn-danger"
+          onClick={handleDeleteAccount}
+          disabled={isDeleting}
+          style={{backgroundColor: '#dc3545', borderColor: '#dc3545' }}
+        >
+          {isDeleting ? 'Deleting...' : 'Delete Account'}
+        </button>
+        {deleteError && (
+          <div style={{ color: '#dc3545', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+            {deleteError}
+          </div>
+        )}
       </div>
     </div>
   )

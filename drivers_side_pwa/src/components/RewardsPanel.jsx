@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { fetchUserRewards, fetchRewardsCatalog, redeemRewards } from '../services/rewards'
+import { getDriverLicensePlate } from '../services/auth'
 
 function StreakProgressBar({ streakDays, streakType, progressPct }) {
   return (
@@ -52,6 +53,15 @@ function RewardsPanel({ active, onSessionExpired }) {
       try {
         setLoading(true)
         setError(null)
+
+        // Check if user has a license plate
+        const licensePlate = getDriverLicensePlate()
+        if (!licensePlate || licensePlate.trim() === '') {
+          setError('Access denied: You must have a license plate registered to access rewards. Please update your profile.')
+          setLoading(false)
+          return
+        }
+
         const [rewardsData, catalogData] = await Promise.all([
           fetchUserRewards(),
           fetchRewardsCatalog()

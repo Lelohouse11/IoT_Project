@@ -37,6 +37,13 @@ export function getDriverEmail() {
 }
 
 /**
+ * Get the current driver's license plate
+ */
+export function getDriverLicensePlate() {
+  return localStorage.getItem('driver_license_plate') || '';
+}
+
+/**
  * Get the authentication token
  */
 export function getToken() {
@@ -51,6 +58,7 @@ export function logout() {
   localStorage.removeItem('driver_name');
   localStorage.removeItem('driver_email');
   localStorage.removeItem('driver_id');
+  localStorage.removeItem('driver_license_plate');
 }
 
 /**
@@ -132,4 +140,31 @@ export async function authenticatedFetch(url, options = {}) {
   }
 
   return response;
+}
+
+/**
+ * Delete the current driver's account
+ * @throws {Error} If the request fails or user is not authenticated
+ */
+export async function deleteAccount() {
+  const token = getToken();
+  if (!token) {
+    throw new Error('Not authenticated');
+  }
+
+  try {
+    const response = await fetch(`${API_BASE}/public/account`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to delete account (${response.status})`);
+    }
+  } catch (error) {
+    console.error('Delete account error:', error);
+    throw error;
+  }
 }
