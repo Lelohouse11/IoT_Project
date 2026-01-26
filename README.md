@@ -51,10 +51,7 @@ IoT_Project/
   - `camera_event_service.py` (FastAPI): Processes camera events with VLM and updates Fiware (port 8003).
   - `orion_bridge_service.py`: MQTT-to-InfluxDB bridge for persisting Orion updates.
   - `llm_service.py` (Flask): Proxy for the LLM chat assistant (port 9090).
-  - `report_expiration_service.py`: Background scheduler that auto-clears driver reports after 30 minutes.
-
   - `processing_service.py`: Handles data processing and analysis tasks.
-
   - `camera_fiware_service.py`: Manages FIWARE camera entities and interactions.
 
 - **Public Services** (`backend/public/`) – Accessible to driver PWA:

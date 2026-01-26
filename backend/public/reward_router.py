@@ -29,33 +29,14 @@ class RewardCatalogItem(BaseModel):
 
 @router.get("/catalog", response_model=List[RewardCatalogItem])
 def get_rewards_catalog():
-    """
-    Get all available rewards from the catalog.
-    
-    Returns:
-        List[RewardCatalogItem]: List of available rewards
-    """
+    """Get all available rewards from catalog."""
     catalog = reward_service.fetch_rewards_catalog()
     return catalog
 
 
 @router.get("/{driver_id}", response_model=RewardResponse)
 def get_driver_rewards(driver_id: int):
-    """
-    Get reward data for a specific driver.
-    
-    TODO: Add @auth_required decorator when user management is implemented.
-    Current endpoint is public for testing purposes.
-    
-    Args:
-        driver_id (int): The ID of the driver in driver_profiles table
-        
-    Returns:
-        RewardResponse: Driver's current points, streak days, and milestone progress
-        
-    Raises:
-        HTTPException: If driver not found (404)
-    """
+    """Get reward data for specific driver."""
     if driver_id <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid driver_id")
     
@@ -74,21 +55,7 @@ class RedeemRequest(BaseModel):
 
 @router.post("/{driver_id}/redeem")
 def redeem_rewards(driver_id: int, request: RedeemRequest):
-    """
-    Redeem a specific reward for a driver.
-    
-    TODO: Add @auth_required decorator when user management is implemented.
-    
-    Args:
-        driver_id (int): The ID of the driver
-        request (RedeemRequest): Contains reward_id to redeem
-        
-    Returns:
-        dict: Result with success status, message, and remaining points
-        
-    Raises:
-        HTTPException: If driver not found (404), reward not found (404), or insufficient points (400)
-    """
+    """Redeem specific reward for driver."""
     if driver_id <= 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid driver_id")
     

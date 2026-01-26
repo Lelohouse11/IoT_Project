@@ -5,17 +5,7 @@ from backend.shared import database
 
 
 def get_driver_rewards(driver_id: int):
-    """
-    Fetch driver reward data from the database and calculate streaks.
-    
-    Args:
-        driver_id (int): The ID of the driver in driver_profiles table
-        
-    Returns:
-        dict: Contains current_points, traffic_streak_days, parking_streak_days,
-              traffic_progress_pct (0-100 toward 30-day milestone),
-              parking_progress_pct (0-100 toward 30-day milestone)
-    """
+    """Fetch driver reward data and calculate streaks."""
     query = """
         SELECT id, current_points, last_traffic_violation, last_parking_violation
         FROM driver_profiles
@@ -73,15 +63,7 @@ def get_driver_rewards(driver_id: int):
 
 
 def calculate_days_since(violation_datetime):
-    """
-    Calculate the number of days since a violation occurred.
-    
-    Args:
-        violation_datetime: datetime object from database
-        
-    Returns:
-        int: Number of days since violation (0 if violation is today or in the future)
-    """
+    """Calculate days since violation occurred."""
     if violation_datetime is None:
         return 0
     
@@ -94,7 +76,7 @@ def calculate_days_since(violation_datetime):
     
     now = datetime.now()
     
-    # Handle timezone-aware datetime
+    # Handle timezone-aware datetime to avoid comparison errors
     if violation_datetime.tzinfo is not None and now.tzinfo is None:
         now = now.replace(tzinfo=violation_datetime.tzinfo)
     elif violation_datetime.tzinfo is None and now.tzinfo is not None:
@@ -108,17 +90,7 @@ def calculate_days_since(violation_datetime):
 
 
 def calculate_milestone_progress(days_since_violation):
-    """
-    Calculate progress toward the next 30-day milestone as a percentage (0-100).
-    
-    Formula: (days_since_violation % 30) / 30 * 100
-    
-    Args:
-        days_since_violation (int): Number of days since a violation
-        
-    Returns:
-        int: Progress percentage (0-100) toward the next milestone
-    """
+    """Calculate progress toward next 30-day milestone as percentage."""
     if days_since_violation < 0:
         return 0
     
@@ -127,16 +99,7 @@ def calculate_milestone_progress(days_since_violation):
 
 
 def update_driver_points(driver_id: int, points_delta: int):
-    """
-    Update a driver's points by adding/subtracting the given delta.
-    
-    Args:
-        driver_id (int): The ID of the driver
-        points_delta (int): The amount to add (positive) or subtract (negative)
-        
-    Returns:
-        bool: True if update was successful, False otherwise
-    """
+    """Update driver's points by adding/subtracting delta."""
     query = """
         UPDATE driver_profiles
         SET current_points = current_points + %s
@@ -148,16 +111,7 @@ def update_driver_points(driver_id: int, points_delta: int):
 
 
 def record_violation(driver_id: int, violation_type: str):
-    """
-    Record a violation for a driver (traffic or parking) and reset the corresponding streak.
-    
-    Args:
-        driver_id (int): The ID of the driver
-        violation_type (str): Either 'traffic' or 'parking'
-        
-    Returns:
-        bool: True if update was successful, False otherwise
-    """
+    """Record violation and reset corresponding streak."""
     if violation_type not in ['traffic', 'parking']:
         return False
     
@@ -183,18 +137,7 @@ def record_violation(driver_id: int, violation_type: str):
 
 
 def check_and_award_milestones(driver_id: int, streak_days: int, streak_type: str):
-    """
-    Check if driver has reached milestones and award points if not already awarded.
-    
-    Milestones:
-    - 7 days: +15 points (traffic) or +20 points (parking)
-    - 30 days: +75 points (traffic) or +100 points (parking)
-    
-    Args:
-        driver_id (int): The ID of the driver
-        streak_days (int): Current streak length in days
-        streak_type (str): Either 'traffic' or 'parking'
-    """
+    """Check and award milestone points if not already awarded."""
     if streak_type not in ['traffic', 'parking']:
         return
     
@@ -216,17 +159,7 @@ def check_and_award_milestones(driver_id: int, streak_days: int, streak_type: st
 
 
 def is_milestone_awarded(driver_id: int, streak_type: str, milestone_days: int):
-    """
-    Check if a milestone has already been awarded to prevent double-awarding.
-    
-    Args:
-        driver_id (int): The ID of the driver
-        streak_type (str): Either 'traffic' or 'parking'
-        milestone_days (int): The milestone threshold (7 or 30)
-        
-    Returns:
-        bool: True if milestone already awarded, False otherwise
-    """
+    """Check if milestone already awarded."""
     query = """
         SELECT id FROM milestone_awards
         WHERE driver_id = %s AND streak_type = %s AND milestone_days = %s
@@ -236,18 +169,7 @@ def is_milestone_awarded(driver_id: int, streak_type: str, milestone_days: int):
 
 
 def record_milestone_award(driver_id: int, streak_type: str, milestone_days: int, points_awarded: int):
-    """
-    Record that a milestone has been awarded to a driver.
-    
-    Args:
-        driver_id (int): The ID of the driver
-        streak_type (str): Either 'traffic' or 'parking'
-        milestone_days (int): The milestone threshold (7 or 30)
-        points_awarded (int): The number of points awarded
-        
-    Returns:
-        bool: True if record was successful, False otherwise
-    """
+    """Record milestone award for driver."""
     query = """
         INSERT INTO milestone_awards (driver_id, streak_type, milestone_days, points_awarded)
         VALUES (%s, %s, %s, %s)
@@ -258,12 +180,7 @@ def record_milestone_award(driver_id: int, streak_type: str, milestone_days: int
 
 
 def fetch_rewards_catalog():
-    """
-    Fetch all available rewards from the rewards catalog.
-    
-    Returns:
-        list: List of reward dictionaries with id, name, description, points_cost, category
-    """
+    """Fetch all available rewards from catalog."""
     query = """
         SELECT id, name, description, points_cost, category, available
         FROM rewards_catalog
@@ -276,16 +193,7 @@ def fetch_rewards_catalog():
 
 
 def redeem_reward(driver_id: int, reward_id: int):
-    """
-    Process a reward redemption for a driver.
-    
-    Args:
-        driver_id (int): The ID of the driver
-        reward_id (int): The ID of the reward to redeem
-        
-    Returns:
-        dict: Result with success status, message, and remaining points
-    """
+    """Process reward redemption for driver."""
     # Fetch the reward details
     reward_query = """
         SELECT id, name, points_cost, available

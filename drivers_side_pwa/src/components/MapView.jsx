@@ -80,6 +80,17 @@ function MapView({ active }) {
       setShowCenterButton(true)
     })
 
+    // Additional listeners for immediate detection of user interactions on mobile
+    map.on('dragstart', () => {
+      setFollowUser(false)
+      setShowCenterButton(true)
+    })
+
+    map.on('zoomstart', () => {
+      setFollowUser(false)
+      setShowCenterButton(true)
+    })
+
     const renderTraffic = async () => {
       try {
         const traffic = await fetchRecentTraffic()

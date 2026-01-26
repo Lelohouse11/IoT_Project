@@ -15,7 +15,6 @@ from influxdb_client import InfluxDBClient
 from backend.shared import config
 from backend.public import reward_router
 from backend.simulation import geo_helpers
-from backend.admin import report_expiration_service
 
 influxdb_url = config.INFLUX_URL
 bucket = config.INFLUX_BUCKET
@@ -34,23 +33,6 @@ app.add_middleware(
 
 # Include reward router for driver reward endpoints
 app.include_router(reward_router.router)
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize services on application startup."""
-    # Start the report expiration scheduler
-    report_expiration_service.start_expiration_scheduler()
-    print("[startup] Admin API services initialized")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup services on application shutdown."""
-    # Stop the report expiration scheduler
-    report_expiration_service.stop_expiration_scheduler()
-    print("[shutdown] Admin API services stopped")
-
     
 client = InfluxDBClient(url=influxdb_url, token=token, org=org)
 query_api = client.query_api()

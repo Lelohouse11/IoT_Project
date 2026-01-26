@@ -32,7 +32,7 @@ active_reports: Dict[str, float] = {}
 
 
 def _generate_report_id() -> str:
-    """Generate a unique UUID-based report ID with driver prefix."""
+    """Generate unique UUID-based report ID with driver prefix."""
     # Format: D_{uuid4}_{timestamp_ms}
     timestamp_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
     unique_id = str(uuid.uuid4())[:8]  # Use first 8 chars of UUID for brevity
@@ -49,11 +49,7 @@ def _build_fiware_entity(
     status: str,
     now_iso: str
 ) -> Dict[str, Any]:
-    """
-    Construct the NGSI v2 entity payload for a driver-reported TrafficAccident.
-    
-    Matches the format from accident_generator.py _build_fiware_entity().
-    """
+    """Construct NGSI v2 entity payload for driver-reported TrafficAccident."""
     return {
         "id": f"urn:ngsi-ld:TrafficAccident:{report_id}",
         "type": "TrafficAccident",
@@ -76,21 +72,7 @@ def submit_accident_report(
     severity: str,
     description: str
 ) -> str:
-    """
-    Submit a driver accident report to the Orion Context Broker.
-    
-    Args:
-        latitude: Latitude coordinate of the accident
-        longitude: Longitude coordinate of the accident
-        severity: Severity level ('minor', 'medium', or 'major')
-        description: Description of the accident
-        
-    Returns:
-        str: The generated report ID
-        
-    Raises:
-        RuntimeError: If the submission to Orion fails
-    """
+    """Submit driver accident report to Orion Context Broker."""
     report_id = _generate_report_id()
     now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     
@@ -115,35 +97,13 @@ def submit_accident_report(
         timestamp = datetime.now(timezone.utc).timestamp()
         active_reports[report_id] = timestamp
         
-        # Also notify the expiration service to track metadata
-        try:
-            from backend.admin import report_expiration_service
-            report_expiration_service.track_report_metadata(
-                report_id, latitude, longitude, severity, description
-            )
-        except ImportError:
-            # Expiration service not available (e.g., in public API only deployment)
-            print(f"[driver-report] Warning: Expiration service not available for {report_id}")
-        
         print(f"[driver-report] Created {entity['id']} {severity} at ({latitude:.5f}, {longitude:.5f})")
         
         return report_id
 
 
 def clear_accident_report(report_id: str, latitude: float, longitude: float, severity: str, description: str) -> bool:
-    """
-    Mark a driver-reported accident as cleared in Orion.
-    
-    Args:
-        report_id: The report ID to clear
-        latitude: Original latitude coordinate
-        longitude: Original longitude coordinate
-        severity: Original severity level
-        description: Original description
-        
-    Returns:
-        bool: True if successfully cleared, False otherwise
-    """
+    """Mark driver-reported accident as cleared in Orion."""
     now_iso = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     
     entity = _build_fiware_entity(

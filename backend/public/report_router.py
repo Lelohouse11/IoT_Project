@@ -24,22 +24,7 @@ class AccidentReportResponse(BaseModel):
 
 @router.post("", response_model=AccidentReportResponse, status_code=status.HTTP_201_CREATED)
 def submit_accident_report(report: AccidentReportRequest):
-    """
-    Submit a driver-reported accident to the Orion Context Broker.
-    
-    Creates a TrafficAccident entity with UUID-based ID to avoid conflicts
-    with simulation-generated accidents. The report will automatically expire
-    and be marked as 'cleared' after 30 minutes.
-    
-    Args:
-        report: AccidentReportRequest containing location, severity, and description
-        
-    Returns:
-        AccidentReportResponse: Confirmation with the generated report ID
-        
-    Raises:
-        HTTPException: If the report submission to Orion fails
-    """
+    """Submit driver-reported accident to Orion Context Broker."""
     try:
         report_id = report_service.submit_accident_report(
             latitude=report.latitude,
