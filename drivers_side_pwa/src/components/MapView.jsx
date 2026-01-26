@@ -23,6 +23,9 @@ function MapView({ active }) {
   const [showCenterButton, setShowCenterButton] = useState(false)
   const latestUserLatLngRef = useRef(null)
   const suppressMoveEventRef = useRef(false)
+  const followUserRef = useRef(true)
+  const userInteractionTimerRef = useRef(null)
+  const isUserInteractingRef = useRef(false)
 
   const trafficColor = (props = {}) => {
     if (props.congested) return '#dc2626'
@@ -68,6 +71,32 @@ function MapView({ active }) {
     let cancelled = false
     let trafficIntervalId
     let geoWatchId
+    const container = mapContainerRef.current
+    const handleUserInteraction = () => {
+      // Mark that user is actively interacting
+      isUserInteractingRef.current = true
+      followUserRef.current = false
+      setFollowUser(false)
+      setShowCenterButton(true)
+      
+      // Clear any existing timer
+      if (userInteractionTimerRef.current) {
+        clearTimeout(userInteractionTimerRef.current)
+      }
+      
+      // Set timer to re-enable following only if user clicks center button explicitly
+      userInteractionTimerRef.current = setTimeout(() => {
+        isUserInteractingRef.current = false
+      }, 5000) // 5 second grace period
+      
+      console.log("User interaction detected: Disabled following for 5 seconds")
+    }
+
+    if (container) {
+      container.addEventListener('touchstart', handleUserInteraction, { passive: true })
+      container.addEventListener('mousedown', handleUserInteraction)
+      container.addEventListener('wheel', handleUserInteraction, { passive: true })
+    }
 
     // If user manually moves the map, stop following and show the center button
     map.on('movestart', () => {
@@ -160,21 +189,29 @@ function MapView({ active }) {
           placeUserMarker(latlng)
           const m = mapRef.current
           if (!m) return
+          
+          // Don't move map if user is actively interacting
+          if (isUserInteractingRef.current) {
+            console.log("User interacting: Skipping GPS-based centering")
+            return
+          }
+          
           if (!hasCenteredInitially) {
             // Center once by default on the first location fix, without showing the button yet
             suppressMoveEventRef.current = true
             m.setView(latlng, m.getZoom(), { animate: true })
             setHasCenteredInitially(true)
             // After initial center, stop following until the user asks
+            followUserRef.current = false
             setFollowUser(false)
             setShowCenterButton(false)
-          } else if (followUser) {
-            // Follow user when enabled
+          } else if (followUserRef.current) {
+            // Only follow if ref is true AND user isn't interacting
             suppressMoveEventRef.current = true
-            m.setView(latlng, m.getZoom(), { animate: true })
+            m.setView(latlng, m.getZoom(), { animate: false })
           } else {
-            // Not following: keep marker updated, offer re-center button
-            setShowCenterButton(true)
+            // Not following: just update the marker, don't move the map
+            placeUserMarker(latlng)
           }
         },
         (err) => {
@@ -187,9 +224,15 @@ function MapView({ active }) {
     return () => {
       cancelled = true
       if (trafficIntervalId) clearInterval(trafficIntervalId)
+      if (userInteractionTimerRef.current) clearTimeout(userInteractionTimerRef.current)
       if (geoWatchId != null && navigator.geolocation) {
         navigator.geolocation.clearWatch(geoWatchId)
         geoWatchId = null
+      }
+      if (container) {
+        container.removeEventListener('touchstart', handleUserInteraction)
+        container.removeEventListener('mousedown', handleUserInteraction)
+        container.removeEventListener('wheel', handleUserInteraction)
       }
       if (trafficLayerRef.current) {
         map.removeLayer(trafficLayerRef.current)
@@ -249,6 +292,7 @@ function MapView({ active }) {
       map.fitBounds(poly.getBounds(), { padding: [30, 30] })
       // Ensure center button appears after route moves the map
       setShowCenterButton(true)
+      followUserRef.current = false
       setFollowUser(false)
     } catch (err) {
       console.error(err)
@@ -288,6 +332,14 @@ function MapView({ active }) {
     const map = mapRef.current
     const latlng = latestUserLatLngRef.current
     if (!map || !latlng) return
+    
+    // Clear any pending interaction timer and reset interaction flag
+    if (userInteractionTimerRef.current) {
+      clearTimeout(userInteractionTimerRef.current)
+    }
+    isUserInteractingRef.current = false
+    
+    followUserRef.current = true
     setFollowUser(true)
     setShowCenterButton(false)
     suppressMoveEventRef.current = true

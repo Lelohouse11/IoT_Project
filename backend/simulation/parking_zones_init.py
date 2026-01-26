@@ -87,15 +87,20 @@ def _build_entity(zone: ParkingZone, now_iso: str) -> Dict[str, Dict[str, Any]]:
 
 def _default_zones() -> List[ParkingZone]:
     """Return generated on-street parking zones along the road network."""
+    from backend.simulation.geo_helpers import haversine_distance_m
+    
     zones = []
     road_segs, weights = load_road_segments()
+    
+    # Patras center and radius in meters
+    center_lat = 38.2464
+    center_lng = 21.7346
+    max_radius_m = 1000  # 1 km radius around Patras center
     
     if not road_segs:
         print("[warn] no road segments loaded; using random locations as fallback")
         # Fallback to random locations
-        center_lat = 38.2464
-        center_lng = 21.7346
-        max_offset = 0.02
+        max_offset = 0.005
         street_names = ["Maizonos", "Korinthou", "Agiou Andreou", "Gounari", "Agiou Nikolaou", "Ermou", "Patreos", "Votsi", "Kanari", "Miaouli"]
         categories = [("public", "free"), ("public", "feeCharged"), ("public", "shortTerm"), ("public", "forDisabled")]
         
@@ -122,16 +127,37 @@ def _default_zones() -> List[ParkingZone]:
             )
         return zones
     
+    # Filter road segments to only those within max_radius_m of Patras center
+    filtered_segs = []
+    filtered_weights = []
+    for seg, weight in zip(road_segs, weights):
+        (lat1, lng1), (lat2, lng2) = seg
+        # Check if segment midpoint is within radius
+        mid_lat = (lat1 + lat2) / 2
+        mid_lng = (lng1 + lng2) / 2
+        dist = haversine_distance_m(center_lat, center_lng, mid_lat, mid_lng)
+        if dist <= max_radius_m:
+            filtered_segs.append(seg)
+            filtered_weights.append(weight)
+    
+    if not filtered_segs:
+        print(f"[warn] no road segments within {max_radius_m}m of center; using fallback")
+        return _default_zones()  # Use fallback
+    
+    # Normalize weights for filtered segments
+    total_weight = sum(filtered_weights)
+    filtered_weights = [w / total_weight for w in filtered_weights]
+    
     # Generate zones along road network
     street_names = ["Maizonos", "Korinthou", "Agiou Andreou", "Gounari", "Agiou Nikolaou", "Ermou", "Patreos", "Votsi", "Kanari", "Miaouli"]
     categories = [("public", "free"), ("public", "feeCharged"), ("public", "shortTerm"), ("public", "forDisabled")]
     
     for i in range(100):
         # Sample a road segment for this parking zone
-        if not road_segs:
+        if not filtered_segs:
             continue
             
-        segment = random.choices(road_segs, weights=weights, k=1)[0]
+        segment = random.choices(filtered_segs, weights=filtered_weights, k=1)[0]
         start_lat, start_lng = segment[0]
         end_lat, end_lng = segment[1]
         

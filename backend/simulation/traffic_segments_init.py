@@ -75,14 +75,19 @@ def _build_entity(segment: TrafficSegment, now_iso: str) -> Dict[str, Dict[str, 
 
 def _default_segments() -> List[TrafficSegment]:
     """Return a generated set of 100 sample traffic segments along the road network."""
+    from backend.simulation.geo_helpers import haversine_distance_m
+    
     segments = []
     road_segs, weights = load_road_segments()
     
+    # Patras center and radius in meters
+    center_lat = 38.2464
+    center_lng = 21.7346
+    max_radius_m = 1000  # 1 km radius around Patras center
+    
     if not road_segs:
         print("[warn] no road segments loaded; using random locations as fallback")
-        center_lat = 38.2464
-        center_lng = 21.7346
-        max_offset = 0.02
+        max_offset = 0.005
         for i in range(100):
             lat = center_lat + random.uniform(-max_offset, max_offset)
             lng = center_lng + random.uniform(-max_offset, max_offset)
@@ -98,9 +103,30 @@ def _default_segments() -> List[TrafficSegment]:
             )
         return segments
     
+    # Filter road segments to only those within max_radius_m of Patras center
+    filtered_segs = []
+    filtered_weights = []
+    for seg, weight in zip(road_segs, weights):
+        (lat1, lng1), (lat2, lng2) = seg
+        # Check if segment midpoint is within radius
+        mid_lat = (lat1 + lat2) / 2
+        mid_lng = (lng1 + lng2) / 2
+        dist = haversine_distance_m(center_lat, center_lng, mid_lat, mid_lng)
+        if dist <= max_radius_m:
+            filtered_segs.append(seg)
+            filtered_weights.append(weight)
+    
+    if not filtered_segs:
+        print(f"[warn] no road segments within {max_radius_m}m of center; using fallback")
+        return _default_segments()  # Use fallback
+    
+    # Normalize weights for filtered segments
+    total_weight = sum(filtered_weights)
+    filtered_weights = [w / total_weight for w in filtered_weights]
+    
     # Generate segments along road network
     for i in range(100):
-        point = sample_point_on_road(road_segs, weights)
+        point = sample_point_on_road(filtered_segs, filtered_weights)
         if not point:
             print(f"[warn] failed to sample point for segment {i}")
             continue
