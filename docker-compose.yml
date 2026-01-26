@@ -116,27 +116,27 @@ services:
     networks:
       - iot_network
 
-  # Edge Detection (YOLOv8 Video Processing)
-  #iot_edge_detection:
-  #  build:
-  #    context: .
-  #    dockerfile: docker/Dockerfile.edge_detection
-  #  container_name: iot_edge_detection
-  #  restart: unless-stopped
-  #  depends_on:
-  #    - iot_admin_apis
-  #    - iot_database
-  #  volumes:
-  #    - ./edge_detection/videos:/app/videos
-  #    - ./edge_detection/zones:/app/zones
-  #    - ./edge_detection/outputs:/app/outputs
-  #  environment:
-  #    BACKEND_URL: http://iot_admin_apis:8003/api/camera
-  #    YOLO_DEVICE: cpu
-  #    YOLO_MODEL_PATH: yolov8n.pt
-  #    PYTHONUNBUFFERED: 1
-  #  networks:
-  #    - iot_network
+  #Edge Detection (YOLOv8 Video Processing)
+  iot_edge_detection:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.edge_detection
+    container_name: iot_edge_detection
+    restart: unless-stopped
+    depends_on:
+      - iot_admin_apis
+      - iot_database
+    volumes:
+      - ./edge_detection/videos:/app/videos
+      - ./edge_detection/zones:/app/zones
+      - ./edge_detection/outputs:/app/outputs
+    environment:
+      BACKEND_URL: http://iot_admin_apis:8003/api/camera
+      YOLO_DEVICE: cpu
+      YOLO_MODEL_PATH: yolov8n.pt
+      PYTHONUNBUFFERED: 1
+    networks:
+      - iot_network
 
 networks:
   iot_network:
