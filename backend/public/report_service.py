@@ -13,10 +13,11 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.simulation.orion_helpers import OrionClient
+from backend.shared import config
 
 # Orion configuration - must match accident_generator.py
-ORION_BASE_URL = "http://150.140.186.118:1026"
-FIWARE_SERVICE_PATH = "/week4_up1125093"
+ORION_BASE_URL = config.ORION_URL
+FIWARE_SERVICE_PATH = config.FIWARE_SERVICE_PATH
 FIWARE_OWNER = "week4_up1125093"
 REQUEST_TIMEOUT = 5
 

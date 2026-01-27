@@ -54,6 +54,7 @@ VLM_API_URL = os.getenv("VLM_API_URL", "http://labserver.sense-campus.gr:7080/vi
 VLM_API_KEY = os.getenv("VLM_API_KEY", "iot2025")
 VLM_MODEL = os.getenv("VLM_MODEL", "qwen2.5vl:3b-q4_K_M")
 VLM_TIMEOUT = int(os.getenv("VLM_TIMEOUT", "120"))
+# LLM Upstream Settings
 LLM_UPSTREAM_URL = os.getenv("LLM_UPSTREAM_URL", "http://labserver.sense-campus.gr:7080/chat")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "studentpassword")
 LLM_BIND_HOST = os.getenv("LLM_BIND_HOST", "0.0.0.0")
